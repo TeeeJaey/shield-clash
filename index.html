@@ -4,23 +4,1737 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shield Clash</title>
-<link rel="stylesheet" href="css/style.css">
+<style>
+:root{
+  --bg:#dfe5ea;--mat:#cbd5de;--panel:#f3f6f8;--ink:#1a2128;--muted:#5d6975;--line:#a9b6c2;
+  --face:#fbfcfd;--back:#33405a;--back2:#4a5a7c;--hi:#1e6fd9;--danger:#c8321f;--ok:#2e8b46;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#12161c;--mat:#1a2029;--panel:#1e252f;--ink:#e6ebf0;--muted:#94a0ad;--line:#36414e;
+    --face:#232b36;--back:#5a6b94;--back2:#3d4a68;--hi:#6aa5ff;--danger:#ff6b55;--ok:#5fcf7b;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;font-size:14px}
+button{font:inherit;cursor:pointer;border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:6px}
+button:hover{background:var(--mat)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.main{background:var(--ink);color:var(--bg)}
+button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+#app{max-width:1100px;margin:0 auto;padding:10px}
+.side{background:var(--mat);border-radius:14px;padding:10px 12px;display:grid;gap:8px}
+.info{display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;color:var(--muted)}
+.info b{color:var(--ink);font-size:16px}
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.stack{display:grid;gap:6px;justify-items:start}
+.stack .lbl{min-width:64px}
+.zone{display:flex;flex-wrap:wrap;gap:8px;min-height:180px;align-items:flex-start}
+.empty{color:var(--muted);font-style:italic;padding:8px 0}
+.shields{display:flex;gap:4px;align-items:center}
+.back{width:30px;height:42px;border-radius:4px;background:repeating-linear-gradient(45deg,var(--back) 0 6px,var(--back2) 6px 12px);border:1.5px solid var(--ink)}
+.lbl{color:var(--muted);font-size:12px;margin-right:4px}
+.manas{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+.mana{width:22px;height:22px;border-radius:50%;background:var(--el);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;border:1.5px solid var(--ink)}
+.mana.used{opacity:.3}
+.card{position:relative;width:112px;height:174px;border-radius:9px;background:var(--fr);padding:4px;display:flex;flex-direction:column;gap:3px;cursor:pointer;transition:transform .15s}
+.nbar{display:flex;gap:4px;align-items:center;background:var(--lt);border-radius:5px;padding:2px 4px;min-height:26px}
+.cost{flex:none;width:19px;height:19px;border-radius:50%;background:var(--dp);color:var(--lt);font-weight:700;font-size:11.5px;display:grid;place-items:center}
+.nm{font-weight:700;font-size:10.5px;line-height:1.12;color:var(--dp);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.art{position:relative;height:44px;flex:none;border-radius:5px;overflow:hidden;background:var(--md)}
+.art svg{display:block;width:100%;height:100%}
+.trg{position:absolute;right:3px;top:2px;font-size:8px;font-weight:700;background:var(--dp);color:var(--lt);padding:0 4px;border-radius:3px}
+.txt{background:var(--lt);border-radius:5px;padding:3px 5px;font-size:9.5px;line-height:1.28;color:var(--dp);flex:1;overflow:hidden}
+.bot{display:flex;justify-content:space-between;align-items:center;gap:4px}
+.rc{font-size:8.5px;font-weight:700;color:var(--lt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding-left:2px}
+.pw{background:var(--dp);color:var(--lt);font-weight:700;font-size:11px;padding:0 7px;border-radius:4px;line-height:1.5}
+.card.isevo::before{content:"";position:absolute;inset:1.5px;border:1.5px solid var(--lt);border-radius:8px;pointer-events:none;opacity:.75}
+.card.legend::after{content:"";position:absolute;inset:0;border:2px solid #EF9F27;border-radius:9px;pointer-events:none}
+.card.tapped{transform:rotate(9deg);opacity:.62}
+.tag{position:absolute;left:7px;top:35px;font-size:8.5px;font-weight:700;background:var(--ink);color:var(--bg);padding:0 4px;border-radius:3px;z-index:1}
+.card.can{box-shadow:0 0 0 3px var(--hi)}
+.card.sel{transform:translateY(-8px);box-shadow:0 0 0 3px var(--hi)}
+.card.target{box-shadow:0 0 0 3px var(--danger)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 4px;min-height:58px}
+.prompt{color:var(--muted);flex:1;min-width:160px}
+.turn{font-weight:700;padding:4px 10px;border-radius:20px;border:1.5px solid var(--ink)}
+.log{margin-top:10px;font-size:12.5px;color:var(--muted);line-height:1.6;max-height:150px;overflow:auto;padding:6px 4px}
+.log div:first-child{color:var(--ink)}
+.overlay{position:fixed;inset:0;background:rgba(10,14,20,.55);display:grid;place-items:center;padding:16px;z-index:10;overflow:auto}
+.dialog{background:var(--panel);border-radius:14px;padding:22px;max-width:520px;width:100%;display:grid;gap:12px;border:1.5px solid var(--ink)}
+.dialog h2{margin:0;font-family:"Palatino Linotype",Palatino,Georgia,serif;font-size:24px}
+.dialog p{margin:0;line-height:1.5}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+#start .dialog{max-width:680px}
+#start h1{margin:0;font-family:"Palatino Linotype",Palatino,Georgia,serif;font-size:44px;letter-spacing:-.5px;line-height:1}
+.decks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.deck{text-align:left;display:grid;gap:4px;padding:10px 12px}
+.deck small{color:var(--muted)}
+.dots{display:flex;gap:4px}
+.dots span{width:14px;height:14px;border-radius:50%;background:var(--el)}
+.rules{color:var(--muted);line-height:1.55;font-size:13.5px;margin:0}
+.bh{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 0;border-bottom:1.5px solid var(--line)}
+.bh h2{margin:0 8px 0 0;font-family:"Palatino Linotype",Palatino,Georgia,serif;font-size:26px}
+.cnt{font-weight:700;margin-right:auto;font-size:16px}
+.cnt.ok{color:var(--ok)}
+.bmsg{color:var(--muted);font-size:13px;width:100%}
+.civ h3{margin:18px 0 8px;font-family:"Palatino Linotype",Palatino,Georgia,serif;font-size:20px;color:var(--el)}
+.bgrid{display:flex;flex-wrap:wrap;gap:12px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.tdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--el);margin-right:6px}
+.bitem{display:grid;gap:5px;justify-items:center}
+.bc{display:flex;gap:6px;align-items:center}
+.bc button{padding:2px 10px}
+.bc span{min-width:16px;text-align:center;font-weight:700}
+@media (max-width:600px){
+  .shields .back{width:20px;height:28px}.shields{gap:3px}
+  .tcard{zoom:.78}.tvis{padding:12px 8px}
+  .card{width:86px;height:136px;padding:3px;gap:2px}
+  .nbar{min-height:22px;padding:1px 3px}.nm{font-size:9px}.cost{width:16px;height:16px;font-size:10px}
+  .art{height:32px}.rc{font-size:7.5px}.trg{font-size:7px}
+  .txt{font-size:8.5px;line-height:1.22;padding:2px 3px}.pw{font-size:9.5px;padding:0 4px}.rc{letter-spacing:-.2px}.tag{top:25px;font-size:7.5px}
+  .zone{min-height:142px}
+  #start h1{font-size:34px}
+}
+
+
+/* zoomed card view */
+#zoom .overlay{z-index:20}
+.zbox{background:var(--panel);border:1.5px solid var(--ink);border-radius:16px;padding:18px;max-width:640px;width:100%;display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start;position:relative}
+.zinfo{flex:1;min-width:220px;display:grid;gap:10px}
+.zinfo h2{margin:0;font-family:"Palatino Linotype",Palatino,Georgia,serif;font-size:24px;line-height:1.15;padding-right:36px}
+.zinfo p{margin:0;line-height:1.5}
+.zmeta{color:var(--muted)}
+.kw{display:grid;gap:8px}
+.kw div{line-height:1.45;font-size:13.5px}
+.kw b{display:block}
+.zclose{position:absolute;right:12px;top:12px;width:34px;height:34px;padding:0;border-radius:50%;font-size:18px;line-height:1}
+.card.big{width:250px;height:390px;padding:8px;gap:6px;border-radius:16px;cursor:default;flex:none;margin:0 auto}
+.card.big .nbar{min-height:50px;padding:4px 8px;border-radius:9px;gap:8px}
+.card.big .cost{width:36px;height:36px;font-size:20px}
+.card.big .nm{font-size:17px;-webkit-line-clamp:3}
+.card.big .art{height:140px;border-radius:9px}
+.card.big .rc{font-size:13px;padding-left:4px}
+.card.big .trg{font-size:12px;padding:1px 7px;right:6px;top:5px;border-radius:5px}
+.card.big .txt{font-size:13.5px;line-height:1.4;padding:8px 10px;border-radius:9px}
+.card.big .pw{font-size:19px;padding:2px 12px;border-radius:7px}
+.card.big.legend::after{border-radius:16px;border-width:3px}
+.card.big.isevo::before{border-radius:14px;inset:3px;border-width:2px}
+.zoomwrap .art *,.dialog .art *{animation-play-state:running}
+.dcard{display:flex;justify-content:center}
+.hint{color:var(--muted);font-size:12.5px}
+.tut{max-width:820px!important}
+.thead{display:flex;align-items:center;gap:10px}
+.tstep{color:var(--muted);font-size:13px;margin-right:auto}
+.tclose{width:34px;height:34px;padding:0;border-radius:50%;font-size:18px;line-height:1}
+.tut h2{font-size:26px}
+.tbody{display:flex;flex-wrap:wrap;gap:20px;align-items:center}
+.tvis{flex:1 1 320px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;min-height:220px;background:var(--mat);border-radius:12px;padding:16px;position:relative}
+.ttxt{flex:1 1 260px;display:grid;gap:10px}
+.ttxt p{margin:0;line-height:1.55}
+.ttxt ol{margin:0;padding-left:20px;display:grid;gap:6px;line-height:1.5}
+.tkey{display:grid;gap:6px}
+.tkey div{display:flex;gap:8px;align-items:baseline;line-height:1.45}
+.mk{width:22px;height:22px;flex:none;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:700;font-size:12px;display:inline-grid;place-items:center}
+.tvis .mk{position:absolute;transform:translate(-50%,-50%);z-index:4;box-shadow:0 0 0 2px var(--mat)}
+.tcard{position:relative;margin:0 14px}
+.arrow{font-size:26px;color:var(--muted);font-weight:700}
+.tcap{font-size:12.5px;color:var(--muted);text-align:center;max-width:120px;line-height:1.35}
+.tcol{display:grid;gap:6px;justify-items:center}
+.tnav{display:flex;align-items:center;gap:10px}
+.tdots{display:flex;flex-wrap:wrap;gap:6px;margin:0 auto;justify-content:center}
+.tdots button{width:11px;height:11px;padding:0;border-radius:50%;background:var(--line);border:none}
+.tdots button.on{background:var(--ink)}
+.tshields{display:flex;flex-wrap:wrap;gap:4px;max-width:180px;justify-content:center}
+.back.gone{opacity:.25}
+.tnote{font-size:13px;color:var(--muted)}
+.dname{font:inherit;font-weight:700;font-size:15px;padding:6px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:180px}
+.dname:focus{outline:3px solid var(--hi);outline-offset:1px}
+.bsaved{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+.mydeck{display:grid;gap:5px;padding:10px 12px;border:1.5px solid var(--ink);border-radius:6px;background:var(--panel)}
+.mydeck small{color:var(--muted);line-height:1.4}
+.mdb{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:2px}
+.mdb button{padding:4px 10px}
+#mydecks{display:grid;gap:8px}
+.seg{display:inline-flex}.seg button{border-radius:0;padding:5px 14px}.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0;margin-left:-1.5px}
+.fld{display:grid;gap:4px}
+.fld span{font-size:13px;color:var(--muted)}
+.fld input,.fld select{font:inherit;padding:8px 10px;border:1.5px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+.fld input:focus,.fld select:focus{outline:3px solid var(--hi);outline-offset:1px}
+#mpcode{text-transform:uppercase;letter-spacing:4px;width:120px}
+.joinrow{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.code{font-size:44px;font-weight:700;letter-spacing:10px;font-family:ui-monospace,Menlo,monospace;margin:4px 0!important}
+.err{color:var(--danger);font-weight:700}
+.modesw{padding:10px 12px;border-radius:10px;background:var(--mat)}
+.modesw .hint{flex-basis:100%}
+#start.friendmode .pickh::after{content:" to bring to the room"}
+.howto{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* character and scene animation; loops share one clock (--ph) so re-renders don't restart them */
+.art *{animation-play-state:paused;transform-box:fill-box}
+.bzone .art *,.card:hover .art *,.card.sel .art *{animation-play-state:running}
+.a-hover{animation:k-hover 2s ease-in-out infinite;animation-delay:var(--ph)}
+.a-breathe{transform-origin:50% 100%;animation:k-breathe 2s ease-in-out infinite;animation-delay:var(--ph)}
+.a-sway{transform-origin:50% 100%;animation:k-sway 4s ease-in-out infinite;animation-delay:var(--ph)}
+.a-float{animation:k-float 4s ease-in-out infinite;animation-delay:var(--ph)}
+.a-spin{transform-origin:50% 50%;animation:k-spin 8s linear infinite;animation-delay:var(--ph)}
+.a-scuttle{animation:k-scuttle 2s steps(8) infinite;animation-delay:var(--ph)}
+.a-pulse{transform-origin:50% 50%;animation:k-pulse 2s ease-in-out infinite;animation-delay:var(--ph)}
+.wl{transform-origin:100% 80%;animation:k-flapl 1s ease-in-out infinite;animation-delay:var(--ph)}
+.wr{transform-origin:0% 80%;animation:k-flapr 1s ease-in-out infinite;animation-delay:var(--ph)}
+.wu{transform-origin:60% 100%;animation:k-flapu 1s ease-in-out infinite;animation-delay:var(--ph)}
+.ring{transform-origin:50% 50%;animation:k-spin 8s linear infinite;animation-delay:var(--ph)}
+.eye{animation:k-blink 4s infinite;animation-delay:var(--ph)}
+.p-ember{animation:k-rise 2s ease-out infinite}
+.p-bubble{animation:k-bubble 4s ease-in infinite}
+.p-wave{animation:k-wave 4s ease-in-out infinite}
+.p-tree{transform-origin:50% 100%;animation:k-sway 4s ease-in-out infinite}
+.p-leaf{animation:k-leaf 4s linear infinite}
+.p-rays,.p-burst{animation:k-glow 4s ease-in-out infinite;animation-delay:var(--ph)}
+.p-glow{transform-origin:50% 50%;animation:k-aura 2s ease-in-out infinite;animation-delay:var(--ph)}
+.p-twinkle{animation:k-twinkle 2s ease-in-out infinite}
+.p-mist{animation:k-mist 8s ease-in-out infinite}
+@keyframes k-hover{50%{transform:translateY(-2.5px)}}
+@keyframes k-breathe{50%{transform:scale(1.03,1.05)}}
+@keyframes k-sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes k-float{0%,100%{transform:translateY(0);opacity:1}50%{transform:translateY(-3px);opacity:.75}}
+@keyframes k-spin{to{transform:rotate(360deg)}}
+@keyframes k-scuttle{0%,100%{transform:translateX(0)}25%{transform:translateX(1.5px)}75%{transform:translateX(-1.5px)}}
+@keyframes k-pulse{50%{transform:scale(1.12)}}
+@keyframes k-flapl{50%{transform:rotate(16deg) scaleY(.85)}}
+@keyframes k-flapr{50%{transform:rotate(-16deg) scaleY(.85)}}
+@keyframes k-flapu{50%{transform:rotate(-12deg) scaleY(.85)}}
+@keyframes k-blink{0%,93%,100%{opacity:1}96%{opacity:0}}
+@keyframes k-rise{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-16px);opacity:0}}
+@keyframes k-bubble{0%{transform:translateY(0);opacity:0}15%{opacity:1}100%{transform:translateY(-22px);opacity:0}}
+@keyframes k-wave{50%{transform:translateX(-6px)}}
+@keyframes k-leaf{0%{transform:translate(0,0) rotate(0);opacity:0}15%{opacity:1}100%{transform:translate(-14px,30px) rotate(200deg);opacity:0}}
+@keyframes k-glow{50%{opacity:.45}}
+@keyframes k-aura{50%{transform:scale(1.08);opacity:.25}}
+@keyframes k-twinkle{50%{opacity:.15}}
+@keyframes k-mist{50%{transform:translateX(9px)}}
+/* action animations */
+.card.fx-enter{animation:k-enter .55s ease-out both;animation-delay:var(--fxd)}
+.card.fx-up{animation:k-up .45s ease-in-out both;animation-delay:var(--fxd);z-index:3}
+.card.fx-down{animation:k-down .45s ease-in-out both;animation-delay:var(--fxd);z-index:3}
+.card.fx-hit{animation:k-hit .35s ease-in-out both;animation-delay:var(--fxd)}
+.card.fx-die{animation:k-die .45s ease-in both;animation-delay:var(--fxd)}
+.back.shatter{animation:k-shatter .45s ease-in both}
+@keyframes k-enter{0%{transform:scale(.4) translateY(30px);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
+@keyframes k-up{40%{transform:translateY(-34px) scale(1.08)}}
+@keyframes k-down{40%{transform:translateY(34px) scale(1.08)}}
+@keyframes k-hit{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+@keyframes k-die{to{transform:scale(.6) rotate(-10deg);opacity:0;filter:grayscale(1)}}
+@keyframes k-shatter{50%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(.2) rotate(-25deg);opacity:0}}
+@media (prefers-reduced-motion:reduce){.card{transition:none}*,*::before,*::after{animation:none!important}}
+</style>
 </head>
 <body>
 <div id="app"></div>
 <div id="layer"></div>
 <div id="zoom"></div>
-<script src="js/cards.js"></script>
-<script src="js/art.js"></script>
-<script src="js/decks.js"></script>
-<script src="js/state.js"></script>
-<script src="js/rules.js"></script>
-<script src="js/ai.js"></script>
-<script src="js/input.js"></script>
-<script src="js/zoom.js"></script>
-<script src="js/builder.js"></script>
-<script src="js/render.js"></script>
-<script src="js/screens.js"></script>
-<script src="js/main.js"></script>
+<script>
+// Inside the Claude app, window.storage is provided (personal + shared data).
+// Anywhere else (GitHub Pages, a downloaded file) we keep decks in localStorage
+// and connect two devices directly with PeerJS for online play.
+const IN_CLAUDE=!!(window.storage&&typeof window.storage.get==='function');
+if(!IN_CLAUDE){
+  const LS=(()=>{try{const t='__sc';localStorage.setItem(t,'1');localStorage.removeItem(t);return localStorage}catch(e){return null}})();
+  const mem={};
+  const g=k=>LS?LS.getItem('sc:'+k):(k in mem?mem[k]:null),st=(k,v)=>{if(LS)LS.setItem('sc:'+k,v);else mem[k]=v},rm=k=>{if(LS)LS.removeItem('sc:'+k);else delete mem[k]};
+  window.storage={
+    async get(k){const v=g(k);if(v==null)throw new Error('Key not found');return {key:k,value:v,shared:false}},
+    async set(k,v){st(k,v);return {key:k,value:v,shared:false}},
+    async delete(k){rm(k);return {key:k,deleted:true,shared:false}},
+    async list(prefix=''){const keys=[];if(LS){for(let i=0;i<LS.length;i++){const k=LS.key(i);if(k.startsWith('sc:'+prefix))keys.push(k.slice(3))}}return {keys,prefix,shared:false}}
+  };
+}
+const CIV={
+  fire:{n:'Fire',c:'#A32D2D'},water:{n:'Water',c:'#185FA5'},nature:{n:'Nature',c:'#3B6D11'},
+  light:{n:'Light',c:'#854F0B'},darkness:{n:'Dark',c:'#3C3489'}
+};
+/* ---------- card art: original procedural illustrations ---------- */
+const PAL={
+  fire:{frame:'#A32D2D',light:'#FCEBEB',mid:'#F09595',deep:'#501313',soft:'#F7C1C1'},
+  water:{frame:'#185FA5',light:'#E6F1FB',mid:'#85B7EB',deep:'#042C53',soft:'#B5D4F4'},
+  nature:{frame:'#3B6D11',light:'#EAF3DE',mid:'#97C459',deep:'#173404',soft:'#C0DD97'},
+  light:{frame:'#854F0B',light:'#FAEEDA',mid:'#FAC775',deep:'#412402',soft:'#FCE3B4'},
+  darkness:{frame:'#3C3489',light:'#EEEDFE',mid:'#AFA9EC',deep:'#26215C',soft:'#CECBF6'}
+};
+// Each figure is drawn in a 40x40 box, feet near y=38. 'L' = fill with the light tone (eyes, details).
+const FIG={
+ Drake:[
+  'M15 25 L8 6 L17 15 L19 4 L24 17 Z',
+  'M4 36 C3 30 8 25 15 24 C20 23 24 24 27 21 L30 15 L37 13 L39 16 L35 18 L38 21 L32 22 C31 28 27 33 21 35 C15 37 10 37 4 36 Z',
+  'M4 36 C1 37 0 33 2 31 C2 34 3 35 5 35 Z',
+  'M13 34 L12 39 L15 39 L16 34 Z','M21 33 L21 39 L24 39 L24 32 Z',
+  ['L','M33 15.5 a1.2 1.2 0 1 0 0.1 0 Z']],
+ Raider:[
+  'M15 9 L11 2 L17 6 Z','M25 9 L29 2 L23 6 Z',
+  'M20 5 a5 5 0 1 0 0.1 0 Z',
+  'M13 15 L27 15 L29 27 L11 27 Z',
+  'M13 27 L18 27 L17 38 L12 38 Z','M22 27 L27 27 L28 38 L23 38 Z',
+  'M27 16 L33 21 L31 23 L26 19 Z','M31 22 L38 3 L40 4 L34 23 Z',
+  'M13 16 L6 19 L7 27 L12 26 Z',
+  ['L','M17.5 9 h2 v1.5 h-2 Z M21 9 h2 v1.5 h-2 Z']],
+ Firebird:[
+  'M19 20 C13 11 6 8 0 9 C4 13 4 15 2 17 C7 17 11 20 15 25 Z',
+  'M21 20 C27 11 34 8 40 9 C36 13 36 15 38 17 C33 17 29 20 25 25 Z',
+  'M20 14 C24 14 25 20 24 27 C23 31 17 31 16 27 C15 20 16 14 20 14 Z',
+  'M20 8 a4 4 0 1 0 0.1 0 Z','M23 11 L27 12.5 L23 14 Z',
+  'M17 29 L12 39 L18 34 L20 40 L22 34 L28 39 L23 29 Z',
+  ['L','M21 11 a1 1 0 1 0 0.1 0 Z']],
+ Tidefolk:[
+  'M18 4 a4.5 4.5 0 1 0 0.1 0 Z',
+  'M13 13 L23 13 L24 23 L12 23 Z',
+  'M12 23 L24 23 C26 29 24 33 19 35 L26 37 L22 40 L15 37 C10 34 9 28 12 23 Z',
+  'M23 15 L28 18 L27 19 L22 17 Z',
+  'M27 6 L28.5 6 L28.5 34 L27 34 Z','M24 3 L24 9 L31.5 9 L31.5 3 L30.3 3 L30.3 7.8 L28.4 7.8 L28.4 2 L27.1 2 L27.1 7.8 L25.2 7.8 L25.2 3 Z',
+  'M12 7 C9 9 9 14 11 17 L13 13 Z',
+  ['L','M19 7.5 a0.9 0.9 0 1 0 0.1 0 Z']],
+ Serpent:[
+  ['S','M3 37 C9 26 17 40 23 30 C28 21 22 15 29 10'],
+  'M27 6 C31 4 37 6 39 9 L33 10 L36 13 C33 14 30 13 28 12 Z',
+  'M8 30 L9 25 L11 30 Z','M15 33 L17 28 L18 34 Z','M22 24 L26 21 L25 26 Z',
+  ['L','M33 7.5 a0.9 0.9 0 1 0 0.1 0 Z']],
+ Glyphmind:[
+  ['S2','M20 6 a14 14 0 1 0 0.1 0 Z'],
+  'M20 11 a9 9 0 1 0 0.1 0 Z',
+  ['L','M20 16.5 a3.5 3.5 0 1 0 0.1 0 Z'],
+  'M4 18 h4 v4 h-4 Z','M32 18 h4 v4 h-4 Z','M18 2 h4 v4 h-4 Z','M18 34 h4 v4 h-4 Z'],
+ Wildkin:[
+  'M12 18 L14 13 L16 18 L18 12 L20 18 L22 13 L24 18 Z',
+  'M20 18 C29 18 33 21 33 27 C33 32 28 34 20 34 C11 34 6 32 6 26 C6 21 11 18 20 18 Z',
+  'M30 21 L37 22 L39 28 L33 31 L30 29 Z','M36 23 L40 16 L38 24 Z','M37 28 L40 26 L38 30 Z',
+  'M29 19 L30 15 L33 20 Z',
+  'M9 31 h4 v8 h-4 Z','M15 32 h4 v7 h-4 Z','M23 32 h4 v7 h-4 Z','M28 31 h4 v8 h-4 Z',
+  ['L','M34 24 a0.9 0.9 0 1 0 0.1 0 Z']],
+ Giant:[
+  'M20 4 a10 10 0 1 0 0.1 0 Z','M11 10 a6.5 6.5 0 1 0 0.1 0 Z','M29 10 a6.5 6.5 0 1 0 0.1 0 Z',
+  'M14 39 L16 19 L24 19 L26 39 L22 39 L20 31 L18 39 Z',
+  'M16 22 L5 27 L6 30 L16 26 Z','M24 22 L35 27 L34 30 L24 26 Z',
+  'M5 27 L2 25 M5 28 L2 31',
+  ['L','M17.5 22 a1.2 1.2 0 1 0 0.1 0 Z M22.5 22 a1.2 1.2 0 1 0 0.1 0 Z']],
+ Rootling:[
+  'M20 22 C14 14 6 16 7 9 C14 8 19 14 20 22 Z','M20 22 C26 14 34 16 33 9 C26 8 21 14 20 22 Z',
+  'M19 18 h2 v6 h-2 Z',
+  'M20 23 a8 8 0 1 0 0.1 0 Z',
+  'M14 36 L13 39 L17 39 L17 36 Z','M23 36 L23 39 L27 39 L26 36 Z',
+  ['L','M17 29 a1.3 1.3 0 1 0 0.1 0 Z M23 29 a1.3 1.3 0 1 0 0.1 0 Z']],
+ Sentinel:[
+  'M15 3 h10 v10 h-10 Z','M19 0 h2 v4 h-2 Z',
+  'M12 14 L28 14 L29 29 L11 29 Z',
+  'M12 29 L18 29 L17 39 L12 39 Z','M22 29 L28 29 L28 39 L23 39 Z',
+  'M8 2 L9.5 2 L9.5 36 L8 36 Z','M6.5 5 L8.7 0 L11 5 Z',
+  'M22 15 L36 15 L36 26 C36 32 29 37 29 37 C29 37 22 32 22 26 Z',
+  ['L','M16.5 7 h7 v1.6 h-7 Z M28.2 18 h1.6 v13 h-1.6 Z M24.5 22 h9 v1.6 h-9 Z']],
+ Choir:[
+  ['S1','M14.5 2.2 C14.5 0.6 25.5 0.6 25.5 2.2 C25.5 3.8 14.5 3.8 14.5 2.2 Z'],
+  'M20 6 a3.8 3.8 0 1 0 0.1 0 Z',
+  'M16 14 L24 14 L29 39 L11 39 Z',
+  'M16 16 C9 8 3 9 0 18 C5 17 6 21 3 24 C8 23 11 24 14 27 Z',
+  'M24 16 C31 8 37 9 40 18 C35 17 34 21 37 24 C32 23 29 24 26 27 Z'],
+ Starborn:[
+  'M20 2 L23 15 L36 10 L26 20 L38 26 L24 25 L20 38 L16 25 L2 26 L14 20 L4 10 L17 15 Z',
+  ['L','M20 13 L25 20 L20 27 L15 20 Z'],
+  'M5 3 a1.5 1.5 0 1 0 0.1 0 Z','M35 34 a1.5 1.5 0 1 0 0.1 0 Z','M36 3 a1 1 0 1 0 0.1 0 Z'],
+ Fiend:[
+  'M16 8 L11 0 L18 5 Z','M24 8 L29 0 L22 5 Z',
+  'M20 6 a4.5 4.5 0 1 0 0.1 0 Z',
+  'M15 15 L1 6 L4 15 L0 19 L6 20 L3 26 L14 24 Z','M25 15 L39 6 L36 15 L40 19 L34 20 L37 26 L26 24 Z',
+  'M14 14 L26 14 L28 28 L12 28 Z',
+  'M13 28 L18 28 L17 39 L13 39 Z','M22 28 L27 28 L27 39 L23 39 Z',
+  ['S','M27 26 C33 30 34 35 38 33'],
+  ['L','M17.5 10 L19.5 11 L17.5 11.6 Z M22.5 10 L20.5 11 L22.5 11.6 Z']],
+ Crawler:[
+  ['S','M14 26 L6 20 L2 26 M14 29 L5 29 L1 35 M15 32 L8 36 L6 40 M26 26 L34 20 L38 26 M26 29 L35 29 L39 35 M25 32 L32 36 L34 40'],
+  'M20 20 C27 20 30 24 30 29 C30 34 26 37 20 37 C14 37 10 34 10 29 C10 24 13 20 20 20 Z',
+  'M20 13 a5 5 0 1 0 0.1 0 Z',
+  'M16 13 L13 9 L17 11 Z','M24 13 L27 9 L23 11 Z',
+  ['L','M17.5 17 a1 1 0 1 0 0.1 0 Z M22.5 17 a1 1 0 1 0 0.1 0 Z M20 24 v10']],
+ Wraith:[
+  'M20 3 C28 3 31 11 30 20 L33 37 L28 33 L25 39 L21 33 L17 39 L14 33 L8 37 L10 20 C9 11 12 3 20 3 Z',
+  ['L','M20 9 C24 9 26 13 25 18 C24 22 16 22 15 18 C14 13 16 9 20 9 Z'],
+  'M17.6 14.5 a1.3 1.3 0 1 0 0.1 0 Z','M22.4 14.5 a1.3 1.3 0 1 0 0.1 0 Z',
+  'M10 22 L3 28 L5 30 L11 25 Z','M30 22 L37 28 L35 30 L29 25 Z']
+};
+const EMB={
+ fire:'M20 3 C26 11 31 16 29 26 C28 33 23 37 20 37 C14 37 9 32 10 25 C11 19 15 17 16 11 C19 15 21 17 22 20 C23 15 22 9 20 3 Z',
+ water:'M20 3 C26 13 31 20 31 26 C31 32 26 37 20 37 C14 37 9 32 9 26 C9 20 14 13 20 3 Z',
+ nature:'M7 33 C7 16 18 6 35 6 C35 23 24 33 7 33 Z',
+ light:'M20 11 a9 9 0 1 0 0.1 0 Z M20 0 L22 7 L18 7 Z M20 40 L22 33 L18 33 Z M0 20 L7 18 L7 22 Z M40 20 L33 18 L33 22 Z M6 6 L11 10 L10 11 Z M34 34 L29 30 L30 29 Z M34 6 L30 11 L29 10 Z M6 34 L10 29 L11 30 Z',
+ darkness:'M28 6.1 A16 16 0 1 0 28 33.9 A14 14 0 0 1 28 6.1 Z'
+};
+function hashStr(s){let h=2166136261;for(const ch of s)h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+// How each race moves, and which parts of the drawing are wings.
+const MOVE={Drake:'hover',Firebird:'hover',Choir:'hover',Fiend:'hover',Raider:'breathe',Sentinel:'breathe',Tidefolk:'breathe',Wildkin:'breathe',
+  Serpent:'sway',Giant:'sway',Rootling:'sway',Wraith:'float',Glyphmind:'float',Starborn:'spin',Crawler:'scuttle'};
+const WING={Drake:{0:'wu'},Firebird:{0:'wl',1:'wr'},Choir:{3:'wl',4:'wr'},Fiend:{3:'wl',4:'wr'},Glyphmind:{0:'ring'}};
+const dl=(r,max)=>`style="animation-delay:calc(var(--ph) - ${(r()*max).toFixed(2)}s)"`;
+function scene(e,P,r){
+  let s='';
+  if(e==='fire'){
+    const h=34+r()*8;
+    s+=`<path d="M0 60 L0 ${h} L${14+r()*8} ${h-14-r()*8} L${32+r()*6} ${h-4} L${50+r()*10} ${h-20-r()*8} L${72+r()*6} ${h-6} L${86+r()*6} ${h-15} L100 ${h-2} L100 60 Z" fill="${P.frame}" opacity=".55"/>`;
+    s+=`<path d="M0 60 L0 54 Q25 49 50 54 T100 52 L100 60 Z" fill="${P.deep}" opacity=".5"/>`;
+    for(let i=0;i<8;i++)s+=`<circle class="p-ember" ${dl(r,2)} cx="${(r()*100).toFixed(1)}" cy="${(20+r()*35).toFixed(1)}" r="${(0.6+r()*1.1).toFixed(1)}" fill="${P.light}"/>`;
+  }else if(e==='water'){
+    for(let i=0;i<4;i++){const y=22+i*11+r()*3,o=r()*20;
+      s+=`<path class="p-wave" ${dl(r,4)} d="M-10 ${y} Q${2.5+o/4} ${y-4} 15 ${y} T40 ${y} T65 ${y} T90 ${y} T115 ${y} L115 62 L-10 62 Z" fill="${i%2?P.frame:P.soft}" opacity="${.25+i*.12}"/>`}
+    for(let i=0;i<7;i++)s+=`<circle class="p-bubble" ${dl(r,4)} cx="${(r()*100).toFixed(1)}" cy="${(25+r()*30).toFixed(1)}" r="${(0.8+r()*1.6).toFixed(1)}" fill="none" stroke="${P.light}" stroke-width=".7"/>`;
+  }else if(e==='nature'){
+    s+=`<ellipse cx="${20+r()*20}" cy="62" rx="45" ry="${18+r()*6}" fill="${P.frame}" opacity=".4"/><ellipse cx="${70+r()*20}" cy="64" rx="45" ry="${16+r()*6}" fill="${P.frame}" opacity=".55"/>`;
+    for(let i=0;i<5;i++){const x=r()*100,h=10+r()*12,y=50-r()*8;s+=`<path class="p-tree" ${dl(r,4)} d="M${x} ${y-h} L${x+5} ${y} L${x-5} ${y} Z" fill="${P.deep}" opacity=".35"/>`}
+    for(let i=0;i<4;i++)s+=`<path class="p-leaf" ${dl(r,4)} d="M${(r()*100).toFixed(1)} ${(r()*20).toFixed(1)} q2 -2 4 0 q-2 2 -4 0 Z" fill="${P.light}"/>`;
+  }else if(e==='light'){
+    const cx=50+(r()-.5)*30;let rays='';
+    for(let i=0;i<9;i++){const a=-Math.PI*(0.08+i*0.105),x1=cx+Math.cos(a-.04)*140,y1=-4+Math.sin(a-.04)*-140,x2=cx+Math.cos(a+.04)*140,y2=-4+Math.sin(a+.04)*-140;
+      rays+=`<path d="M${cx} -4 L${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${P.light}" opacity=".45"/>`}
+    s+=`<g class="p-rays" ${dl(r,4)}>${rays}</g>`;
+    for(let i=0;i<6;i++){const x=r()*100,y=r()*50,k=1+r()*1.5;s+=`<path class="p-twinkle" ${dl(r,2)} d="M${x} ${y-k*2} L${x+k*.6} ${y} L${x} ${y+k*2} L${x-k*.6} ${y} Z" fill="${P.light}"/>`}
+  }else{
+    const mx=15+r()*70,my=10+r()*8;
+    s+=`<circle cx="${mx}" cy="${my}" r="8" fill="${P.light}" opacity=".8"/><circle cx="${mx+3.5}" cy="${my-2}" r="7" fill="${P.mid}"/>`;
+    for(let i=0;i<3;i++){const y=38+i*8+r()*3;s+=`<path class="p-mist" ${dl(r,8)} d="M-12 ${y} Q30 ${y-5} 55 ${y} T112 ${y-1} L112 62 L-12 62 Z" fill="${P.deep}" opacity="${.2+i*.15}"/>`}
+    for(let i=0;i<6;i++)s+=`<circle class="p-twinkle" ${dl(r,2)} cx="${(r()*100).toFixed(1)}" cy="${(r()*28).toFixed(1)}" r=".7" fill="${P.light}"/>`;
+  }
+  return s;
+}
+function figSVG(parts,P,race){
+  const w=WING[race]||{};
+  return parts.map((p,i)=>{
+    const c=w[i]?` class="${w[i]}"`:'';
+    if(typeof p==='string')return `<path${c} d="${p}" fill="${P.deep}"/>`;
+    if(p[0]==='L')return `<path class="eye" d="${p[1]}" fill="${P.light}" stroke="${P.light}" stroke-width=".4"/>`;
+    if(p[0]==='S')return `<path${c} d="${p[1]}" fill="none" stroke="${P.deep}" stroke-width="4" stroke-linecap="round"/>`;
+    if(p[0]==='S1')return `<path${c} d="${p[1]}" fill="none" stroke="${P.deep}" stroke-width="1.4"/>`;
+    if(p[0]==='S2')return `<path${c} d="${p[1]}" fill="none" stroke="${P.deep}" stroke-width="1.6" stroke-dasharray="3 2.5"/>`;
+  }).join('');
+}
+function cardArt(c,compact){
+  const P=PAL[c.e],r=mulberry(hashStr(c.id));
+  let s=scene(c.e,P,r);
+  if(c.t==='s'){
+    let rays='';
+    for(let i=0;i<12;i++){const a=i*Math.PI/6+r()*.2;rays+=`<path d="M50 30 L${(50+Math.cos(a-.08)*70).toFixed(1)} ${(30+Math.sin(a-.08)*70).toFixed(1)} L${(50+Math.cos(a+.08)*70).toFixed(1)} ${(30+Math.sin(a+.08)*70).toFixed(1)} Z" fill="${P.light}" opacity=".3"/>`}
+    s+=`<g class="p-burst">${rays}</g><circle class="p-glow" cx="50" cy="30" r="19" fill="${P.light}" opacity=".55"/>`;
+    s+=`<g transform="translate(32 12) scale(.9)"><g class="a-pulse"><path d="${EMB[c.e]}" fill="${P.deep}"/></g></g>`;
+  }else{
+    // compact = small cards with a short picture window, so the creature is drawn smaller to keep its head in view
+    const big=c.cost>=7,j=r()*.12,sc=compact?(big?1.05:0.94)+j/2:(big?1.32:1.12)+j,flip=r()<.35;
+    const w=40*sc,x=50-w/2+(r()-.5)*18,y=60-38*sc-1;
+    if(big||c.evo)s+=`<circle class="p-glow" cx="${(x+w/2).toFixed(1)}" cy="${(y+20*sc).toFixed(1)}" r="${(21*sc).toFixed(1)}" fill="${P.light}" opacity="${big?.5:.35}"/>`;
+    const tf=flip?`translate(${(x+w).toFixed(1)} ${y.toFixed(1)}) scale(${-sc.toFixed(2)} ${sc.toFixed(2)})`:`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${sc.toFixed(2)})`;
+    s+=`<g transform="${tf}"><g class="fig a-${MOVE[c.race]||'breathe'}" ${dl(r,4)}>${figSVG(FIG[c.race]||FIG.Raider,P,c.race)}</g></g>`;
+  }
+  return `<svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><rect width="100" height="60" fill="${P.mid}"/>${s}</svg>`;
+}
+const FXT={
+  bounce:"Return an enemy creature to its owner's hand.",kill:'Destroy an enemy creature.',
+  killTapped:'Destroy a tapped enemy creature.',
+  ramp:'Put the top card of your deck into your mana zone.',ramp2:'Put the top 2 cards of your deck into your mana zone.',
+  tapall:"Tap all your opponent's creatures.",tapone:'Tap an enemy creature.',
+  draw:'Draw a card.',draw2:'Draw 2 cards.',draw3:'Draw 3 cards.',
+  discard:'Your opponent discards a random card.',discard2:'Your opponent discards 2 random cards.',
+  shieldadd:'Add the top card of your deck to your shields.',shield2:'Add the top 2 cards of your deck to your shields.',
+  recover:'Return your best creature from your graveyard to your hand.',
+  manaburn:"Put a random card from your opponent's mana zone into their graveyard."
+};
+const fxList=f=>f?(Array.isArray(f)?f:[f]):[];
+function fxText(f){
+  const m=/^(burn|sweep)(\d+)$/.exec(f);
+  if(m)return m[1]==='burn'?`Destroy an enemy creature with ${m[2]} power or less.`:`Destroy all enemy creatures with ${m[2]} power or less.`;
+  return FXT[f];
+}
+const fxDesc=f=>fxList(f).map(fxText).join(' ');
+const DEFS=[];
+const C=(id,n,e,cost,p,race,a={})=>DEFS.push({id,n,e,t:'c',cost,p,race,...a});
+const S=(id,n,e,cost,fx,trig)=>DEFS.push({id,n,e,t:'s',cost,fx,trig});
+const E=(id,n,e,cost,p,race,a={})=>C(id,n,e,cost,p,race,{evo:race,...a});
+
+/* ===== FIRE ===== */
+C('spark','Spark Goblin','fire',1,1000,'Raider',{speed:1});
+C('wisp','Kindle Wisp','fire',1,1000,'Firebird',{pa:1000});
+C('sprite','Ember Sprite','fire',1,1000,'Firebird',{speed:1,pa:1000});
+C('scrap','Ash Scrapper','fire',2,2000,'Raider',{pa:1000});
+C('bpup','Blaze Pup','fire',2,2000,'Raider',{speed:1});
+C('lancer','Scorch Lancer','fire',2,1000,'Raider',{pa:3000});
+C('chick','Flamewing Chick','fire',2,2000,'Firebird',{onDie:'draw'});
+C('raider','Cinder Raider','fire',3,3000,'Raider',{speed:1});
+C('hatch','Ember Hatchling','fire',3,3000,'Drake',{pa:1000});
+C('smolder','Smoldering Brute','fire',3,4000,'Raider');
+E('chief','Blaze Raider Chief','fire',3,5000,'Raider',{pa:2000});
+C('drakeling','Ember Drakeling','fire',4,4000,'Drake',{pa:2000});
+C('harrier','Ashwing Harrier','fire',4,2000,'Firebird',{speed:1,onAtk:'burn2000'});
+C('pyroclast','Pyroclast Raider','fire',4,4000,'Raider',{speed:1});
+C('cinderclaw','Cinderclaw Drake','fire',4,5000,'Drake');
+C('golem','Lava Golem','fire',4,3000,'Raider',{pa:3000});
+E('ascend','Firebird Ascendant','fire',4,6000,'Firebird',{br:2});
+C('knuckle','Lava Knuckle','fire',5,5000,'Raider',{pa:3000,speed:1});
+C('baron','Molten Fist Baron','fire',5,5000,'Raider',{onSum:'burn2000'});
+C('phoenix','Phoenix Herald','fire',5,4000,'Firebird',{onDie:'shieldadd'});
+C('blastwyv','Blastfire Wyvern','fire',5,6000,'Drake',{pa:2000});
+E('pyrelord','Pyre Drake Lord','fire',5,8000,'Drake',{br:2,pa:2000});
+C('wyrm','Magma Wyrm','fire',6,6000,'Drake',{br:2,speed:1});
+C('ravager','Volcanic Ravager','fire',6,7000,'Drake',{br:2});
+C('warlord','Searing Warlord','fire',6,6000,'Raider',{br:2,speed:1,pa:1000});
+C('ashcapt','Ashen Wing Captain','fire',6,6000,'Firebird',{onSum:'burn4000'});
+E('magmaheart','Magmaheart Dragon','fire',6,11000,'Drake',{br:3});
+C('sovereign','Inferno Sovereign','fire',7,9000,'Drake',{br:3});
+C('furnace','Furnace Colossus','fire',7,10000,'Drake',{br:2});
+C('marauder','Inferno Marauder','fire',7,9000,'Raider',{br:2,speed:1});
+C('ragna','Crimson Ragnadrake, Lord of Embers','fire',8,12000,'Drake',{br:3,speed:1});
+C('solarking','Solar Flare Dragonking','fire',9,15000,'Drake',{br:3,onSum:'sweep3000'});
+S('fireball','Fireball Toss','fire',1,'burn2000',0);
+S('flare','Flare Burst','fire',2,'burn3000',1);
+S('magma','Magma Geyser','fire',3,'burn4000',1);
+S('gale','Blazing Gale','fire',3,'killTapped',1);
+S('rain','Searing Rain','fire',4,'sweep2000',0);
+S('scorch','Scorch the Earth','fire',4,'manaburn',1);
+S('eruption','Volcanic Eruption','fire',5,'sweep3000',0);
+S('roar','Dragonfire Roar','fire',5,'burn6000',1);
+
+/* ===== WATER ===== */
+C('droplet','Droplet Sprite','water',1,1000,'Tidefolk',{block:1,noP:1});
+C('ink','Ink Squid','water',1,1000,'Serpent',{onDie:'draw'});
+C('scout','Bubble Scout','water',2,1000,'Tidefolk',{onSum:'draw'});
+C('eel','Surge Eel','water',2,2000,'Serpent',{block:1,noP:1});
+C('scribe','Ripple Scribe','water',2,2000,'Glyphmind',{onAtk:'draw'});
+C('kelp','Kelp Lurker','water',2,1000,'Serpent',{unbl:1});
+C('pearl','Pearl Diver','water',2,2000,'Tidefolk');
+C('reef','Reef Guard','water',3,3000,'Tidefolk',{block:1,noP:1});
+C('courier','Mist Courier','water',3,2000,'Tidefolk',{unbl:1});
+C('seeker','Glyph Seeker','water',3,2000,'Glyphmind',{onSum:'draw'});
+C('shoal','Shoal Defender','water',3,4000,'Tidefolk',{block:1,noP:1});
+C('coralk','Coral Knight','water',3,3000,'Tidefolk',{block:1});
+E('archivist','Glyphmind Archivist','water',3,5000,'Glyphmind',{onAtk:'draw'});
+C('undereel','Undercurrent Eel','water',4,3000,'Serpent',{unbl:1});
+C('mirror','Mirror Tide Mage','water',4,3000,'Glyphmind',{onSum:'bounce'});
+C('riptide','Riptide Warden','water',4,4000,'Tidefolk',{block:1});
+C('angler','Abyssal Angler','water',4,4000,'Serpent',{onAtk:'draw'});
+C('foam','Foamcrest Wanderer','water',4,5000,'Tidefolk');
+E('prime','Tidecaller Prime','water',4,6000,'Tidefolk',{br:2});
+E('commodore','Tidefolk Commodore','water',4,7000,'Tidefolk',{block:1,br:2});
+C('sage','Coral Sage','water',5,3000,'Tidefolk',{onSum:'draw2'});
+C('wraith','Tidal Wraith','water',5,5000,'Serpent',{unbl:1});
+C('vortex','Vortex Strategist','water',5,5000,'Glyphmind',{onSum:'tapone',onAtk:'draw'});
+E('serpemp','Serpent Emperor','water',5,9000,'Serpent',{br:2,unbl:1});
+C('oracle','Fathom Oracle','water',6,4000,'Glyphmind',{onSum:'draw3'});
+C('maelstrom','Maelstrom Serpent','water',6,7000,'Serpent',{unbl:1});
+C('brine','Brine Colossus','water',6,7000,'Serpent',{br:2,block:1});
+C('rider','Current Rider','water',6,5000,'Tidefolk',{speed:1,unbl:1});
+C('lev','Deep Leviathan','water',7,8000,'Serpent',{br:2,onSum:'bounce'});
+C('admiral','Wavebreaker Admiral','water',7,9000,'Tidefolk',{br:2,onAtk:'bounce'});
+C('tempest','Tempest Glyphlord','water',7,8000,'Glyphmind',{br:2,onSum:'draw2'});
+C('endless','Leviathan of the Endless Deep','water',9,12000,'Serpent',{br:3,unbl:1});
+S('veil','Mist Veil','water',1,'tapone',0);
+S('whirl','Whirlpool Snare','water',2,['tapone','draw'],1);
+S('undertow','Undertow','water',3,'bounce',1);
+S('insight','Insight Current','water',3,'draw2',1);
+S('memory','Memory Drain','water',3,['draw','discard'],0);
+S('deep','Deep Insight','water',4,'draw3',0);
+S('rewind','Tidal Rewind','water',5,['bounce','bounce'],1);
+S('crush','Crushing Tide','water',6,['bounce','tapall'],1);
+
+/* ===== NATURE ===== */
+C('mole','Burrow Mole','nature',1,1000,'Wildkin');
+C('seedling','Seedling Sprite','nature',1,2000,'Rootling');
+C('beetle','Moss Beetle','nature',2,3000,'Wildkin');
+C('fern','Fern Hopper','nature',2,1000,'Wildkin',{onSum:'ramp'});
+C('moth','Leafwing Moth','nature',2,1000,'Rootling',{onDie:'ramp'});
+C('sprout','Sproutling','nature',3,2000,'Wildkin',{onSum:'ramp'});
+C('badger','Bramble Badger','nature',3,4000,'Wildkin');
+C('shaman','Rootling Shaman','nature',3,2000,'Rootling',{onSum:'ramp',onDie:'ramp'});
+C('canopy','Canopy Stalker','nature',3,3000,'Wildkin',{speed:1});
+C('ram','Hornback Ram','nature',3,3000,'Wildkin',{pa:2000});
+E('rootelder','Rootling Elder','nature',3,6000,'Rootling',{onSum:'ramp'});
+C('boar','Thornback Boar','nature',4,5000,'Wildkin',{pa:1000});
+C('bear','Barkhide Bear','nature',4,6000,'Wildkin');
+C('thicket','Thicket Guardian','nature',4,5000,'Rootling',{block:1});
+C('keeper','Ancient Grove Keeper','nature',4,4000,'Rootling',{onSum:'recover'});
+E('alpha','Alpha Hornbeast','nature',4,8000,'Wildkin',{br:2});
+C('rhino','Stampede Rhino','nature',5,6000,'Wildkin',{speed:1});
+C('tusker','Wild Tusker','nature',5,7000,'Wildkin',{pa:1000});
+C('matriarch','Grove Matriarch','nature',5,5000,'Rootling',{onSum:'ramp2'});
+C('tortoise','Mossback Tortoise','nature',5,6000,'Giant',{block:1});
+E('packlord','Fangclaw Packlord','nature',5,10000,'Wildkin',{br:2,pa:2000});
+C('oak','Elder Oak','nature',6,8000,'Giant',{br:2});
+C('charger','Thunderhoof Charger','nature',6,8000,'Wildkin',{speed:1});
+C('hydra','Swamp Hydra','nature',6,7000,'Giant',{br:2,onDie:'recover'});
+C('elderwood','Elderwood Sentinel','nature',6,6000,'Rootling',{block:1,onSum:'ramp'});
+E('wildking','Giant King of the Wilds','nature',6,14000,'Giant',{br:3});
+C('ironbark','Ironbark Giant','nature',7,11000,'Giant',{br:2});
+C('behemoth','Verdant Behemoth','nature',7,9000,'Giant',{br:2,onSum:'recover'});
+C('colossus','Mountain Colossus','nature',8,13000,'Giant',{br:3});
+C('greatfang','Primeval Greatfang','nature',8,13000,'Wildkin',{br:3,pa:2000});
+C('mammoth','Raging Mammoth','nature',8,10000,'Wildkin',{br:2,speed:1});
+C('titan','Worldroot Titan','nature',9,17000,'Giant',{br:3,onSum:'ramp'});
+S('seed','Seed Toss','nature',1,'ramp',0);
+S('growth','Wild Growth','nature',2,'ramp',1);
+S('regrow','Regrowth Call','nature',2,'recover',1);
+S('harvest','Bountiful Harvest','nature',3,'ramp2',0);
+S('rebirth','Natural Rebirth','nature',3,['recover','ramp'],1);
+S('surge','Primal Surge','nature',4,['ramp','draw'],1);
+S('roots','Crushing Roots','nature',4,'killTapped',1);
+S('bloom','Lifebloom','nature',5,['ramp2','recover'],0);
+
+/* ===== LIGHT ===== */
+C('glimmer','Glimmer Page','light',1,1000,'Choir',{block:1,noP:1});
+C('acolyte','Spark Acolyte','light',1,2000,'Starborn',{block:1,noP:1});
+C('prismspr','Prism Sprite','light',1,1000,'Starborn',{onDie:'shieldadd'});
+C('halo','Halo Sentry','light',2,2500,'Sentinel',{block:1,noP:1});
+C('drone','Beacon Drone','light',2,2000,'Starborn',{onSum:'tapone'});
+C('aurora','Aurora Scout','light',2,2000,'Choir',{block:1});
+C('archer','Lumen Archer','light',3,3000,'Choir',{onSum:'tapone'});
+C('gleam','Gleam Paladin','light',3,3000,'Sentinel',{block:1,noP:1});
+C('hlancer','Halo Lancer','light',3,3000,'Starborn',{pa:1000});
+C('squire','Dawnguard Squire','light',3,3000,'Sentinel',{block:1});
+C('dawn','Dawn Knight','light',4,4500,'Sentinel',{block:1});
+C('cleric','Solace Cleric','light',4,2000,'Choir',{onSum:'shieldadd'});
+C('bastion','Lumen Bastion','light',4,6000,'Sentinel',{block:1,noP:1});
+C('starfall','Starfall Archer','light',4,4000,'Starborn',{onAtk:'tapone'});
+C('twiherald','Twilight Herald','light',4,4000,'Choir',{onDie:'draw'});
+E('aegis','Aegis Archon','light',4,7000,'Sentinel',{block:1,br:2});
+E('overseer','Starborn Overseer','light',4,7000,'Starborn',{onAtk:'tapone',br:2});
+C('herald','Radiant Herald','light',5,5500,'Choir',{onSum:'shieldadd'});
+C('templar','Radiant Templar','light',5,6000,'Sentinel',{block:1});
+C('vanguard','Shining Vanguard','light',5,5000,'Sentinel',{onAtk:'shieldadd'});
+C('lsage','Luminous Sage','light',5,4000,'Starborn',{onSum:['draw','tapone']});
+E('exalted','Choir Exalted','light',5,9000,'Choir',{block:1,br:2});
+C('prism','Prism Warden','light',6,7500,'Sentinel',{block:1,br:2});
+C('dawnsong','Choir of Dawnsong','light',6,5000,'Choir',{onSum:'tapall'});
+C('arbiter','Celestial Arbiter','light',6,7000,'Starborn',{br:2,onSum:'tapone'});
+C('vigil','Vigil Keeper','light',6,6000,'Sentinel',{block:1,onSum:'shieldadd'});
+C('sunforged','Sunforged Colossus','light',7,10000,'Sentinel',{br:2,block:1});
+C('lightseraph','Lightbringer Seraph','light',7,9000,'Choir',{br:2,onSum:'shieldadd'});
+E('paragon','Sentinel Paragon','light',7,13000,'Sentinel',{block:1,br:3});
+C('seraph','Seraph of the Ninth Sky','light',8,12000,'Choir',{br:3});
+C('citadel','Sky Citadel Warden','light',8,11000,'Sentinel',{br:3,block:1});
+C('archangel','Archangel of the Last Light','light',9,15000,'Choir',{br:3,block:1});
+S('ray','Blinding Ray','light',1,'tapone',0);
+S('ward','Sanctuary Ward','light',2,'shieldadd',1);
+S('guide','Guiding Star','light',2,'draw',1);
+S('blessing',"Dawn's Blessing",'light',3,['shieldadd','tapone'],1);
+S('snare','Holy Snare','light',4,'tapall',1);
+S('barrier','Holy Barrier','light',4,'shield2',1);
+S('purify','Purifying Light','light',4,'killTapped',1);
+S('judgement','Judgement Beam','light',5,['tapall','draw'],1);
+
+/* ===== DARKNESS ===== */
+C('imp','Gloom Imp','darkness',1,1000,'Crawler',{onDie:'draw'});
+C('leech','Shadow Leech','darkness',1,2000,'Crawler');
+C('rat','Bone Rat','darkness',2,2000,'Crawler',{pa:1000});
+C('maggot','Grave Maggot','darkness',2,1000,'Crawler',{block:1,slayer:1,noP:1});
+C('gnawer','Skull Gnawer','darkness',2,2000,'Crawler',{pa:2000});
+C('bat','Carrion Bat','darkness',2,2000,'Wraith',{speed:1});
+C('stalker','Night Stalker','darkness',3,2000,'Fiend',{slayer:1});
+C('whisper','Crypt Whisperer','darkness',3,2000,'Wraith',{onSum:'discard'});
+C('hollow','Hollow Wraith','darkness',3,3000,'Wraith',{onDie:'draw'});
+E('queen','Crawler Queen','darkness',3,6000,'Crawler',{slayer:1});
+C('marquis','Hollow Marquis','darkness',4,4000,'Fiend',{onSum:'recover'});
+C('venom','Venom Fiend','darkness',4,3000,'Fiend',{slayer:1});
+C('plague','Plague Crawler','darkness',4,4000,'Crawler',{onSum:'burn2000'});
+C('gravek','Gravebound Knight','darkness',4,5000,'Crawler',{block:1,noP:1});
+C('bloodmoon','Bloodmoon Stalker','darkness',4,4000,'Fiend',{pa:2000});
+C('banshee','Wailing Banshee','darkness',4,3000,'Wraith',{onAtk:'discard'});
+C('siphon','Shade Siphon','darkness',4,2000,'Wraith',{onSum:'manaburn'});
+E('wraithlord','Wraith Lord','darkness',4,7000,'Wraith',{onAtk:'discard',br:2});
+C('ghoul','Wailing Ghoul','darkness',5,5000,'Crawler',{onSum:'discard'});
+C('reaper','Soul Reaper','darkness',5,5000,'Wraith',{onAtk:'discard'});
+C('duke','Necro Duke','darkness',5,6000,'Fiend',{onDie:'recover'});
+C('ghoulbrute','Ghoul Brute','darkness',5,7000,'Crawler');
+E('prince','Dread Fiend Prince','darkness',5,9000,'Fiend',{br:2});
+C('tyrant','Bone Tyrant','darkness',6,7000,'Fiend',{br:2});
+C('assassin','Midnight Assassin','darkness',6,5000,'Wraith',{slayer:1,onSum:'killTapped'});
+C('harbinger','Doom Harbinger','darkness',6,8000,'Fiend',{br:2});
+C('blight','Blight Mother','darkness',6,6000,'Crawler',{onSum:'sweep2000'});
+C('lich','Lich of the Black Mire','darkness',7,9000,'Wraith',{br:2,onSum:'discard2'});
+E('ruinking','Fiend King of Ruin','darkness',7,14000,'Fiend',{br:3,onSum:'kill'});
+C('overlord','Abyssal Overlord','darkness',8,12000,'Fiend',{br:3});
+C('nightmare','Nightmare Colossus','darkness',8,12000,'Fiend',{br:3,slayer:1});
+C('devourer','Abyss Devourer','darkness',9,16000,'Fiend',{br:3,onSum:'kill'});
+S('bargain','Dark Bargain','darkness',2,'discard',1);
+S('hex','Hex Blast','darkness',2,'burn2000',1);
+S('gravecall','Grave Call','darkness',2,'recover',0);
+S('deathtouch','Death Touch','darkness',3,'killTapped',1);
+S('mindrot','Mind Rot','darkness',3,'discard2',0);
+S('rend','Soul Rend','darkness',4,'kill',1);
+S('voidh','Void Harvest','darkness',5,['kill','recover'],0);
+S('purge','Shadow Purge','darkness',6,['kill','discard'],1);
+
+const DEF={};
+DEFS.forEach(d=>{
+  if(DEF[d.id])console.warn('duplicate id',d.id);
+  const a=[];
+  if(d.evo)a.push(`Evolution: put on one of your ${d.evo}s.`);
+  if(d.speed)a.push('Speed attacker.');
+  if(d.block)a.push('Blocker.');
+  if(d.noP)a.push("Can't attack players.");
+  if(d.pa)a.push(`Power attacker +${d.pa}.`);
+  if(d.br===2)a.push('Double breaker.');
+  if(d.br===3)a.push('Triple breaker.');
+  if(d.unbl)a.push("Can't be blocked.");
+  if(d.slayer)a.push('Slayer.');
+  if(d.onSum)a.push('On summon: '+fxDesc(d.onSum));
+  if(d.onAtk)a.push('When it attacks: '+fxDesc(d.onAtk));
+  if(d.onDie)a.push('When destroyed: '+fxDesc(d.onDie));
+  if(d.fx)a.push(fxDesc(d.fx));
+  if(d.trig)a.push('Shield trigger.');
+  d.txt=a.join(' ');DEF[d.id]=d;
+});
+const PRESETS=[
+  {n:'Blazing roots',civ:['fire','nature'],d:'Ramp into huge attackers.'},
+  {n:'Tidewall',civ:['water','light'],d:'Blockers, card draw, control.'},
+  {n:'Ashen night',civ:['darkness','fire'],d:'Removal and fast pressure.'},
+  {n:'Deep current',civ:['water','nature'],d:'Big mana, unblockable threats.'},
+  {n:'Twilight',civ:['light','darkness'],d:'Hold the line, then strike.'},
+  {n:'Wildfire',civ:['fire','water'],d:'Speed attackers and tricks.'},
+];
+// Presets pick a fresh mix each game: 10 cards per civilization, 2 copies each,
+// with a sensible cost curve and evolutions only when their race is in the deck.
+function presetIds(civ){
+  const ids=[];
+  for(const e of civ){
+    const cs=shuffle(DEFS.filter(d=>d.e===e)),pick=[];
+    const want=[[c=>c.cost<=2,5],[c=>c.cost>=3&&c.cost<=4,4],[c=>c.cost>=5,3]];
+    for(const [f,n] of want){
+      let got=0;
+      for(const d of cs){
+        if(got>=n)break;
+        if(!f(d)||pick.includes(d))continue;
+        if(d.evo&&!pick.some(x=>!x.evo&&x.race===d.evo))continue;
+        pick.push(d);got++;
+      }
+    }
+    pick.forEach(d=>ids.push(d.id,d.id));
+    const extra=pick.find(d=>d.cost<=2&&!d.evo)||pick[0];ids.push(extra.id);
+  }
+  return ids;
+}
+
+// Builds a strong mixed-civilization deck: rates every card, then fills a
+// classic cost curve with 3-4 copies of the best cards in each cost range.
+// Ratings come from 8,000 simulated duels: how much more often decks with
+// each card won. Higher means the card pulls its weight.
+const RATING={"spark":3.6,"wisp":1.4,"sprite":4.3,"scrap":1.1,"bpup":3.7,"lancer":2.2,"chick":4.2,"raider":4.0,"hatch":4.8,"smolder":2.8,"chief":2.9,"drakeling":1.6,"harrier":4.5,"pyroclast":3.9,"cinderclaw":1.6,"golem":3.5,"ascend":0.4,"knuckle":3.0,"baron":4.4,"phoenix":4.6,"blastwyv":4.2,"pyrelord":-1.3,"wyrm":4.1,"ravager":3.3,"warlord":4.4,"ashcapt":1.8,"magmaheart":0.9,"sovereign":3.3,"furnace":1.9,"marauder":2.8,"ragna":-1.1,"solarking":1.7,"fireball":0.9,"flare":2.2,"magma":1.3,"gale":2.4,"rain":3.4,"scorch":-0.4,"eruption":1.2,"roar":4.2,"droplet":-0.7,"ink":0.4,"scout":-0.7,"eel":-2.0,"scribe":-1.0,"kelp":-1.2,"pearl":0.1,"reef":-0.6,"courier":-1.5,"seeker":0.1,"shoal":0.4,"coralk":-0.1,"archivist":-4.9,"undereel":-1.5,"mirror":1.5,"riptide":0.0,"angler":-1.1,"foam":-0.7,"prime":-0.3,"commodore":-2.9,"sage":-2.3,"wraith":-1.8,"vortex":-1.7,"serpemp":-1.7,"oracle":-3.2,"maelstrom":-1.2,"brine":-0.1,"rider":-1.0,"lev":-1.1,"admiral":1.5,"tempest":-2.6,"endless":-4.2,"veil":-2.1,"whirl":-3.6,"undertow":-2.0,"insight":-2.4,"memory":-3.2,"deep":-3.3,"rewind":1.0,"crush":1.6,"mole":-0.2,"seedling":0.7,"beetle":1.1,"fern":0.5,"moth":-0.6,"sprout":-2.3,"badger":-2.0,"shaman":0.6,"canopy":1.0,"ram":1.5,"rootelder":-0.4,"boar":-0.9,"bear":-1.4,"thicket":0.7,"keeper":0.2,"alpha":-0.2,"rhino":0.6,"tusker":0.6,"matriarch":0.7,"tortoise":2.1,"packlord":-1.9,"oak":-0.7,"charger":-0.8,"hydra":-0.1,"elderwood":0.6,"wildking":-1.3,"ironbark":0.0,"behemoth":-1.1,"colossus":-3.0,"greatfang":2.5,"mammoth":-3.5,"titan":-2.3,"seed":-2.4,"growth":-0.5,"regrow":-2.2,"harvest":-0.9,"rebirth":0.9,"surge":-1.6,"roots":-2.1,"bloom":-0.8,"glimmer":0.2,"acolyte":-0.8,"prismspr":2.1,"halo":1.1,"drone":0.5,"aurora":-0.3,"archer":0.6,"gleam":2.0,"hlancer":1.6,"squire":-1.3,"dawn":-0.5,"cleric":0.7,"bastion":1.7,"starfall":-2.1,"twiherald":-0.6,"aegis":-2.5,"overseer":-2.0,"herald":2.4,"templar":1.3,"vanguard":1.0,"lsage":-0.5,"exalted":-2.2,"prism":1.0,"dawnsong":-1.5,"arbiter":-2.5,"vigil":1.2,"sunforged":-0.2,"lightseraph":0.5,"paragon":-2.2,"seraph":-0.6,"citadel":1.8,"archangel":1.0,"ray":-1.7,"ward":0.6,"guide":-0.5,"blessing":0.7,"snare":-2.8,"barrier":5.1,"purify":-0.2,"judgement":1.2,"imp":-0.1,"leech":-0.4,"rat":-1.7,"maggot":-1.0,"gnawer":-1.6,"bat":-0.6,"stalker":-3.0,"whisper":-0.5,"hollow":-1.3,"queen":-1.5,"marquis":-2.9,"venom":-1.5,"plague":-1.0,"gravek":2.1,"bloodmoon":-4.1,"banshee":-0.3,"siphon":-1.3,"wraithlord":-0.9,"ghoul":-0.4,"reaper":0.8,"duke":-0.4,"ghoulbrute":-2.9,"prince":-4.5,"tyrant":-2.3,"assassin":-0.4,"harbinger":0.2,"blight":-0.5,"lich":-2.2,"ruinking":-3.3,"overlord":-1.6,"nightmare":-2.3,"devourer":-1.7,"bargain":-1.5,"hex":-1.3,"gravecall":-1.6,"deathtouch":-0.9,"mindrot":-1.6,"rend":2.2,"voidh":-0.3,"purge":2.9};
+function cardValue(d){
+  let v=RATING[d.id]||0;
+  if(d.evo)v-=1;
+  return v+Math.random()*2.5;
+}
+// Builds a strong deck using all five civilizations. Each civilization first gets
+// 7 cards along a cost curve (cheap, mid, big) from its best-rated cards, then the
+// last 5 slots go to the best remaining cards, so every color has mana to cast with.
+function smartDeck(){
+  const civs=Object.keys(CIV),CAP=12;
+  for(let attempt=0;attempt<60;attempt++){
+    const val={};DEFS.forEach(d=>val[d.id]=cardValue(d));
+    const counts={},per={};let spells=0;
+    const baseOK=d=>!d.evo||Object.keys(counts).some(id=>!DEF[id].evo&&DEF[id].race===d.evo&&counts[id]>=2);
+    const add=(d,n)=>{n=Math.min(n,3-(counts[d.id]||0),CAP-(per[d.e]||0));if(d.t==='s')n=Math.min(n,8-spells);if(n<=0)return 0;
+      counts[d.id]=(counts[d.id]||0)+n;per[d.e]=(per[d.e]||0)+n;if(d.t==='s')spells+=n;return n};
+    const best=(f)=>DEFS.filter(d=>f(d)&&baseOK(d)&&(counts[d.id]||0)<3).sort((x,y)=>val[y.id]-val[x.id]);
+    for(const e of shuffle([...civs])){
+      for(const [f,n] of [[d=>d.cost<=2,3],[d=>d.cost>=3&&d.cost<=4,3],[d=>d.cost>=5,2]]){
+        let need=n;
+        for(const d of best(d=>d.e===e&&f(d))){if(need<=0)break;need-=add(d,need)}
+      }
+    }
+    let tot=()=>Object.values(counts).reduce((a,b)=>a+b,0);
+    for(const d of best(d=>d.cost<=4)){if(tot()>=DECK_SIZE)break;add(d,Math.min(2,DECK_SIZE-tot()))}
+    for(const d of best(()=>true)){if(tot()>=DECK_SIZE)break;add(d,DECK_SIZE-tot())}
+    let trig=0;for(const id in counts)if(DEF[id].trig)trig+=counts[id];
+    if(tot()===DECK_SIZE&&civs.every(e=>(per[e]||0)>=8)&&trig>=6){
+      const ids=[];for(const id in counts)for(let i=0;i<counts[id];i++)ids.push(id);
+      return {n:'Random five-civilization deck',ids,counts};
+    }
+  }
+  const pr=PRESETS[0];return {n:pr.n,ids:presetIds(pr.civ),counts:null};
+}
+
+const now=()=>Date.now();
+function setPhase(){const el=document.documentElement;if(el&&el.style)el.style.setProperty('--ph',`-${now()%8000}ms`)}
+function anim(c,k){if(G)(G.fx||(G.fx={}))[c.uid]={k,t0:now()}}
+let G=null,UID=0,BUILD={counts:{},msg:'',filter:'fire'};
+const DECK_SIZE=50,DECK_MIN=50,DECK_MAX=60,MAX_COPY=4;
+const legal=n=>n>=DECK_MIN&&n<=DECK_MAX;
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const inst=id=>({...DEF[id],uid:++UID,tapped:false,sick:true,under:[]});
+const opp=p=>G.p[0]===p?G.p[1]:G.p[0];
+const atkPow=c=>c.p+(c.pa||0);
+function log(m){G.log.unshift(m);if(G.log.length>60)G.log.pop()}
+
+const SHIELDS=8;
+// Log lines can name players from either side's view: V(p,'You draw','Opponent draws') shows the first
+// text to the player sitting in p's seat and the second to the other player.
+let VIEW=0;
+const V=(p,you,them)=>`\u0001${p.seat}\u0002${you}\u0002${them}\u0003`;
+const seatName=st=>{const p=G&&G.mp&&G.p.find(x=>x.seat===st);return p?esc(p.name):null};
+const viewText=t=>String(t).replace(/\u0001(\d)\u0002([^\u0002]*)\u0002([^\u0003]*)\u0003/g,(_,st,a,b)=>{
+  if(+st===VIEW)return a;
+  const nm=seatName(+st);
+  return nm?b.replace(/^Opponent\b/,nm).replace(/^the opponent's$/,nm+"'s").replace(/^the opponent$/,nm):b;
+});
+function mkPlayer(name,ai,deck,shields=5,seat=0){
+  const p={seat,name,ai,deckName:deck.n,deck:shuffle(deck.ids.map(inst)),hand:[],mana:[],bz:[],sh:[],gy:[],charged:false};
+  for(let i=0;i<shields;i++)p.sh.push(p.deck.pop());
+  for(let i=0;i<5;i++)p.hand.push(p.deck.pop());
+  return p;
+}
+function startGame(mine,theirs){
+  if(!theirs){const pre=PRESETS[Math.floor(Math.random()*PRESETS.length)];theirs={n:pre.n,ids:presetIds(pre.civ)}}
+  $('#layer').innerHTML='';
+  const sh=SHIELDS;
+  MP=null;VIEW=0;
+  G={shields:sh,p:[mkPlayer('You',false,mine,sh,0),mkPlayer('Opponent',true,theirs,sh,1)],turn:0,turnNo:0,log:[],sel:null,busy:false,targeting:null,modal:null,over:false,fx:{},breaking:null,decks:[mine,theirs]};
+  log(`You play ${mine.n}. Opponent plays ${theirs.n}. Each side has ${sh} shields. You go first, so you skip your first draw.`);
+  startTurn(0);
+}
+
+/* ---------- core rules ---------- */
+function draw(p,n){for(let i=0;i<n;i++)if(p.deck.length)p.hand.push(p.deck.pop())}
+function canPay(p,c){const u=p.mana.filter(m=>!m.tapped);return u.length>=c.cost&&u.some(m=>m.e===c.e)}
+const bases=(p,c)=>c.evo?p.bz.filter(x=>x.race===c.evo):[];
+const canPlay=(p,c)=>canPay(p,c)&&(!c.evo||bases(p,c).length>0);
+// Pays for a card while keeping the most useful mana untapped. It tries every way
+// of splitting the cost across civilizations and picks the one that leaves the most
+// other cards in hand still playable, then the most different civilizations open.
+function pay(p,c){
+  const u=p.mana.filter(m=>!m.tapped),civs=Object.keys(CIV),avail={};
+  civs.forEach(e=>avail[e]=u.filter(m=>m.e===e).length);
+  const others=p.hand.filter(h=>h!==c);
+  let best=null,bestScore=-1;
+  const tap={};
+  (function go(i,left){
+    if(i===civs.length){
+      if(left||tap[c.e]<1)return;
+      const rem={};let total=0;civs.forEach(e=>{rem[e]=avail[e]-tap[e];total+=rem[e]});
+      const playable=others.filter(h=>h.cost<=total&&rem[h.e]>0).length;
+      const open=civs.filter(e=>rem[e]>0).length;
+      const wanted=civs.filter(e=>rem[e]>0&&others.some(h=>h.e===e)).length;
+      const score=playable*1000+wanted*100+open*10+Math.min(...civs.filter(e=>avail[e]).map(e=>rem[e]));
+      if(score>bestScore){bestScore=score;best={...tap}}
+      return;
+    }
+    const e=civs[i];
+    for(let k=Math.min(avail[e],left);k>=0;k--){tap[e]=k;go(i+1,left-k)}
+  })(0,c.cost);
+  for(const e of civs){let n=best[e];for(const m of u){if(n<=0)break;if(m.e===e&&!m.tapped){m.tapped=true;n--}}}
+}
+function reset(c){c.tapped=false;c.sick=true}
+function leaveBz(p,c){const i=p.bz.indexOf(c);if(i<0)return null;p.bz.splice(i,1);const pile=[c,...c.under];c.under=[];pile.forEach(reset);return pile}
+function destroy(p,c){
+  const pile=leaveBz(p,c);if(!pile)return;
+  p.gy.push(...pile);log(`${c.n} is destroyed.`);
+  for(const f of fxList(c.onDie))if(!targetsFor(f,p))simpleFx(p,f,c);
+}
+function targetsFor(f,p){
+  const o=opp(p),m=/^burn(\d+)$/.exec(f);
+  if(m)return o.bz.filter(c=>c.p<=+m[1]);
+  if(f==='bounce'||f==='kill')return o.bz.slice();
+  if(f==='killTapped')return o.bz.filter(c=>c.tapped);
+  if(f==='tapone')return o.bz.filter(c=>!c.tapped);
+  return null;
+}
+const whose=o=>V(o,'your',"the opponent's");
+function simpleFx(p,f,src){
+  const o=opp(p),sw=/^sweep(\d+)$/.exec(f);
+  if(sw){const hit=o.bz.filter(c=>c.p<=+sw[1]);if(!hit.length)log(`${src.n} hits nothing.`);hit.forEach(c=>destroy(o,c));return}
+  if(f==='draw'||f==='draw2'||f==='draw3'){const n=f==='draw'?1:+f.slice(4);draw(p,n);log(`${V(p,'You draw','Opponent draws')} ${n===1?'a card':n+' cards'}.`)}
+  else if(f==='ramp'||f==='ramp2'){const n=f==='ramp'?1:2;for(let i=0;i<n&&p.deck.length;i++){const c=p.deck.pop();c.tapped=true;p.mana.push(c);log(`${c.n} goes to ${whose(p)} mana zone.`)}}
+  else if(f==='tapall'){o.bz.forEach(c=>c.tapped=true);log(`All of ${whose(o)} creatures are tapped.`)}
+  else if(f==='discard'||f==='discard2'){const n=f==='discard'?1:2;for(let i=0;i<n&&o.hand.length;i++){const c=o.hand.splice(Math.floor(Math.random()*o.hand.length),1)[0];o.gy.push(c);log(`${V(o,'You discard','Opponent discards')} ${c.n}.`)}}
+  else if(f==='shieldadd'||f==='shield2'){const n=f==='shieldadd'?1:2;let k=0;for(;k<n&&p.deck.length;k++)p.sh.push(p.deck.pop());if(k)log(`${V(p,'You add','Opponent adds')} ${k===1?'a shield':k+' shields'}.`)}
+  else if(f==='recover'){const c=p.gy.filter(x=>x.t==='c').sort((a,b)=>b.cost-a.cost)[0];if(c){p.gy.splice(p.gy.indexOf(c),1);p.hand.push(c);log(`${c.n} returns from ${whose(p)} graveyard to hand.`)}else log('No creature in the graveyard to return.')}
+  else if(f==='manaburn'){if(o.mana.length){const c=o.mana.splice(Math.floor(Math.random()*o.mana.length),1)[0];c.tapped=false;o.gy.push(c);log(`${c.n} is knocked out of ${whose(o)} mana zone.`)}}
+}
+async function resolveFx(p,fx,src){
+  for(const f of fxList(fx)){
+    if(G.over)return;
+    const o=opp(p),tg=targetsFor(f,p);
+    if(tg){
+      if(!tg.length){log(`${src.n}: no target.`);continue}
+      const msg=`${src.n}: choose an enemy creature. ${fxText(f)}`;
+      const t=p.ai?tg.sort((a,b)=>b.p-a.p)[0]:p.remote?cardBy(await remoteDecide(p,'target',{uids:tg.map(c=>c.uid),msg})):await pickTarget(tg,msg,'Skip');
+      if(!t){log(`${src.n}: effect skipped.`);continue}
+      if(f==='bounce'){const pile=leaveBz(o,t);o.hand.push(...pile);log(`${t.n} returns to ${whose(o)} hand.`)}
+      else if(f==='tapone'){t.tapped=true;log(`${t.n} is tapped.`)}
+      else{anim(t,'die');render();await sleep(450);destroy(o,t)}
+    }else simpleFx(p,f,src);
+    render();
+  }
+}
+async function playCard(p,c){
+  if(!canPlay(p,c))return;
+  let base=null;
+  if(c.evo){
+    const b=bases(p,c);
+    base=b.length===1?b[0]:p.ai?b.sort((x,y)=>(y.sick-x.sick)||(x.p-y.p))[0]:await pickTarget(b,`Choose which ${c.evo} becomes ${c.n}.`,'Cancel');
+    if(!base)return;
+  }
+  pay(p,c);p.hand.splice(p.hand.indexOf(c),1);
+  if(c.t==='s'){
+    log(`${V(p,'You cast','Opponent casts')} ${c.n}.`);render();
+    await resolveFx(p,c.fx,c);p.gy.push(c);
+  }else if(base){
+    const i=p.bz.indexOf(base);
+    c.under=[base,...base.under];base.under=[];
+    c.tapped=base.tapped;c.sick=false;p.bz.splice(i,1,c);anim(c,'enter');
+    log(`${base.n} evolves into ${c.n}!`);render();
+    if(c.onSum)await resolveFx(p,c.onSum,c);
+  }else{
+    c.tapped=false;c.sick=!c.speed;p.bz.push(c);anim(c,'enter');
+    log(`${V(p,'You summon','Opponent summons')} ${c.n}.`);render();
+    if(c.onSum)await resolveFx(p,c.onSum,c);
+  }
+  render();
+}
+async function battle(ap,a,dp,d){
+  const pa=atkPow(a);
+  log(`${a.n} (${pa}) battles ${d.n} (${d.p}).`);
+  let aDies=pa<=d.p,dDies=d.p<=pa;
+  if(a.slayer)dDies=true;if(d.slayer)aDies=true;
+  anim(d,'hit');render();await sleep(380);
+  if(dDies)anim(d,'die');if(aDies)anim(a,'die');
+  if(dDies||aDies){render();await sleep(450)}
+  if(dDies)destroy(dp,d);if(aDies)destroy(ap,a);
+  render();
+}
+async function attack(p,att,target){
+  const o=opp(p);att.tapped=true;
+  anim(att,p===G.p[0]?'up':'down');
+  const what=target==='player'?(o.sh.length?`${whose(o)} shields`:V(o,'you','the opponent')+' directly'):target.n;
+  log(`${att.n} attacks ${what}.`);render();await sleep(450);
+  if(att.onAtk){
+    await resolveFx(p,att.onAtk,att);
+    if(G.over||!p.bz.includes(att))return;
+    if(target!=='player'&&!o.bz.includes(target)){log(`${att.n}'s target is gone.`);return}
+  }
+  if(!att.unbl){
+    const blockers=o.bz.filter(c=>c.block&&!c.tapped);
+    if(blockers.length){
+      const b=o.ai?aiBlock(o,att,blockers,target):o.remote?cardBy(await remoteDecide(o,'block',{att:att.uid,blockers:blockers.map(x=>x.uid),target:target==='player'?'player':target.uid})):await askBlock(att,blockers,target);
+      if(b){b.tapped=true;log(`${b.n} blocks.`);await battle(p,att,o,b);return}
+    }
+  }
+  if(target!=='player'){await battle(p,att,o,target);return}
+  if(!o.sh.length){log(`${att.n} lands the final blow.`);win(p);return}
+  const n=Math.min(att.br||1,o.sh.length),broken=[];
+  G.breaking={p:o,n};render();await sleep(450);G.breaking=null;
+  for(let i=0;i<n;i++){const s=o.sh.pop();o.hand.push(s);broken.push(s)}
+  log(`${['','A shield breaks','Two shields break','Three shields break'][n]}.`);render();
+  for(const s of broken){
+    if(!s.trig||G.over)continue;
+    const use=o.ai?aiUseTrig(o,s):o.remote?!!(await remoteDecide(o,'trig',{s:s.uid})):await askTrig(s);
+    if(use){
+      o.hand.splice(o.hand.indexOf(s),1);
+      log(`Shield trigger! ${V(o,'You cast','Opponent casts')} ${s.n}.`);render();
+      await resolveFx(o,s.fx,s);o.gy.push(s);
+    }
+  }
+  render();
+}
+function win(p){G.over=true;G.winner=p;G.targeting=null;G.modal=null;log(V(p,'You win!','You lose.'));render();if(G.mp)mpPush(true)}
+
+async function startTurn(i){
+  if(G.over)return;
+  if(G.p[i].remote){G.turn=i;G.needStart=true;G.sel=null;render();await mpPush(true);return}
+  G.turn=i;const p=G.p[i];
+  p.mana.forEach(m=>m.tapped=false);
+  p.bz.forEach(c=>{c.tapped=false;c.sick=false});
+  p.charged=false;
+  if(G.turnNo>0){
+    if(!p.deck.length){log(`${V(p,'You have','Opponent has')} no cards left to draw.`);win(opp(p));return}
+    draw(p,1);
+  }
+  G.turnNo++;
+  log(`${V(p,'Your turn',"Opponent's turn")} ${Math.ceil(G.turnNo/2)} begins.`);
+  G.needStart=false;
+  render();
+  if(G.mp)mpPush(true);
+  if(p.ai){
+    G.busy=true;render();
+    await aiTurn(p);
+    G.busy=false;
+    if(!G.over)startTurn(0);
+  }
+}
+
+/* ---------- opponent AI ---------- */
+function aiCharge(p){
+  if(!p.hand.length)return;
+  if(p.mana.length>=8&&p.hand.length<4)return;
+  const have=new Set(p.mana.map(m=>m.e));
+  const missing=p.hand.filter(c=>!have.has(c.e)).sort((a,b)=>b.cost-a.cost);
+  const byCost=[...p.hand].sort((a,b)=>p.mana.length<4?b.cost-a.cost:a.cost-b.cost);
+  const pick=(p.mana.length<4&&missing[0])||byCost[0];
+  p.hand.splice(p.hand.indexOf(pick),1);pick.tapped=false;p.mana.push(pick);p.charged=true;
+  log(`Opponent charges ${pick.n} as mana.`);
+}
+function fxUseful(p,f){
+  const o=opp(p),tg=targetsFor(f,p);
+  if(tg)return tg.length>0;
+  const sw=/^sweep(\d+)$/.exec(f);
+  if(sw)return o.bz.some(x=>x.p<=+sw[1]);
+  if(f.startsWith('ramp'))return p.mana.length<8&&p.deck.length>6;
+  if(f==='tapall')return o.bz.filter(x=>!x.tapped).length>=1;
+  if(f==='recover')return p.gy.some(x=>x.t==='c');
+  if(f.startsWith('discard'))return o.hand.length>0;
+  if(f==='manaburn')return o.mana.length>0;
+  if(f.startsWith('shield'))return p.deck.length>6;
+  return p.deck.length>4;
+}
+function aiWants(p,c){
+  if(c.t!=='s')return true;
+  return fxList(c.fx).some(f=>fxUseful(p,f));
+}
+function aiBlock(o,att,blockers,target){
+  const pa=atkPow(att),sorted=blockers.sort((a,b)=>a.p-b.p);
+  const winner=sorted.find(b=>b.p>pa||b.slayer);
+  if(winner)return winner;
+  if(target==='player'&&o.sh.length<=(att.br||1))return sorted[0];
+  return null;
+}
+function aiUseTrig(o,s){return fxList(s.fx).some(f=>fxUseful(o,f))}
+async function aiTurn(p){
+  await sleep(600);
+  aiCharge(p);render();
+  for(let guard=0;guard<10&&!G.over;guard++){
+    const opts=p.hand.filter(c=>canPlay(p,c)&&aiWants(p,c)).sort((a,b)=>(b.cost+(b.evo?1:0))-(a.cost+(a.evo?1:0)));
+    if(!opts.length)break;
+    await sleep(700);await playCard(p,opts[0]);
+  }
+  const me=G.p[0];
+  for(const c of [...p.bz]){
+    if(G.over)return;
+    if(!p.bz.includes(c)||c.tapped||c.sick)continue;
+    const pa=atkPow(c);
+    const prey=me.bz.filter(x=>x.tapped&&(c.slayer||pa>x.p)).sort((a,b)=>b.p-a.p)[0];
+    if(c.noP){if(prey){await sleep(800);await attack(p,c,prey)}continue}
+    const blockers=me.bz.filter(x=>x.block&&!x.tapped);
+    const top=Math.max(0,...blockers.map(b=>b.p));
+    const safe=c.unbl||!blockers.length||pa>top||c.slayer;
+    if(prey&&(prey.p>=4000||me.sh.length>2)){await sleep(800);await attack(p,c,prey);continue}
+    if(safe||me.sh.length===0||Math.random()<0.3){await sleep(800);await attack(p,c,'player');continue}
+    if(prey){await sleep(800);await attack(p,c,prey)}
+  }
+  await sleep(500);
+}
+
+/* ---------- player prompts ---------- */
+function pickTarget(tg,msg,skip){
+  return new Promise(res=>{G.targeting={uids:new Set(tg.map(c=>c.uid)),resolve:res,msg,skip};render()});
+}
+function ask(title,text,opts,card){
+  return new Promise(res=>{G.modal={title,text,opts,resolve:res,card};render()});
+}
+function askBlock(att,blockers,target){
+  const what=target==='player'?(G.p[0].sh.length?'your shields':'you directly'):target.n;
+  const extra=[att.pa?`power ${atkPow(att)} while attacking`:'',att.br?['','','double breaker','triple breaker'][att.br]:''].filter(Boolean).join(', ');
+  return ask('Block?',`${att.n} (${att.p}${extra?', '+extra:''}) is attacking ${what}.`,
+    [...blockers.map(b=>({label:`Block with ${b.n} (${b.p})`,val:b})),{label:"Don't block",val:null}],att);
+}
+function askTrig(s){
+  return ask('Shield trigger!',`${s.n} came from your shield. ${fxDesc(s.fx)}`,
+    [{label:'Cast it for free',val:true,main:1},{label:'Keep it in hand',val:false}],s);
+}
+
+/* ---------- input ---------- */
+function findCard(uid){
+  if(!G)return null;
+  for(const p of G.p)for(const z of ['hand','bz']){const c=p[z].find(x=>x.uid===uid);if(c)return{p,z,c}}
+  return null;
+}
+const selCard=()=>G&&G.sel?findCard(G.sel.uid)?.c:null;
+async function act(fn){G.busy=true;G.sel=null;render();try{await fn()}finally{G.busy=false;render()}}
+function onCard(uid){
+  if(!G||G.over||G.modal)return;
+  if(G.targeting){
+    if(G.targeting.uids.has(uid)){const r=G.targeting.resolve;const t=findCard(uid).c;G.targeting=null;r(t)}
+    return;
+  }
+  const f=findCard(uid);if(!f)return;
+  if(G.turn!==0||G.busy){openZoom(f.c);return}
+  const me=G.p[0];
+  if(f.p===me&&f.z==='hand')G.sel=G.sel?.uid===uid?null:{zone:'hand',uid};
+  else if(f.p===me&&f.z==='bz'&&!f.c.tapped&&!f.c.sick)G.sel=G.sel?.uid===uid?null:{zone:'bz',uid};
+  else if(f.p!==me&&f.z==='bz'&&f.c.tapped&&G.sel?.zone==='bz'){const a=selCard();act(()=>attack(me,a,f.c));return}
+  else{G.sel=null;openZoom(f.c)}
+  render();
+}
+function onAct(a,v){
+  // menus and deck builder
+  if(a==='setmode'){PLAYMODE=v==='friend'?'friend':'cpu';renderModeSw();try{window.storage.set('shieldclash-mode',PLAYMODE,false)}catch(e){}return}
+  if(a==='preset'){const pr=PRESETS[+v];playWith('p'+v,()=>({n:pr.n,ids:presetIds(pr.civ)}));return}
+  if(a==='builder'){showBuilder();return}
+  if(a==='dedit'){showBuilder(v);return}
+  if(a==='dplay'){const d=MYDECKS&&MYDECKS.find(x=>x.id===v);if(d&&legal(deckTotal(d.counts)))playWith('d'+d.id,()=>({n:d.name,ids:expand(d.counts)}));return}
+  if(a==='ddel'){PENDING_DEL=v;renderMyDecks();return}
+  if(a==='ddelno'){PENDING_DEL=null;renderMyDecks();return}
+  if(a==='ddelyes'){MYDECKS=MYDECKS.filter(x=>x.id!==v);PENDING_DEL=null;storeDecks().then(renderMyDecks);return}
+  if(a==='tut'){showTutorial(0);return}
+  if(a==='tnext'){showTutorial(TUT+1);return}
+  if(a==='tprev'){showTutorial(TUT-1);return}
+  if(a==='tgo'){showTutorial(+v);return}
+  if(a==='tclose'){showStart();return}
+  if(a==='random'){playWith('random',smartDeck);return}
+  if(a==='brandom'){const d=smartDeck();if(d.counts){BUILD.counts={...d.counts};BUILD.msg=`${d.n}: a fresh mixed deck. Tweak it or start the duel.`}renderBuilder();autoSave();return}
+  if(a==='new'||a==='back'){if(MP)mpLeave(true);else showStart();return}
+  if(a==='online'){showOnline();return}
+  if(a==='mphost'){mpHost();return}
+  if(a==='mpjoin'){mpJoin();return}
+  if(a==='mpcancel'){mpLeave(true);if(!IN_CLAUDE)netClose();return}
+  if(a==='menu'&&G&&G.mp&&!G.over&&!G.modal&&!G.targeting){
+    ask('Game menu',`Leaving ends the game for both of you, and ${esc(G.p[1].name)} wins.`,
+      [{label:'Keep playing',val:null,main:1},{label:'Leave game',val:'leave'}]).then(v=>{if(v==='leave')mpLeave()});
+    return}
+  if(a==='menu'&&G&&!G.over&&G.turn===0&&!G.busy&&!G.modal&&!G.targeting){
+    G.sel=null;
+    ask('Game menu','Restarting deals a fresh game with the same two decks. Your current game will be lost.',
+      [{label:'Keep playing',val:null,main:1},{label:'Restart this game',val:'restart'},{label:'Back to start page',val:'start'}])
+    .then(v=>{if(v==='restart')startGame(...G.decks);else if(v==='start')showStart()});
+    return}
+  if(a==='bplus'){if(total()<DECK_MAX&&(BUILD.counts[v]||0)<MAX_COPY)BUILD.counts[v]=(BUILD.counts[v]||0)+1;BUILD.msg='';renderBuilder();autoSave();return}
+  if(a==='bminus'){if(BUILD.counts[v])BUILD.counts[v]--;BUILD.msg='';renderBuilder();autoSave();return}
+  if(a==='bfilter'){BUILD.filter=v;renderBuilder();window.scrollTo(0,0);return}
+  if(a==='bclear'){BUILD.counts={};BUILD.msg='';renderBuilder();autoSave();return}
+  if(a==='bfill'){fillDeck();renderBuilder();autoSave();return}
+  if(a==='bsave'){saveDeck(true);return}
+  if(a==='bstart'&&legal(total())){const ids=expand(BUILD.counts),n=(BUILD.name||'').trim()||'Your deck';saveDeck().then(()=>{if(PLAYMODE==='friend'&&BUILD.id)showOnline(null,'d'+BUILD.id);else startGame({n,ids})});return}
+  if(!G)return;
+  // in game
+  if(a==='ans'&&G.modal){const m=G.modal;G.modal=null;render();m.resolve(m.opts[+v].val);return}
+  if(a==='skip'&&G.targeting){const r=G.targeting.resolve;G.targeting=null;r(null);return}
+  if(G.turn!==0||G.busy||G.over)return;
+  const me=G.p[0],s=selCard();
+  if(a==='charge'&&s&&!me.charged){me.hand.splice(me.hand.indexOf(s),1);s.tapped=false;me.mana.push(s);me.charged=true;G.sel=null;log(`${V(me,'You charge','Opponent charges')} ${s.n} as mana.`);render()}
+  else if(a==='play'&&s)act(()=>playCard(me,s));
+  else if(a==='atkp'&&s&&!s.noP)act(()=>attack(me,s,'player'));
+  else if(a==='cancel'){G.sel=null;render()}
+  else if(a==='view'&&s)openZoom(s);
+  else if(a==='end'){G.sel=null;startTurn(1)}
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(b){if(!b.disabled)onAct(b.dataset.act,b.dataset.v);return}
+  const c=e.target.closest('[data-uid]');if(c)onCard(+c.dataset.uid);
+});
+document.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-uid]')){e.preventDefault();onCard(+e.target.dataset.uid)}
+  else if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-def]')){e.preventDefault();openZoom(DEF[e.target.dataset.def])}
+});
+
+
+/* ---------- zoom view ---------- */
+const GLOSS=[
+ [d=>d.evo,d=>'Evolution',d=>`Play it on top of one of your ${d.evo}s in the battle zone. It can attack right away, and the cards underneath stay with it.`],
+ [d=>d.speed,()=>'Speed attacker',()=>'Can attack the same turn you summon it.'],
+ [d=>d.block,()=>'Blocker',()=>"When an enemy creature attacks, you can tap this creature to make the attacker battle it instead."],
+ [d=>d.noP,()=>"Can't attack players",()=>'It can still attack tapped enemy creatures.'],
+ [d=>d.pa,d=>`Power attacker +${d.pa}`,d=>`Has ${d.p+d.pa} power while it attacks.`],
+ [d=>d.br===2,()=>'Double breaker',()=>'Breaks 2 shields when it hits.'],
+ [d=>d.br===3,()=>'Triple breaker',()=>'Breaks 3 shields when it hits.'],
+ [d=>d.unbl,()=>"Can't be blocked",()=>"Blockers can't stop this creature."],
+ [d=>d.slayer,()=>'Slayer',()=>'Whenever it battles, the other creature is destroyed too, even if the Slayer loses.'],
+ [d=>d.trig,()=>'Shield trigger',()=>'If this card comes out of one of your broken shields, you can cast it for free right away.'],
+];
+let ZOOM=null;
+function openZoom(c){ZOOM=c;renderZoom()}
+function closeZoom(){ZOOM=null;renderZoom()}
+function renderZoom(){
+  const el=$('#zoom');
+  if(!ZOOM){el.innerHTML='';return}
+  setPhase();
+  const c=ZOOM,e=CIV[c.e];
+  const kind=c.t==='s'?`${e.n} spell`:`${e.n} ${c.evo?'evolution ':''}creature, ${c.race}`;
+  const stats=c.t==='s'?`Cost ${c.cost}`:`Cost ${c.cost}, power ${c.p}`;
+  const kws=GLOSS.filter(g=>g[0](c)).map(g=>`<div><b>${g[1](c)}</b>${g[2](c)}</div>`).join('');
+  const eff=[c.onSum?`<div><b>When summoned</b>${fxDesc(c.onSum)}</div>`:'',c.onAtk?`<div><b>When it attacks</b>${fxDesc(c.onAtk)}</div>`:'',
+    c.onDie?`<div><b>When destroyed</b>${fxDesc(c.onDie)}</div>`:'',c.fx?`<div><b>Effect</b>${fxDesc(c.fx)}</div>`:''].join('');
+  const st=[];
+  if(c.uid&&G){
+    if(G.p.some(p=>p.bz.includes(c))){st.push(c.tapped?'Tapped.':'Untapped.');if(c.sick)st.push("Arrived this turn, so it can't attack yet.")}
+    if(c.under&&c.under.length)st.push(`Evolved on top of ${c.under.map(u=>u.n).join(', ')}.`);
+  }
+  el.innerHTML=`<div class="overlay" data-zbg="1"><div class="zbox zoomwrap" role="dialog" aria-label="${c.n}">
+    <button class="zclose" data-zclose="1" aria-label="Close">×</button>
+    ${cardHTML({...c,uid:0,tapped:false},'big',true)}
+    <div class="zinfo"><h2>${c.n}</h2><p class="zmeta">${kind}. ${stats}.</p>
+      ${st.length?`<p>${st.join(' ')}</p>`:''}
+      <div class="kw">${eff}${kws}</div>
+      <p class="hint">Tap outside or press Esc to close.</p></div>
+  </div></div>`;
+}
+let pressT=null,swallow=false;
+document.addEventListener('input',e=>{if(e.target.id==='dname'){BUILD.name=e.target.value;if(total())autoSave()}});
+document.addEventListener('pointerdown',e=>{
+  const t=e.target.closest('[data-uid],[data-def]');if(!t||e.target.closest('#zoom'))return;
+  clearTimeout(pressT);
+  pressT=setTimeout(()=>{swallow=true;const c=t.dataset.uid?findCard(+t.dataset.uid)?.c:DEF[t.dataset.def];if(c)openZoom(c)},450);
+});
+['pointerup','pointercancel','pointerleave'].forEach(n=>document.addEventListener(n,()=>clearTimeout(pressT),true));
+document.addEventListener('pointermove',e=>{if(Math.abs(e.movementX)+Math.abs(e.movementY)>6)clearTimeout(pressT)});
+document.addEventListener('contextmenu',e=>{
+  const t=e.target.closest('[data-uid],[data-def]');if(!t)return;
+  e.preventDefault();clearTimeout(pressT);
+  const c=t.dataset.uid?findCard(+t.dataset.uid)?.c:DEF[t.dataset.def];if(c)openZoom(c);
+});
+document.addEventListener('click',e=>{
+  if(swallow){swallow=false;e.stopImmediatePropagation();e.preventDefault();return}
+  if(e.target.closest('#zoom')){
+    if(e.target.closest('[data-zclose]')||e.target.matches('[data-zbg]'))closeZoom();
+    e.stopImmediatePropagation();return;
+  }
+  const d=e.target.closest('[data-def]');
+  if(d&&!e.target.closest('[data-act]')){openZoom(DEF[d.dataset.def]);e.stopImmediatePropagation()}
+},true);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&ZOOM){closeZoom();return}
+  if($('#tutorial')){if(e.key==='ArrowRight')showTutorial(TUT+1);else if(e.key==='ArrowLeft')showTutorial(TUT-1);else if(e.key==='Escape')showStart();return}
+  if((e.key==='i'||e.key==='I')&&e.target.matches&&e.target.matches('[data-uid]')){const c=findCard(+e.target.dataset.uid)?.c;if(c)openZoom(c)}
+});
+
+/* ---------- deck builder ---------- */
+const total=()=>Object.values(BUILD.counts).reduce((a,b)=>a+b,0);
+function fillDeck(){
+  let civs=[...new Set(Object.keys(BUILD.counts).filter(id=>BUILD.counts[id]>0).map(id=>DEF[id].e))];
+  if(!civs.length)civs=shuffle(Object.keys(CIV)).slice(0,2);
+  const pool=DEFS.filter(d=>civs.includes(d.e));
+  let guard=0;
+  while(total()<DECK_SIZE&&guard++<500){
+    const open=pool.filter(d=>(BUILD.counts[d.id]||0)<MAX_COPY);
+    if(!open.length)break;
+    // favour cheaper cards so the deck has early plays
+    const w=open.map(d=>Math.max(1,9-d.cost));
+    let r=Math.random()*w.reduce((a,b)=>a+b,0),pick=open[0];
+    for(let i=0;i<open.length;i++){r-=w[i];if(r<=0){pick=open[i];break}}
+    BUILD.counts[pick.id]=(BUILD.counts[pick.id]||0)+1;
+  }
+  BUILD.msg=total()<DECK_SIZE?`Not enough cards in these civilizations to reach ${DECK_SIZE}. Add another civilization.`:'';
+}
+let MYDECKS=null,saveT=null,PENDING_DEL=null;
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const expand=counts=>{const ids=[];for(const id in counts)if(DEF[id])for(let i=0;i<counts[id];i++)ids.push(id);return ids};
+const deckTotal=counts=>Object.values(counts).reduce((a,b)=>a+b,0);
+async function storeDecks(){try{return !!(await window.storage.set('shieldclash-decks',JSON.stringify(MYDECKS),false))}catch(e){return false}}
+async function loadDecks(){
+  if(MYDECKS)return MYDECKS;
+  let list=[];
+  try{const r=await window.storage.get('shieldclash-decks',false);if(r&&r.value)list=JSON.parse(r.value)}catch(e){}
+  if(!list.length){ // bring over a deck saved by the older single-deck version
+    try{const r=await window.storage.get('shieldclash-deck',false);if(r&&r.value){const c=JSON.parse(r.value);if(deckTotal(c))list.push({id:'d'+Date.now(),name:'My deck',counts:c,updated:Date.now()})}}catch(e){}
+  }
+  MYDECKS=list;
+  return MYDECKS;
+}
+function setSaved(t){BUILD.saved=t;const el=document.getElementById('bsaved');if(el)el.textContent=t}
+function autoSave(){clearTimeout(saveT);setSaved('Saving…');saveT=setTimeout(()=>saveDeck(),400)}
+async function saveDeck(manual){
+  clearTimeout(saveT);
+  if(!total()){setSaved(BUILD.id?'Empty decks are not saved':'');if(manual){BUILD.msg='Add some cards before saving.';renderBuilder()}return}
+  await loadDecks();
+  const counts={};for(const k in BUILD.counts)if(BUILD.counts[k]>0)counts[k]=BUILD.counts[k];
+  let d=BUILD.id&&MYDECKS.find(x=>x.id===BUILD.id);
+  if(!d){d={id:'d'+Date.now()+Math.floor(Math.random()*1000)};BUILD.id=d.id;MYDECKS.unshift(d)}
+  d.name=(BUILD.name||'').trim().slice(0,30)||'My deck';d.counts=counts;d.updated=Date.now();
+  const ok=await storeDecks();
+  setSaved(ok?'Saved':'Saving is not available here');
+  if(manual){BUILD.msg=ok?'Deck saved. It shows on the start page.':'Saving is not available here.';renderBuilder()}
+}
+async function showBuilder(id){
+  G=null;$('#layer').innerHTML='';
+  await loadDecks();
+  const d=id&&MYDECKS.find(x=>x.id===id);
+  BUILD=d?{counts:{...d.counts},msg:'',filter:BUILD.filter||'fire',id:d.id,name:d.name,saved:'Saved'}
+         :{counts:{},msg:'',filter:'fire',id:null,name:`My deck ${MYDECKS.length+1}`,saved:''};
+  renderBuilder();window.scrollTo(0,0);
+}
+function renderBuilder(){
+  setPhase();
+  const tot=total();
+  let h=`<header class="bh"><h2>Deck builder</h2><input id="dname" class="dname" aria-label="Deck name" maxlength="30" value="${esc(BUILD.name||'')}"><span class="cnt ${legal(tot)?'ok':''}">${tot} cards <small class="bsaved">${tot<DECK_MIN?`${DECK_MIN-tot} more to play`:tot===DECK_MAX?'Maximum reached':`Up to ${DECK_MAX}`}</small> <small id="bsaved" class="bsaved">${BUILD.saved||''}</small></span>
+    ${btn('brandom','Random optimal deck')}${btn('bfill',`Fill to ${DECK_SIZE}`)}${btn('bclear','Clear')}${btn('bsave','Save deck')}${btn('back','Back')}
+    <button data-act="bstart" class="main" ${legal(tot)?'':'disabled'}>Start duel</button>
+    <span class="bmsg">${BUILD.msg||'Decks hold 50 to 60 cards, with up to 4 copies of each. Your deck saves automatically. Tap a card to zoom in. Two civilizations is the classic setup; more is risky for mana.'}</span></header>`;
+  h+=`<nav class="tabs">${Object.keys(CIV).map(e=>{const n=DEFS.filter(d=>d.e===e).reduce((t,d)=>t+(BUILD.counts[d.id]||0),0);
+    return `<button data-act="bfilter" data-v="${e}" class="${BUILD.filter===e?'main':''}" style="--el:${CIV[e].c}"><span class="tdot"></span>${CIV[e].n}${n?` (${n})`:''}</button>`}).join('')}</nav>`;
+  for(const e in CIV){
+    if(e!==BUILD.filter)continue;
+    h+=`<section class="civ" style="--el:${CIV[e].c}"><h3>${CIV[e].n}</h3><div class="bgrid">`;
+    for(const d of DEFS.filter(d=>d.e===e)){
+      const n=BUILD.counts[d.id]||0;
+      h+=`<div class="bitem">${cardHTML(d,'')}<div class="bc">
+        <button data-act="bminus" data-v="${d.id}" aria-label="Remove ${d.n}" ${n?'':'disabled'}>−</button><span>${n}</span>
+        <button data-act="bplus" data-v="${d.id}" aria-label="Add ${d.n}" ${n<MAX_COPY&&tot<DECK_MAX?'':'disabled'}>+</button></div></div>`;
+    }
+    h+='</div></section>';
+  }
+  $('#app').innerHTML=h;
+}
+
+/* ---------- rendering ---------- */
+const ARTC={};
+const artFor=(c,big)=>{const k=c.id+(big?'+':'');return ARTC[k]||(ARTC[k]=cardArt(c,!big))};
+function cardHTML(c,cls='',plain=false){
+  const e=CIV[c.e],P=PAL[c.e];
+  const pw=c.t==='c'?(c.pa?`${c.p}+`:c.p):'Spell';
+  const isBig=cls.includes('big');
+  const sub=c.t==='s'?e.n:(c.evo?(isBig?'Evolution ':'Evo '):'')+c.race;
+  const tags=[];
+  if(c.uid&&c.sick&&G&&G.p.some(p=>p.bz.includes(c)))tags.push('Arriving');
+  if(c.under&&c.under.length)tags.push(`+${c.under.length} under`);
+  let fxc='',fxd='0ms';
+  const f=G&&c.uid&&G.fx&&G.fx[c.uid];
+  if(f){const age=now()-f.t0;if(age<600){fxc='fx-'+f.k;fxd=`-${age}ms`}else delete G.fx[c.uid]}
+  return `<div class="card ${c.t==='s'?'spell':''} ${c.evo?'isevo':''} ${c.br===3?'legend':''} ${c.tapped?'tapped':''} ${fxc} ${cls}" ${plain?'':c.uid?`data-uid="${c.uid}" tabindex="0"`:`data-def="${c.id}" tabindex="0"`} style="--fxd:${fxd};--fr:${P.frame};--lt:${P.light};--dp:${P.deep};--md:${P.mid}" title="${c.n}: ${c.txt}" aria-label="${c.n}, ${e.n}, cost ${c.cost}${c.t==='c'?', power '+c.p:', spell'}. ${c.txt}">
+    <div class="nbar"><span class="cost">${c.cost}</span><span class="nm">${c.n}</span></div>
+    <div class="art">${artFor(c,isBig)}${c.trig?'<span class="trg">Trigger</span>':''}</div>
+    <div class="txt">${c.txt.replace(' Shield trigger.','')}</div>
+    ${tags.length?`<span class="tag">${tags.join(', ')}</span>`:''}
+    <div class="bot"><span class="rc">${sub}</span><span class="pw">${pw}</span></div>
+  </div>`;
+}
+function cls(c,p,z){
+  const k=[],mine=p===G.p[0],free=G.turn===0&&!G.busy&&!G.targeting&&!G.modal&&!G.over;
+  if(G.targeting?.uids.has(c.uid))k.push('target');
+  if(G.sel?.uid===c.uid)k.push('sel');
+  if(free&&mine&&z==='bz'&&!c.tapped&&!c.sick)k.push('can');
+  if(free&&mine&&z==='hand'&&canPlay(p,c))k.push('can');
+  if(free&&!mine&&z==='bz'&&c.tapped&&G.sel?.zone==='bz')k.push('target');
+  return k.join(' ');
+}
+function sideHTML(p){
+  const free=p.mana.filter(m=>!m.tapped).length;
+  const bz=p.bz.length?p.bz.map(c=>cardHTML(c,cls(c,p,'bz'))).join(''):'<div class="empty">No creatures in the battle zone</div>';
+  const top=`<div class="info"><b>${p===G.p[0]?'You':(G.mp?esc(p.name):'Opponent')}</b><span>${p.deckName}</span><span>Deck ${p.deck.length}</span><span>Graveyard ${p.gy.length}</span>${p!==G.p[0]?`<span>Hand ${p.hand.length}</span>`:''}</div>
+    <div class="stack"><div class="shields"><span class="lbl">Shields ${p.sh.length}</span>${p.sh.map((_,i)=>`<div class="back ${G.breaking&&G.breaking.p===p&&i>=p.sh.length-G.breaking.n?'shatter':''}"></div>`).join('')}</div>
+    <div class="manas"><span class="lbl">Mana ${free}/${p.mana.length}</span>${p.mana.map(m=>`<span class="mana ${m.tapped?'used':''}" style="--el:${CIV[m.e].c}" title="${m.n}">${CIV[m.e].n[0]}</span>`).join('')}</div></div>`;
+  if(p!==G.p[0])return `<section class="side">${top}<div class="zone bzone">${bz}</div></section>`;
+  const hand=p.hand.length?p.hand.map(c=>cardHTML(c,cls(c,p,'hand'))).join(''):'<div class="empty">Your hand is empty</div>';
+  return `<section class="side"><div class="zone bzone">${bz}</div>${top}<div class="lbl">Hand</div><div class="zone">${hand}</div></section>`;
+}
+const btn=(a,l,main)=>`<button data-act="${a}" class="${main?'main':''}">${l}</button>`;
+function barHTML(){
+  const me=G.p[0];
+  const oppName=G.mp?esc(G.p[1].name):'Opponent',lost=G.winner!==G.p[0];
+  if(G.mp&&!IN_CLAUDE&&NET.status&&!G.over)return `<span class="turn">Offline</span><span class="prompt">${NET.status}</span>${btn('menu','Menu')}`;
+  if(G.over)return `<span class="prompt">${G.left!=null?`${oppName} left the game.`:lost?`${oppName} broke through.`:'You broke through every shield.'}</span>${btn('new',G.mp?'Back to start page':'Play again',1)}`;
+  if(G.req&&G.mp&&!G.targeting&&G.req.seat!==VIEW)return `<span class="turn">Waiting</span><span class="prompt">${oppName} is deciding what to do…</span>`;
+  if(G.targeting)return `<span class="turn">Choose</span><span class="prompt">${G.targeting.msg}</span>${btn('skip',G.targeting.skip||'Skip')}`;
+  if(G.turn!==0)return `<span class="turn">${G.mp?oppName+"'s":"Opponent's"} turn</span><span class="prompt">${G.mp?'Their moves show up here as they play. ':''}Watch for blocks and shield triggers.</span>${G.mp?btn('menu','Menu'):''}`;
+  if(G.busy)return `<span class="turn">Your turn</span><span class="prompt">Resolving…</span>`;
+  const s=selCard();let h='<span class="turn">Your turn</span>';
+  if(s&&G.sel.zone==='hand'){
+    let why='';
+    if(!canPay(me,s))why=` Needs ${s.cost} untapped mana, including 1 ${CIV[s.e].n}.`;
+    else if(s.evo&&!bases(me,s).length)why=` Needs one of your ${s.evo}s in the battle zone.`;
+    h+=`<span class="prompt">${s.n} selected.${why}</span>`;
+    if(!me.charged)h+=btn('charge','Charge as mana');
+    if(canPlay(me,s))h+=btn('play',s.t==='s'?'Cast':s.evo?'Evolve':'Summon',1);
+    h+=btn('view','View card')+btn('cancel','Cancel');
+  }else if(s&&G.sel.zone==='bz'){
+    const any=G.p[1].bz.some(c=>c.tapped);
+    if(s.noP)h+=`<span class="prompt">${s.n} can't attack players.${any?' Pick a tapped enemy creature to attack.':' No tapped enemy creatures to attack.'}</span>`;
+    else{
+      h+=`<span class="prompt">${s.n} is ready.${any?' Pick a tapped enemy creature, or':''}</span>`;
+      h+=btn('atkp',G.p[1].sh.length?'Attack shields':'Attack directly',1);
+    }
+    h+=btn('view','View card')+btn('cancel','Cancel');
+  }else{
+    h+=`<span class="prompt">${me.charged?'Summon creatures or attack with ready ones.':'Pick a card to charge as mana, or summon and attack.'}</span>`;
+  }
+  return h+btn('end','End turn')+btn('menu','Menu');
+}
+function render(){
+  if(!G)return;
+  setPhase();
+  if(G.mp&&MP&&!MP.applying&&G.turn===0&&!G.over)mpPush();
+  $('#app').innerHTML=`${sideHTML(G.p[1])}<div class="bar">${barHTML()}</div>${sideHTML(G.p[0])}
+    <div class="log" aria-live="polite">${G.log.slice(0,30).map(l=>`<div>${viewText(l)}</div>`).join('')}</div>`;
+  let layer='';
+  if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${G.modal.title}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'big',true)}</div>`:''}<p>${G.modal.text}</p>
+    <div class="opts">${G.modal.opts.map((o,i)=>`<button data-act="ans" data-v="${i}" class="${o.main?'main':''}">${o.label}</button>`).join('')}</div></div></div>`;
+  else if(G.over)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${G.winner!==G.p[0]?'Defeat':'Victory'}</h2>
+    <p>${G.left!=null?`${esc(G.p[1].name)} left the game.`:G.winner!==G.p[0]?`Your last shield fell and ${G.mp?esc(G.p[1].name):'the opponent'} landed the final blow.`:'Every shield is gone and your creature struck the final blow.'}</p>
+    <div class="opts">${btn('new',G.mp?'Back to start page':'Play again',1)}</div></div></div>`;
+  $('#layer').innerHTML=layer;
+}
+
+
+/* ---------- online play: two devices share one game through shared storage ---------- */
+// The player whose turn it is runs the rules on their device and saves the game after
+// every move. The other device checks every 1.4 seconds and shows the new state.
+// Choices the waiting player must make (blocks, shield triggers, targets) are sent as
+// a request; their device asks them and writes back the answer.
+let MP=null;
+let PLAYMODE='cpu';
+(async()=>{try{const r=await window.storage.get('shieldclash-mode',false);if(r&&r.value==='friend'){PLAYMODE='friend';renderModeSw()}}catch(e){}})();
+function renderModeSw(){
+  const el=document.getElementById('modesw');if(!el)return;
+  el.innerHTML=`<span><b>Play against</b></span><div class="seg" role="group" aria-label="Play against">
+    <button data-act="setmode" data-v="cpu" class="${PLAYMODE==='cpu'?'main':''}" aria-pressed="${PLAYMODE==='cpu'}">Computer</button>
+    <button data-act="setmode" data-v="friend" class="${PLAYMODE==='friend'?'main':''}" aria-pressed="${PLAYMODE==='friend'}">Friend</button></div>
+    <span class="hint">${PLAYMODE==='friend'?'Pick your deck below, then create a room or join one with a code.':'Pick a deck below to start a duel.'}</span>`;
+  const st=document.getElementById('start');if(st)st.classList.toggle('friendmode',PLAYMODE==='friend');
+}
+// Starting with a deck either begins a duel against the computer or opens the room screen
+function playWith(deckVal,deck){if(PLAYMODE==='friend')showOnline(null,deckVal);else startGame(deck())}
+const RK=(code,part)=>`scroom:${code}:${part}`;
+const hasStore=()=>true;
+// ---- direct device-to-device link (used outside Claude) ----
+// The host's device keeps the room data; every write on either side is copied to the other,
+// so the rest of the online code can read and write keys the same way in both modes.
+const NET={map:{},peer:null,conn:null,host:false,code:null,mine:new Set(),status:''};
+const PEER_SRC=['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'];
+let peerLib=null;
+function loadPeerJS(){
+  if(window.Peer)return Promise.resolve(window.Peer);
+  if(peerLib)return peerLib;
+  peerLib=new Promise((res,rej)=>{
+    let i=0;
+    const next=()=>{
+      if(i>=PEER_SRC.length){peerLib=null;rej(new Error('PeerJS could not load'));return}
+      const sc=document.createElement('script');sc.src=PEER_SRC[i++];sc.async=true;
+      sc.onload=()=>window.Peer?res(window.Peer):next();sc.onerror=()=>{sc.remove();next()};
+      document.head.appendChild(sc);
+    };
+    next();
+  });
+  return peerLib;
+}
+const peerId=code=>`shieldclash-room-${code}`;
+function netStatus(t){NET.status=t;const el=document.getElementById('netst');if(el)el.textContent=t;if(G&&G.mp)render()}
+function netSend(m){try{if(NET.conn&&NET.conn.open){NET.conn.send(m);return true}}catch(e){}return false}
+function netAttach(conn){
+  NET.conn=conn;
+  conn.on('open',()=>{
+    netStatus('');
+    if(NET.host)netSend({t:'snap',map:NET.map});
+    else for(const k of NET.mine)if(k in NET.map)netSend({t:'set',k,v:NET.map[k]});
+  });
+  conn.on('data',m=>{
+    if(!m||typeof m!=='object')return;
+    if(m.t==='snap'){NET.map={...m.map};for(const k of NET.mine)if(k in NET.mapLocal)NET.map[k]=NET.mapLocal[k];NET.gotSnap=true}
+    else if(m.t==='set'){NET.map[m.k]=m.v}
+    else if(m.t==='del'){delete NET.map[m.k]}
+  });
+  conn.on('close',()=>{if(NET.conn===conn){NET.conn=null;if(MP)netStatus('Connection lost. Reconnecting…');if(!NET.host&&MP)setTimeout(netRedial,2500)}});
+  conn.on('error',()=>{});
+}
+function netRedial(){
+  if(!MP||NET.host||!NET.peer||NET.conn)return;
+  if(NET.peer.disconnected){try{NET.peer.reconnect()}catch(e){}}
+  netAttach(NET.peer.connect(peerId(NET.code),{reliable:true}));
+  setTimeout(()=>{if(MP&&!NET.conn)netRedial()},6000);
+}
+function netClose(){try{NET.conn&&NET.conn.close()}catch(e){}try{NET.peer&&NET.peer.destroy()}catch(e){}NET.peer=null;NET.conn=null;NET.map={};NET.mine=new Set();NET.mapLocal={};NET.gotSnap=false}
+async function netHost(code){
+  const Peer=await loadPeerJS();
+  netClose();NET.host=true;NET.code=code;NET.mapLocal={};
+  return new Promise((res,rej)=>{
+    const pr=new Peer(peerId(code),{debug:0});NET.peer=pr;
+    pr.on('open',()=>res(true));
+    pr.on('connection',c=>{if(NET.conn&&NET.conn!==c){try{NET.conn.close()}catch(e){}}netAttach(c)});
+    pr.on('disconnected',()=>{if(MP)try{pr.reconnect()}catch(e){}});
+    pr.on('error',e=>{if(e&&e.type==='unavailable-id')rej(Object.assign(new Error('taken'),{taken:true}));else if(!MP)rej(e);else netStatus('Connection trouble. Retrying…')});
+  });
+}
+async function netJoin(code){
+  const Peer=await loadPeerJS();
+  netClose();NET.host=false;NET.code=code;NET.mapLocal={};
+  return new Promise((res,rej)=>{
+    const pr=new Peer({debug:0});NET.peer=pr;
+    const fail=setTimeout(()=>rej(new Error('timeout')),12000);
+    pr.on('open',()=>{
+      const c=pr.connect(peerId(code),{reliable:true});netAttach(c);
+      const wait=()=>{if(NET.gotSnap){clearTimeout(fail);res(true)}else setTimeout(wait,150)};wait();
+    });
+    pr.on('error',e=>{if(e&&e.type==='peer-unavailable'){clearTimeout(fail);rej(Object.assign(new Error('none'),{none:true}))}else if(!MP){clearTimeout(fail);rej(e)}});
+  });
+}
+async function sget(k){
+  if(!IN_CLAUDE)return k in NET.map?JSON.parse(JSON.stringify(NET.map[k])):null;
+  try{const r=await window.storage.get(k,true);return r&&r.value?JSON.parse(r.value):null}catch(e){return null}
+}
+async function sset(k,v){
+  if(!IN_CLAUDE){NET.map[k]=v;NET.mine.add(k);NET.mapLocal[k]=v;netSend({t:'set',k,v});return true}
+  try{return !!(await window.storage.set(k,JSON.stringify(v),true))}catch(e){return false}
+}
+async function sdel(k){
+  if(!IN_CLAUDE){delete NET.map[k];delete NET.mapLocal[k];NET.mine.delete(k);netSend({t:'del',k});return}
+  try{await window.storage.delete(k,true)}catch(e){}
+}
+const cardBy=uid=>uid==null?null:(findCard(uid)?.c||null);
+function toWire(){
+  const canon=G.p[0].seat===0?[G.p[0],G.p[1]]:[G.p[1],G.p[0]];
+  return {seq:MP.seq,players:canon.map(p=>{const q={...p};delete q.remote;return q}),turnSeat:G.p[G.turn].seat,turnNo:G.turnNo,
+    log:G.log,over:G.over,winnerSeat:G.over&&G.winner?G.winner.seat:null,req:G.req||null,needStart:!!G.needStart,left:G.left??null};
+}
+function fromWire(w){
+  const pl=w.players.map(p=>({...p,remote:p.seat!==MP.seat,ai:false}));
+  const keep=G&&G.mp?{modal:G.modal,targeting:G.targeting}:{modal:null,targeting:null};
+  G={mp:true,shields:SHIELDS,p:[pl[MP.seat],pl[1-MP.seat]],turn:w.turnSeat===MP.seat?0:1,turnNo:w.turnNo,log:w.log,over:w.over,
+    winner:w.winnerSeat==null?null:pl[w.winnerSeat],req:w.req,needStart:w.needStart,left:w.left,busy:false,fx:{},breaking:null,sel:null,...keep};
+}
+let pushT=null;
+function mpPush(now){
+  if(!MP||!G||!G.mp)return Promise.resolve();
+  clearTimeout(pushT);
+  if(now)return doPush();
+  pushT=setTimeout(doPush,350);return Promise.resolve();
+}
+async function doPush(){
+  clearTimeout(pushT);if(!MP)return;
+  MP.seq++;MP.lastSeq=MP.seq;
+  const ok=await sset(RK(MP.code,'state'),toWire());
+  if(!ok&&MP){MP.retry=(MP.retry||0)+1;if(MP.retry<6)setTimeout(()=>mpPush(true),1500)}else if(MP)MP.retry=0;
+}
+async function remoteDecide(p,kind,payload){
+  const id=Math.random().toString(36).slice(2,10);
+  G.req={id,seat:p.seat,kind,payload};MP.waiting=true;render();await mpPush(true);
+  try{
+    for(let i=0;i<600&&MP&&G&&!G.over;i++){
+      await sleep(1200);
+      const a=await sget(RK(MP.code,'ans:'+id));
+      if(a){await sdel(RK(MP.code,'ans:'+id));return a.v}
+    }
+    return null;
+  }finally{if(G)G.req=null;if(MP)MP.waiting=false;if(G)render()}
+}
+async function mpRespond(req){
+  MP.responding=true;let val=null;
+  try{
+    const pl=req.payload;
+    if(req.kind==='block'){const b=await askBlock(cardBy(pl.att),pl.blockers.map(cardBy).filter(Boolean),pl.target==='player'?'player':cardBy(pl.target));val=b?b.uid:null}
+    else if(req.kind==='trig'){val=!!(await askTrig(cardBy(pl.s)))}
+    else if(req.kind==='target'){const t=await pickTarget(pl.uids.map(cardBy).filter(Boolean),pl.msg,'Skip');val=t?t.uid:null}
+    if(MP)await sset(RK(MP.code,'ans:'+req.id),{v:val});
+    if(MP)MP.answered=req.id;
+  }finally{if(MP)MP.responding=false;if(G)render()}
+}
+async function mpPoll(){
+  if(!MP)return;
+  try{
+    if(G&&G.mp&&!G.over){
+      const lf=await sget(RK(MP.code,'left'));
+      if(lf!=null&&lf!==MP.seat){G.over=true;G.left=lf;G.winner=G.p[0];G.modal=null;G.targeting=null;render();return}
+    }
+    if(MP.responding||MP.waiting)return;
+    if(G&&G.mp&&G.turn===0&&!G.over&&!G.needStart)return;
+    const w=await sget(RK(MP.code,'state'));
+    if(!w||w.seq<=MP.lastSeq)return;
+    MP.lastSeq=w.seq;MP.seq=Math.max(MP.seq,w.seq);
+    if(!G||!G.mp)$('#layer').innerHTML='';
+    MP.applying=true;fromWire(w);render();MP.applying=false;
+    if(G.req&&G.req.seat===MP.seat&&MP.answered!==G.req.id&&!G.over)mpRespond(G.req);
+    else if(G.turn===0&&G.needStart&&!G.over)startTurn(0);
+  }finally{if(MP){clearTimeout(MP.timer);MP.timer=setTimeout(mpPoll,1400)}}
+}
+async function mpLeave(quiet){
+  if(MP){
+    clearTimeout(MP.timer);clearTimeout(MP.lobbyT);
+    const code=MP.code,seat=MP.seat,inGame=G&&G.mp&&!G.over;
+    MP=null;
+    if(inGame)await sset(RK(code,'left'),seat);
+    if(!IN_CLAUDE)setTimeout(netClose,600);
+  }
+  G=null;VIEW=0;showStart();
+}
+function deckOptions(){
+  const o=[`<option value="random">Random optimal deck</option>`];
+  PRESETS.forEach((p,i)=>o.push(`<option value="p${i}">${p.n} (${p.civ.map(e=>CIV[e].n).join(', ')})</option>`));
+  (MYDECKS||[]).filter(d=>legal(deckTotal(d.counts))).forEach(d=>o.push(`<option value="d${esc(d.id)}">${esc(d.name)} (your deck)</option>`));
+  return o.join('');
+}
+function pickedDeck(v){
+  if(v[0]==='p'){const pr=PRESETS[+v.slice(1)];return {n:pr.n,ids:presetIds(pr.civ)}}
+  if(v[0]==='d'){const d=MYDECKS.find(x=>x.id===v.slice(1));if(d)return {n:d.name,ids:expand(d.counts)}}
+  const d=smartDeck();return {n:d.n,ids:d.ids};
+}
+async function showOnline(msg,deckVal){
+  G=null;$('#app').innerHTML='';
+  await loadDecks();
+  const nm=(window._mpName||'');
+  $('#layer').innerHTML=`<div class="overlay" id="online"><div class="dialog">
+    <h2>Play with a friend</h2>
+    <p class="rules">You and your friend both open this game on your own devices. One of you creates a room and shares the 4-letter code. The other joins with it.</p>
+    <label class="fld"><span>Your name</span><input id="mpname" maxlength="16" value="${esc(nm)}" placeholder="e.g. TJ"></label>
+    <label class="fld"><span>Your deck</span><select id="mpdeck">${deckOptions()}</select></label>
+    <div class="opts"><button class="main" data-act="mphost" ${hasStore()?'':'disabled'}>Create a room</button></div>
+    <div class="joinrow"><label class="fld"><span>Or join a room</span><input id="mpcode" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off"></label><button data-act="mpjoin" ${hasStore()?'':'disabled'}>Join</button></div>
+    ${msg?`<p class="err">${msg}</p>`:''}
+    <p class="hint">${IN_CLAUDE?"Room data, including names, decks, and moves, goes into shared storage that other users of this game could read. Don't use anything private as your name."
+      :'Your devices connect directly to each other. A free public server (PeerJS) only helps them find each other. Mobile data and home Wi-Fi work best; some office or hotel networks block direct connections.'}</p>
+    <div class="opts"><button data-act="back">Back</button></div>
+  </div></div>`;
+  const sel=document.getElementById('mpdeck');
+  if(sel){const want=deckVal||window._mpDeck;if(want&&[...sel.options].some(o=>o.value===want))sel.value=want}
+}
+function readForm(){
+  const name=(document.getElementById('mpname').value||'').trim().slice(0,16)||'Player';
+  window._mpName=name;window._mpDeck=document.getElementById('mpdeck').value;
+  return {name,deck:pickedDeck(document.getElementById('mpdeck').value)};
+}
+function lobbyScreen(title,body){
+  $('#layer').innerHTML=`<div class="overlay" id="online"><div class="dialog"><h2>${title}</h2>${body}<div class="opts"><button data-act="mpcancel">Cancel</button></div></div></div>`;
+}
+async function mpHost(){
+  const {name,deck}=readForm();
+  const L='ABCDEFGHJKMNPQRSTUVWXYZ';
+  let code=Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('');
+  if(!IN_CLAUDE){
+    lobbyScreen('Creating room…','<p class="hint">Setting up the connection.</p>');
+    let ok=false;
+    for(let t=0;t<4&&!ok;t++){
+      try{await netHost(code);ok=true}catch(e){if(e&&e.taken)code=Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('');else break}
+    }
+    if(!ok){netClose();showOnline("Couldn't set up a room. Check your internet connection and try again.");return}
+  }
+  const ok=await sset(RK(code,'lobby'),{host:{name,deck},guest:null,t:Date.now()});
+  if(!ok){showOnline('Could not create a room. Check your connection and try again.');return}
+  MP={code,seat:0,seq:0,lastSeq:0};VIEW=0;
+  lobbyScreen('Room created',`<p>Send this code to your friend:</p><p class="code">${code}</p><p class="hint">Waiting for them to join… You'll go first.</p>`);
+  const wait=async()=>{
+    if(!MP||MP.code!==code)return;
+    const lob=await sget(RK(code,'lobby'));
+    if(lob&&lob.guest){
+      $('#layer').innerHTML='';
+      const me=mkPlayer(name,false,deck,SHIELDS,0),them=mkPlayer(lob.guest.name,false,lob.guest.deck,SHIELDS,1);
+      them.remote=true;
+      G={mp:true,shields:SHIELDS,p:[me,them],turn:0,turnNo:0,log:[],sel:null,busy:false,targeting:null,modal:null,over:false,fx:{},breaking:null,req:null};
+      log(`${esc(name)} (${esc(deck.n)}) vs ${esc(lob.guest.name)} (${esc(lob.guest.deck.n)}). Each side has ${SHIELDS} shields. ${esc(name)} goes first and skips the first draw.`);
+      await sset(RK(code,'lobby'),{...lob,started:true});
+      startTurn(0);
+      MP.timer=setTimeout(mpPoll,1400);
+      return;
+    }
+    MP.lobbyT=setTimeout(wait,1500);
+  };
+  wait();
+}
+async function mpJoin(){
+  const code=(document.getElementById('mpcode').value||'').trim().toUpperCase();
+  if(!/^[A-Z]{4}$/.test(code)){showOnline('Enter the 4-letter room code.');return}
+  const {name,deck}=readForm();
+  if(!IN_CLAUDE){
+    lobbyScreen(`Joining ${code}…`,'<p class="hint">Connecting to your friend\'s device.</p>');
+    try{await netJoin(code)}catch(e){netClose();showOnline(e&&e.none?`No room found with the code ${code}. Check the code, and make sure your friend still has the room open.`:"Couldn't connect to that room. Check your internet connection and try again.");return}
+  }
+  const lob=await sget(RK(code,'lobby'));
+  if(!lob){netClose();showOnline(`No room found with the code ${code}.`);return}
+  if(lob.guest){netClose();showOnline('That room already has two players.');return}
+  const ok=await sset(RK(code,'lobby'),{...lob,guest:{name,deck}});
+  if(!ok){showOnline('Could not join the room. Check your connection and try again.');return}
+  MP={code,seat:1,seq:0,lastSeq:0};VIEW=1;
+  lobbyScreen(`Joined room ${code}`,`<p>You're playing against ${esc(lob.host.name)}.</p><p class="hint">Waiting for the game to start…</p>`);
+  MP.timer=setTimeout(mpPoll,1000);
+}
+
+/* ---------- how to play ---------- */
+let TUT=0;
+const mini=(id,extra={})=>cardHTML({...DEF[id],...extra},'',true);
+const backs=(n,gone=0)=>`<div class="tshields">${Array.from({length:n},(_,i)=>`<div class="back ${i>=n-gone?'gone':''}"></div>`).join('')}</div>`;
+const chip=(e,used)=>`<span class="mana ${used?'used':''}" style="--el:${CIV[e].c}">${CIV[e].n[0]}</span>`;
+const TPAGES=[
+ {t:'The goal',
+  v:()=>`<div class="tcol">${backs(8)}<span class="tcap">Your opponent's 8 shields</span></div><span class="arrow">→</span><div class="tcol">${mini('ragna')}<span class="tcap">One more hit wins</span></div>`,
+  x:`<p>Each player starts with 8 face-down shields. Break all of your opponent's shields, then attack them once more to win.</p><p>You also lose if you need to draw a card and your deck is empty, so long games have a clock.</p>`},
+ {t:'Reading a card',
+  v:()=>`<div class="tcard">${cardHTML(DEF.harrier,'big',true)}
+    <span class="mk" style="left:-7%;top:6%">1</span><span class="mk" style="left:107%;top:6%">2</span>
+    <span class="mk" style="left:107%;top:33%">3</span><span class="mk" style="left:107%;top:66%">4</span>
+    <span class="mk" style="left:-7%;top:95%">5</span><span class="mk" style="left:107%;top:95%">6</span></div>`,
+  x:`<div class="tkey">
+    <div><span class="mk">1</span><span><b>Cost.</b> How much mana it takes to play.</span></div>
+    <div><span class="mk">2</span><span><b>Name.</b></span></div>
+    <div><span class="mk">3</span><span><b>Picture.</b> The frame color shows its civilization.</span></div>
+    <div><span class="mk">4</span><span><b>Abilities.</b> What makes the card special.</span></div>
+    <div><span class="mk">5</span><span><b>Race.</b> Matters for evolution creatures.</span></div>
+    <div><span class="mk">6</span><span><b>Power.</b> Higher power wins battles. A + means it gets stronger while attacking.</span></div></div>`},
+ {t:'Five civilizations',
+  v:()=>['drakeling','courier','oak','dawn','stalker'].map(id=>`<div class="tcol">${mini(id)}</div>`).join(''),
+  x:`<p><b>Fire</b> is fast: speed attackers and burn spells.</p><p><b>Water</b> draws cards, sends creatures back to hand, and slips past blockers.</p><p><b>Nature</b> grows extra mana and plays huge creatures.</p><p><b>Light</b> blocks, taps enemies, and adds shields.</p><p><b>Dark</b> destroys creatures, slays, and makes your opponent discard.</p>`},
+ {t:'Your turn',
+  v:()=>`<div class="tcol">${mini('sprout')}<span class="tcap">Charge one card as mana</span></div><span class="arrow">→</span><div class="tcol">${mini('boar')}<span class="tcap">Summon and attack</span></div>`,
+  x:`<ol><li><b>Start.</b> Your mana and creatures untap, and you draw a card. Whoever goes first skips the draw on their first turn.</li>
+    <li><b>Charge mana.</b> Once per turn, put any card from your hand into your mana zone.</li>
+    <li><b>Play cards.</b> Summon creatures and cast spells as long as you have the mana.</li>
+    <li><b>Attack.</b> Send in creatures that are ready.</li>
+    <li><b>End turn.</b></li></ol>`},
+ {t:'Paying with mana',
+  v:()=>`<div class="tcol">${mini('raider')}<span class="tcap">Costs 3, and it's Fire</span></div><span class="arrow">=</span><div class="tcol"><div style="display:flex;gap:4px">${chip('fire')}${chip('nature')}${chip('nature')}</div><span class="tcap">3 untapped mana, at least 1 Fire</span></div>`,
+  x:`<p>Every card in your mana zone counts as 1 mana of its civilization. To play a card, tap mana equal to its cost, and at least one must match the card's civilization.</p><p>Tapped mana comes back at the start of your next turn.</p><p class="tnote">Tip: early on, charge expensive cards you can't play for a while. Keep some of each civilization in your deck's mana.</p>`},
+ {t:'Creatures and attacking',
+  v:()=>`<div class="tcol">${mini('beetle')}<span class="tcap">Arrives this turn</span></div><span class="arrow">→</span><div class="tcol">${mini('canopy')}<span class="tcap">Speed attacker: can attack now</span></div>`,
+  x:`<p>A new creature needs a turn to settle in, shown by the Arriving tag. Next turn it can attack. Speed attackers skip the wait.</p><p>An attack goes at your opponent's shields, or at one of their <b>tapped</b> creatures. Untapped creatures are safe.</p><p>Attacking taps your creature, which means your opponent can attack it on their turn.</p>`},
+ {t:'Battles',
+  v:()=>`<div class="tcol">${mini('cinderclaw')}<span class="tcap">Attacker, 5000</span></div><span class="arrow">vs</span><div class="tcol">${mini('badger',{tapped:true})}<span class="tcap">Tapped, 4000. Destroyed</span></div>`,
+  x:`<p>When two creatures battle, the one with higher power wins and the loser is destroyed. If power is equal, both are destroyed.</p><p><b>Power attacker</b> adds power only while attacking. <b>Slayer</b> destroys whatever it battles, even if it loses.</p>`},
+ {t:'Blockers',
+  v:()=>`<div class="tcol">${mini('raider')}<span class="tcap">Attacks your shields</span></div><span class="arrow">→</span><div class="tcol">${mini('reef')}<span class="tcap">Blocker steps in</span></div>`,
+  x:`<p>When an enemy creature attacks, you can tap an untapped <b>Blocker</b> to battle it instead. Your shields stay safe.</p><p>Many blockers can't attack players, so they're for defense. Creatures that <b>can't be blocked</b> ignore blockers completely.</p>`},
+ {t:'Shields and triggers',
+  v:()=>`<div class="tcol">${backs(8,2)}<span class="tcap">2 shields broken</span></div><span class="arrow">→</span><div class="tcol">${mini('flare')}<span class="tcap">Goes to the hand. Trigger: free!</span></div>`,
+  x:`<p>A broken shield isn't lost. It goes into its owner's hand, so every hit gives your opponent another card.</p><p>If that card is a <b>shield trigger</b>, its owner can cast it for free right away. That's how a losing player can turn the game around.</p><p><b>Double</b> and <b>triple breakers</b> break 2 or 3 shields with one attack.</p>`},
+ {t:'Evolution',
+  v:()=>`<div class="tcol">${mini('raider')}<span class="tcap">A Raider in play</span></div><span class="arrow">+</span><div class="tcol">${mini('chief')}<span class="tcap">Goes on top</span></div>`,
+  x:`<p>Evolution creatures are played on top of one of your creatures of the matching race. They're cheap for their power and can attack right away.</p><p>The creature underneath becomes part of it. If the evolution is destroyed or sent back to hand, the cards underneath go with it.</p>`},
+ {t:'Controls',
+  v:()=>`<div class="tcol">${cardHTML(DEF.alpha,'can',true)}<span class="tcap">Blue outline: ready to use</span></div><div class="tcol">${mini('oak',{tapped:true})}<span class="tcap">Tilted: tapped</span></div>`,
+  x:`<p><b>Tap a card in your hand</b> to charge it as mana or play it. Cards you can afford have a blue outline.</p><p><b>Tap a ready creature</b>, then press Attack shields, or tap a tapped enemy creature with a red outline.</p><p><b>To read a card up close</b>, long-press it or right-click it.</p><p>Press <b>End turn</b> when you're done. The game log at the bottom shows what happened.</p>`},
+ {t:"You're ready",
+  v:()=>`<div class="tcol">${mini('seraph')}</div><div class="tcol">${mini('titan')}</div><div class="tcol">${mini('devourer')}</div>`,
+  x:`<p>Start with a preset deck or a random optimal deck. Once you know the cards, build your own in the deck builder.</p><div class="opts"><button class="main" data-act="random">Play a random deck</button><button data-act="tclose">Pick a deck</button></div>`},
+];
+function showTutorial(i){
+  TUT=Math.max(0,Math.min(TPAGES.length-1,i));setPhase();
+  const pg=TPAGES[TUT],last=TUT===TPAGES.length-1;
+  $('#layer').innerHTML=`<div class="overlay" id="tutorial"><div class="dialog tut" role="dialog" aria-label="How to play">
+    <div class="thead"><span class="tstep">How to play, ${TUT+1} of ${TPAGES.length}</span><button class="tclose" data-act="tclose" aria-label="Close how to play">×</button></div>
+    <h2>${pg.t}</h2>
+    <div class="tbody"><div class="tvis bzone">${pg.v()}</div><div class="ttxt">${pg.x}</div></div>
+    <div class="tnav"><button data-act="tprev" ${TUT?'':'disabled'}>Back</button>
+      <div class="tdots">${TPAGES.map((p,k)=>`<button class="${k===TUT?'on':''}" data-act="tgo" data-v="${k}" aria-label="Page ${k+1}: ${p.t}"></button>`).join('')}</div>
+      ${last?`<button class="main" data-act="tclose">Done</button>`:`<button class="main" data-act="tnext">Next</button>`}</div>
+  </div></div>`;
+}
+function renderMyDecks(){
+  const el=document.getElementById('mydecks');if(!el||!MYDECKS)return;
+  if(!MYDECKS.length){el.innerHTML='';return}
+  el.innerHTML=`<p><b>Your decks</b></p><div class="decks">${[...MYDECKS].sort((a,b)=>(b.updated||0)-(a.updated||0)).map(d=>{
+    const tot=deckTotal(d.counts),civs=[...new Set(Object.keys(d.counts).filter(k=>DEF[k]).map(k=>DEF[k].e))];
+    const ready=legal(tot);
+    const btns=PENDING_DEL===d.id
+      ?`<span class="hint">Delete this deck?</span><button data-act="ddelyes" data-v="${d.id}">Delete</button><button data-act="ddelno" data-v="${d.id}">Keep</button>`
+      :`${ready?`<button class="main" data-act="dplay" data-v="${d.id}">Play</button>`:''}<button data-act="dedit" data-v="${d.id}">Edit</button><button data-act="ddel" data-v="${d.id}" aria-label="Delete ${esc(d.name)}">Delete</button>`;
+    return `<div class="mydeck"><span class="dots">${civs.map(e=>`<span style="--el:${CIV[e].c}"></span>`).join('')}</span>
+      <b>${esc(d.name)}</b><small>${ready?`${tot} cards, ready to play.`:`${tot} cards. Needs at least ${DECK_MIN} to play.`}${civs.length?` ${civs.map(e=>CIV[e].n).join(', ')}.`:''}</small>
+      <div class="mdb">${btns}</div></div>`}).join('')}</div>`;
+}
+function showStart(){
+  G=null;$('#app').innerHTML='';
+  $('#layer').innerHTML=`<div class="overlay" id="start"><div class="dialog">
+    <h1>Shield Clash</h1>
+    <div class="howto"><button class="main" data-act="tut">How to play</button><span class="hint">New here? It takes about two minutes.</span></div>
+    <div class="howto modesw" id="modesw"></div>
+
+    <div id="mydecks"></div>
+    <p><b class="pickh">Pick a deck</b></p>
+    <div class="decks">${PRESETS.map((d,i)=>`<button class="deck" data-act="preset" data-v="${i}">
+      <span class="dots">${d.civ.map(e=>`<span style="--el:${CIV[e].c}"></span>`).join('')}</span>
+      <b>${d.n}</b><small>${CIV[d.civ[0]].n} and ${CIV[d.civ[1]].n}. ${d.d}</small></button>`).join('')}
+      <button class="deck" data-act="random"><span class="dots"><span style="--el:#A32D2D"></span><span style="--el:#185FA5"></span><span style="--el:#3B6D11"></span><span style="--el:#854F0B"></span><span style="--el:#3C3489"></span></span><b>Random optimal deck</b><small>A strong mix of all five civilizations, built fresh every time.</small></button>
+      <button class="deck" data-act="builder"><b>Build a new deck</b><small>Choose 50 to 60 cards. It saves automatically and shows up here.</small></button></div>
+  </div></div>`;
+  PENDING_DEL=null;
+  renderModeSw();
+  loadDecks().then(renderMyDecks);
+}
+showStart();
+</script>
 </body>
 </html>
