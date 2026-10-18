@@ -177,6 +177,7 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 .logo .emblem{width:58px;height:64px;flex:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.18))}
 .logo h1{margin:0}
 @media (max-width:600px){.logo .emblem{width:46px;height:51px}}
+.credit{margin:6px 0 0;text-align:center;font-size:12.5px;color:var(--muted)}
 .howto{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
 /* character and scene animation; loops share one clock (--ph) so re-renders don't restart them */
@@ -1785,6 +1786,7 @@ function showStart(){
       <b>${d.n}</b><small>${CIV[d.civ[0]].n} and ${CIV[d.civ[1]].n}. ${d.d}</small></button>`).join('')}
       <button class="deck" data-act="random"><span class="dots"><span style="--el:#A32D2D"></span><span style="--el:#185FA5"></span><span style="--el:#3B6D11"></span><span style="--el:#854F0B"></span><span style="--el:#3C3489"></span></span><b>Random optimal deck</b><small>A strong mix of all five civilizations, built fresh every time.</small></button>
       <button class="deck" data-act="builder"><b>Build a new deck</b><small>Choose 50 to 60 cards. It saves automatically and shows up here.</small></button></div>
+    <p class="credit">Made by Tejas Jadhav and Claude Opus 5.5</p>
   </div></div>`;
   PENDING_DEL=null;
   renderModeSw();
