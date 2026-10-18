@@ -23,10 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - name: Collect site files
-        run: mkdir _site && cp -r index.html css js _site/
+      # publish the whole repo; the upload step already leaves out .git and .github
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: .
       - id: deployment
         uses: actions/deploy-pages@v4
