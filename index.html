@@ -238,7 +238,7 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 <script>
 // Inside the Claude app, window.storage is provided (personal + shared data).
 // Anywhere else (GitHub Pages, a downloaded file) we keep decks in localStorage
-// and connect two devices directly with PeerJS for online play.
+// and connect two devices through a public MQTT relay for online play.
 const IN_CLAUDE=!!(window.storage&&typeof window.storage.get==='function');
 if(!IN_CLAUDE){
   const LS=(()=>{try{const t='__sc';localStorage.setItem(t,'1');localStorage.removeItem(t);return localStorage}catch(e){return null}})();
@@ -1385,97 +1385,123 @@ function renderModeSw(){
 function playWith(deckVal,deck){if(PLAYMODE==='friend')showOnline(null,deckVal);else startGame(deck())}
 const RK=(code,part)=>`scroom:${code}:${part}`;
 const hasStore=()=>true;
-// ---- direct device-to-device link (used outside Claude) ----
-// The host's device keeps the room data; every write on either side is copied to the other,
-// so the rest of the online code can read and write keys the same way in both modes.
-const NET={map:{},peer:null,conn:null,host:false,code:null,mine:new Set(),status:''};
-const PEER_SRC=['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'];
-let peerLib=null;
-function loadPeerJS(){
-  if(window.Peer)return Promise.resolve(window.Peer);
-  if(peerLib)return peerLib;
-  peerLib=new Promise((res,rej)=>{
+// ---- relay link (used outside Claude) ----
+// Both devices connect to a free public MQTT relay server over a normal secure web
+// connection (the same kind web pages use), so it works on almost any network.
+// Each key is saved as a "retained" message on the room's topic, so the relay
+// remembers the latest value and both devices see the same data.
+const NET={map:{},client:null,code:null,status:'',url:null};
+const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt','wss://test.mosquitto.org:8081/mqtt'];
+const MQ_SRC=['https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js','https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js','https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js'];
+const TOP='shieldclash/v1/';
+const keyTopic=k=>TOP+k.split(':').join('/');
+const topicKey=t=>t.slice(TOP.length).split('/').join(':');
+let mqLib=null;
+function loadMQTT(){
+  if(window.mqtt&&window.mqtt.connect)return Promise.resolve(window.mqtt);
+  if(mqLib)return mqLib;
+  mqLib=new Promise((res,rej)=>{
     let i=0;
     const next=()=>{
-      if(i>=PEER_SRC.length){peerLib=null;rej(new Error('PeerJS could not load'));return}
-      const sc=document.createElement('script');sc.src=PEER_SRC[i++];sc.async=true;
-      sc.onload=()=>window.Peer?res(window.Peer):next();sc.onerror=()=>{sc.remove();next()};
+      if(i>=MQ_SRC.length){mqLib=null;rej(new Error('lib'));return}
+      const sc=document.createElement('script');sc.src=MQ_SRC[i++];sc.async=true;
+      sc.onload=()=>window.mqtt&&window.mqtt.connect?res(window.mqtt):next();sc.onerror=()=>{sc.remove();next()};
       document.head.appendChild(sc);
     };
     next();
   });
-  return peerLib;
+  return mqLib;
 }
-const peerId=code=>`shieldclash-room-${code}`;
-function netStatus(t){NET.status=t;const el=document.getElementById('netst');if(el)el.textContent=t;if(G&&G.mp)render()}
-function netSend(m){try{if(NET.conn&&NET.conn.open){NET.conn.send(m);return true}}catch(e){}return false}
-function netAttach(conn){
-  NET.conn=conn;
-  conn.on('open',()=>{
-    netStatus('');
-    if(NET.host)netSend({t:'snap',map:NET.map});
-    else for(const k of NET.mine)if(k in NET.map)netSend({t:'set',k,v:NET.map[k]});
-  });
-  conn.on('data',m=>{
-    if(!m||typeof m!=='object')return;
-    if(m.t==='snap'){NET.map={...m.map};for(const k of NET.mine)if(k in NET.mapLocal)NET.map[k]=NET.mapLocal[k];NET.gotSnap=true}
-    else if(m.t==='set'){NET.map[m.k]=m.v}
-    else if(m.t==='del'){delete NET.map[m.k]}
-  });
-  conn.on('close',()=>{if(NET.conn===conn){NET.conn=null;if(MP)netStatus('Connection lost. Reconnecting…');if(!NET.host&&MP)setTimeout(netRedial,2500)}});
-  conn.on('error',()=>{});
-}
-function netRedial(){
-  if(!MP||NET.host||!NET.peer||NET.conn)return;
-  if(NET.peer.disconnected){try{NET.peer.reconnect()}catch(e){}}
-  netAttach(NET.peer.connect(peerId(NET.code),{reliable:true}));
-  setTimeout(()=>{if(MP&&!NET.conn)netRedial()},6000);
-}
-function netClose(){try{NET.conn&&NET.conn.close()}catch(e){}try{NET.peer&&NET.peer.destroy()}catch(e){}NET.peer=null;NET.conn=null;NET.map={};NET.mine=new Set();NET.mapLocal={};NET.gotSnap=false}
-async function netHost(code){
-  const Peer=await loadPeerJS();
-  netClose();NET.host=true;NET.code=code;NET.mapLocal={};
+function netStatus(t){if(NET.status===t)return;NET.status=t;if(G&&G.mp)render()}
+function mqConnect(url,code){
   return new Promise((res,rej)=>{
-    const pr=new Peer(peerId(code),{debug:0});NET.peer=pr;
-    pr.on('open',()=>res(true));
-    pr.on('connection',c=>{if(NET.conn&&NET.conn!==c){try{NET.conn.close()}catch(e){}}netAttach(c)});
-    pr.on('disconnected',()=>{if(MP)try{pr.reconnect()}catch(e){}});
-    pr.on('error',e=>{if(e&&e.type==='unavailable-id')rej(Object.assign(new Error('taken'),{taken:true}));else if(!MP)rej(e);else netStatus('Connection trouble. Retrying…')});
-  });
-}
-async function netJoin(code){
-  const Peer=await loadPeerJS();
-  netClose();NET.host=false;NET.code=code;NET.mapLocal={};
-  return new Promise((res,rej)=>{
-    const pr=new Peer({debug:0});NET.peer=pr;
-    const fail=setTimeout(()=>rej(new Error('timeout')),12000);
-    pr.on('open',()=>{
-      const c=pr.connect(peerId(code),{reliable:true});netAttach(c);
-      const wait=()=>{if(NET.gotSnap){clearTimeout(fail);res(true)}else setTimeout(wait,150)};wait();
+    let c;
+    try{c=window.mqtt.connect(url,{clientId:'sc_'+Math.random().toString(36).slice(2,12),clean:true,connectTimeout:8000,reconnectPeriod:2000,keepalive:30})}catch(e){rej(e);return}
+    const t=setTimeout(()=>{try{c.end(true)}catch(e){}rej(new Error('timeout'))},9000);
+    attachClient(c); // listen before subscribing so saved room data that arrives right away isn't missed
+    c.once('connect',()=>{
+      clearTimeout(t);
+      c.subscribe(TOP+'scroom/'+code+'/#',{qos:1},err=>err?rej(err):res(c));
     });
-    pr.on('error',e=>{if(e&&e.type==='peer-unavailable'){clearTimeout(fail);rej(Object.assign(new Error('none'),{none:true}))}else if(!MP){clearTimeout(fail);rej(e)}});
+    c.on('error',()=>{});
   });
+}
+function attachClient(c){
+  NET.client=c;
+  c.on('message',(topic,payload)=>{
+    if(NET.client!==c)return;
+    const k=topicKey(topic),txt=payload&&payload.length?new TextDecoder().decode(payload):'';
+    if(!txt)delete NET.map[k];else{try{NET.map[k]=JSON.parse(txt)}catch(e){}}
+  });
+  c.on('offline',()=>{if(MP)netStatus('Connection lost. Reconnecting…')});
+  c.on('reconnect',()=>{if(MP)netStatus('Connection lost. Reconnecting…')});
+  c.on('connect',()=>netStatus(''));
+}
+const waitFor=(f,ms)=>new Promise(r=>{const t0=Date.now();const k=()=>{if(f())r(true);else if(Date.now()-t0>ms)r(false);else setTimeout(k,100)};k()});
+function netClose(){try{NET.client&&NET.client.end(true)}catch(e){}NET.client=null;NET.map={};NET.status=''}
+// Host: connect to the first relay that answers, and make sure the room code is free there.
+async function netHost(code){
+  try{await loadMQTT()}catch(e){throw Object.assign(new Error('lib'),{why:'lib'})}
+  netClose();NET.code=code;
+  for(const url of BROKERS){
+    let c;try{c=await mqConnect(url,code)}catch(e){continue}
+    NET.url=url;
+    await sleep(1200); // let the relay send any old data saved under this code
+    const old=NET.map[RK(code,'lobby')];
+    if(old&&!old.ended&&Date.now()-(old.t||0)<6*3600e3){netClose();throw Object.assign(new Error('taken'),{taken:true})}
+    for(const part of ['state','left','lobby'])await sdel(RK(code,part));
+    NET.map={};
+    return true;
+  }
+  throw Object.assign(new Error('server'),{why:'server'});
+}
+// Guest: try each relay in the same order and use the one where the room exists.
+async function netJoin(code){
+  try{await loadMQTT()}catch(e){throw Object.assign(new Error('lib'),{why:'lib'})}
+  netClose();NET.code=code;
+  let reached=false;
+  for(const url of BROKERS){
+    let c;try{c=await mqConnect(url,code)}catch(e){continue}
+    reached=true;NET.url=url;
+    if(await waitFor(()=>NET.map[RK(code,'lobby')],3000))return true;
+    netClose();
+  }
+  throw Object.assign(new Error(reached?'none':'server'),{why:reached?'none':'server'});
 }
 async function sget(k){
   if(!IN_CLAUDE)return k in NET.map?JSON.parse(JSON.stringify(NET.map[k])):null;
   try{const r=await window.storage.get(k,true);return r&&r.value?JSON.parse(r.value):null}catch(e){return null}
 }
 async function sset(k,v){
-  if(!IN_CLAUDE){NET.map[k]=v;NET.mine.add(k);NET.mapLocal[k]=v;netSend({t:'set',k,v});return true}
+  if(!IN_CLAUDE){
+    NET.map[k]=v;
+    if(!NET.client)return false;
+    return new Promise(res=>{try{NET.client.publish(keyTopic(k),JSON.stringify(v),{qos:1,retain:true},err=>res(!err))}catch(e){res(false)}});
+  }
   try{return !!(await window.storage.set(k,JSON.stringify(v),true))}catch(e){return false}
 }
 async function sdel(k){
-  if(!IN_CLAUDE){delete NET.map[k];delete NET.mapLocal[k];NET.mine.delete(k);netSend({t:'del',k});return}
+  if(!IN_CLAUDE){
+    delete NET.map[k];
+    if(NET.client)await new Promise(res=>{try{NET.client.publish(keyTopic(k),'',{qos:1,retain:true},()=>res())}catch(e){res()}});
+    return;
+  }
   try{await window.storage.delete(k,true)}catch(e){}
 }
+
 const cardBy=uid=>uid==null?null:(findCard(uid)?.c||null);
+const ZONES=['deck','hand','mana','bz','sh','gy'];
+const packCard=c=>{const o={i:c.id,u:c.uid};if(c.tapped)o.t=1;if(c.sick)o.s=1;if(c.under&&c.under.length)o.d=c.under.map(packCard);return o};
+const unpackCard=o=>({...DEF[o.i],uid:o.u,tapped:!!o.t,sick:!!o.s,under:(o.d||[]).map(unpackCard)});
+function packPlayer(p){const q={seat:p.seat,name:p.name,deckName:p.deckName,charged:!!p.charged};ZONES.forEach(z=>q[z]=p[z].map(packCard));return q}
+function unpackPlayer(q){const p={seat:q.seat,name:q.name,deckName:q.deckName,charged:!!q.charged};ZONES.forEach(z=>p[z]=(q[z]||[]).map(unpackCard));return p}
 function toWire(){
   const canon=G.p[0].seat===0?[G.p[0],G.p[1]]:[G.p[1],G.p[0]];
-  return {seq:MP.seq,players:canon.map(p=>{const q={...p};delete q.remote;return q}),turnSeat:G.p[G.turn].seat,turnNo:G.turnNo,
-    log:G.log,over:G.over,winnerSeat:G.over&&G.winner?G.winner.seat:null,req:G.req||null,needStart:!!G.needStart,left:G.left??null};
+  return {seq:MP.seq,players:canon.map(packPlayer),turnSeat:G.p[G.turn].seat,turnNo:G.turnNo,
+    log:G.log.slice(0,40),over:G.over,winnerSeat:G.over&&G.winner?G.winner.seat:null,req:G.req||null,needStart:!!G.needStart,left:G.left??null};
 }
 function fromWire(w){
-  const pl=w.players.map(p=>({...p,remote:p.seat!==MP.seat,ai:false}));
+  const pl=w.players.map(q=>({...unpackPlayer(q),remote:q.seat!==MP.seat,ai:false}));
   const keep=G&&G.mp?{modal:G.modal,targeting:G.targeting}:{modal:null,targeting:null};
   G={mp:true,shields:SHIELDS,p:[pl[MP.seat],pl[1-MP.seat]],turn:w.turnSeat===MP.seat?0:1,turnNo:w.turnNo,log:w.log,over:w.over,
     winner:w.winnerSeat==null?null:pl[w.winnerSeat],req:w.req,needStart:w.needStart,left:w.left,busy:false,fx:{},breaking:null,sel:null,...keep};
@@ -1540,7 +1566,7 @@ async function mpLeave(quiet){
     const code=MP.code,seat=MP.seat,inGame=G&&G.mp&&!G.over;
     MP=null;
     if(inGame)await sset(RK(code,'left'),seat);
-    if(!IN_CLAUDE)setTimeout(netClose,600);
+    if(!IN_CLAUDE){if(seat===0)await sset(RK(code,'lobby'),{ended:true,t:Date.now()});setTimeout(netClose,600)}
   }
   G=null;VIEW=0;showStart();
 }
@@ -1568,11 +1594,18 @@ async function showOnline(msg,deckVal){
     <div class="joinrow"><label class="fld"><span>Or join a room</span><input id="mpcode" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off"></label><button data-act="mpjoin" ${hasStore()?'':'disabled'}>Join</button></div>
     ${msg?`<p class="err">${msg}</p>`:''}
     <p class="hint">${IN_CLAUDE?"Room data, including names, decks, and moves, goes into shared storage that other users of this game could read. Don't use anything private as your name."
-      :'Your devices connect directly to each other. A free public server (PeerJS) only helps them find each other. Mobile data and home Wi-Fi work best; some office or hotel networks block direct connections.'}</p>
+      :'Moves are passed between your devices through a free public relay server. Anyone who knew your room code could watch the game, so keep names simple.'}</p>
     <div class="opts"><button data-act="back">Back</button></div>
   </div></div>`;
   const sel=document.getElementById('mpdeck');
   if(sel){const want=deckVal||window._mpDeck;if(want&&[...sel.options].some(o=>o.value===want))sel.value=want}
+}
+function joinError(e,code){
+  const why=e&&e.why;
+  if(why==='none')return `No room found with the code ${code}. Check the code with your friend. If they closed the room screen, they'll need to create a new room.`;
+  if(why==='server')return "Couldn't reach any of the free relay servers. Check your internet connection and try again in a minute.";
+  if(why==='lib')return "Couldn't load the connection library. Check your internet connection, or turn off any content blocker for this site.";
+  return "Couldn't connect to that room. Try again.";
 }
 function readForm(){
   const name=(document.getElementById('mpname').value||'').trim().slice(0,16)||'Player';
@@ -1592,12 +1625,12 @@ async function mpHost(){
     for(let t=0;t<4&&!ok;t++){
       try{await netHost(code);ok=true}catch(e){if(e&&e.taken)code=Array.from({length:4},()=>L[Math.floor(Math.random()*L.length)]).join('');else break}
     }
-    if(!ok){netClose();showOnline("Couldn't set up a room. Check your internet connection and try again.");return}
+    if(!ok){netClose();showOnline("Couldn't reach any of the free relay servers. Check your internet connection and try again in a minute.");return}
   }
   const ok=await sset(RK(code,'lobby'),{host:{name,deck},guest:null,t:Date.now()});
   if(!ok){showOnline('Could not create a room. Check your connection and try again.');return}
   MP={code,seat:0,seq:0,lastSeq:0};VIEW=0;
-  lobbyScreen('Room created',`<p>Send this code to your friend:</p><p class="code">${code}</p><p class="hint">Waiting for them to join… You'll go first.</p>`);
+  lobbyScreen('Room created',`<p>Send this code to your friend:</p><p class="code">${code}</p><p class="hint">Waiting for them to join… You'll go first.</p>${IN_CLAUDE?'':'<p class="hint">Keep this screen open until they join.</p>'}`);
   const wait=async()=>{
     if(!MP||MP.code!==code)return;
     const lob=await sget(RK(code,'lobby'));
@@ -1622,7 +1655,7 @@ async function mpJoin(){
   const {name,deck}=readForm();
   if(!IN_CLAUDE){
     lobbyScreen(`Joining ${code}…`,'<p class="hint">Connecting to your friend\'s device.</p>');
-    try{await netJoin(code)}catch(e){netClose();showOnline(e&&e.none?`No room found with the code ${code}. Check the code, and make sure your friend still has the room open.`:"Couldn't connect to that room. Check your internet connection and try again.");return}
+    try{await netJoin(code)}catch(e){netClose();showOnline(joinError(e,code));return}
   }
   const lob=await sget(RK(code,'lobby'));
   if(!lob){netClose();showOnline(`No room found with the code ${code}.`);return}
