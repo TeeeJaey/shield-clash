@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shield Clash</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20110%22%3E%20%3Cdefs%3E%20%3CclipPath%20id%3D%22sc-shield%22%3E%3Cpath%20d%3D%22M50%205%20L91%2018%20L87%2061%20C83%2083%2068%2097%2050%20105%20C32%2097%2017%2083%2013%2061%20L9%2018%20Z%22/%3E%3C/clipPath%3E%20%3C/defs%3E%20%3Cg%20clip-path%3D%22url%28%23sc-shield%29%22%3E%20%3Crect%20width%3D%22100%22%20height%3D%22110%22%20fill%3D%22%23185FA5%22/%3E%20%3Cpath%20d%3D%22M0%200%20L50%200%20L44%2030%20L57%2046%20L42%2064%20L55%2080%20L47%20110%20L0%20110%20Z%22%20fill%3D%22%23A32D2D%22/%3E%20%3Cpath%20d%3D%22M0%200%20L50%200%20L44%2030%20L20%2040%20L0%2034%20Z%22%20fill%3D%22%23C8463F%22%20opacity%3D%22.55%22/%3E%20%3Cpath%20d%3D%22M100%200%20L50%200%20L57%2046%20L82%2050%20L100%2040%20Z%22%20fill%3D%22%232E78C0%22%20opacity%3D%22.55%22/%3E%20%3C/g%3E%20%3Cpath%20d%3D%22M50%2014%20L82%2024%20L79%2060%20C76%2077%2065%2088%2050%2095%20C35%2088%2024%2077%2021%2060%20L18%2024%20Z%22%20fill%3D%22none%22%20stroke%3D%22%23FCEBEB%22%20stroke-opacity%3D%22.55%22%20stroke-width%3D%222%22/%3E%20%3Cpath%20d%3D%22M50%206%20L44%2030%20L57%2046%20L42%2064%20L55%2080%20L48%20104%22%20fill%3D%22none%22%20stroke%3D%22%23FAC775%22%20stroke-width%3D%225%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22/%3E%20%3Cpath%20d%3D%22M50%206%20L44%2030%20L57%2046%20L42%2064%20L55%2080%20L48%20104%22%20fill%3D%22none%22%20stroke%3D%22%23FFF6E0%22%20stroke-width%3D%221.6%22%20stroke-linejoin%3D%22round%22%20stroke-linecap%3D%22round%22/%3E%20%3Cpath%20d%3D%22M50%2046%20L54%2041%20L56%2047%20L63%2046%20L58%2051%20L62%2057%20L55%2055%20L52%2062%20L49%2055%20L42%2057%20L46%2051%20L41%2046%20L48%2047%20Z%22%20fill%3D%22%23FAC775%22%20stroke%3D%22%23FFF6E0%22%20stroke-width%3D%221%22/%3E%20%3Cpath%20d%3D%22M50%205%20L91%2018%20L87%2061%20C83%2083%2068%2097%2050%20105%20C32%2097%2017%2083%2013%2061%20L9%2018%20Z%22%20fill%3D%22none%22%20stroke%3D%22%231a2128%22%20stroke-width%3D%224%22%20stroke-linejoin%3D%22round%22/%3E%20%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-512.png">
+<meta name="theme-color" content="#1e252f">
 <style>
 :root{
   --bg:#dfe5ea;--mat:#cbd5de;--panel:#f3f6f8;--ink:#1a2128;--muted:#5d6975;--line:#a9b6c2;
@@ -170,6 +173,10 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 .modesw{padding:10px 12px;border-radius:10px;background:var(--mat)}
 .modesw .hint{flex-basis:100%}
 #start.friendmode .pickh::after{content:" to bring to the room"}
+.logo{display:flex;align-items:center;gap:14px}
+.logo .emblem{width:58px;height:64px;flex:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.18))}
+.logo h1{margin:0}
+@media (max-width:600px){.logo .emblem{width:46px;height:51px}}
 .howto{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
 /* character and scene animation; loops share one clock (--ph) so re-renders don't restart them */
@@ -1370,6 +1377,22 @@ function render(){
 // every move. The other device checks every 1.4 seconds and shows the new state.
 // Choices the waiting player must make (blocks, shield triggers, targets) are sent as
 // a request; their device asks them and writes back the answer.
+const LOGO=`<svg class="emblem" viewBox="0 0 100 110" aria-hidden="true">
+  <defs>
+    <clipPath id="sc-shield"><path d="M50 5 L91 18 L87 61 C83 83 68 97 50 105 C32 97 17 83 13 61 L9 18 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#sc-shield)">
+    <rect width="100" height="110" fill="#185FA5"/>
+    <path d="M0 0 L50 0 L44 30 L57 46 L42 64 L55 80 L47 110 L0 110 Z" fill="#A32D2D"/>
+    <path d="M0 0 L50 0 L44 30 L20 40 L0 34 Z" fill="#C8463F" opacity=".55"/>
+    <path d="M100 0 L50 0 L57 46 L82 50 L100 40 Z" fill="#2E78C0" opacity=".55"/>
+  </g>
+  <path d="M50 14 L82 24 L79 60 C76 77 65 88 50 95 C35 88 24 77 21 60 L18 24 Z" fill="none" stroke="#FCEBEB" stroke-opacity=".55" stroke-width="2"/>
+  <path d="M50 6 L44 30 L57 46 L42 64 L55 80 L48 104" fill="none" stroke="#FAC775" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M50 6 L44 30 L57 46 L42 64 L55 80 L48 104" fill="none" stroke="#FFF6E0" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M50 46 L54 41 L56 47 L63 46 L58 51 L62 57 L55 55 L52 62 L49 55 L42 57 L46 51 L41 46 L48 47 Z" fill="#FAC775" stroke="#FFF6E0" stroke-width="1"/>
+  <path d="M50 5 L91 18 L87 61 C83 83 68 97 50 105 C32 97 17 83 13 61 L9 18 Z" fill="none" stroke="#1a2128" stroke-width="4" stroke-linejoin="round"/>
+</svg>`;
 let MP=null;
 let PLAYMODE='cpu';
 (async()=>{try{const r=await window.storage.get('shieldclash-mode',false);if(r&&r.value==='friend'){PLAYMODE='friend';renderModeSw()}}catch(e){}})();
@@ -1751,7 +1774,7 @@ function renderMyDecks(){
 function showStart(){
   G=null;$('#app').innerHTML='';
   $('#layer').innerHTML=`<div class="overlay" id="start"><div class="dialog">
-    <h1>Shield Clash</h1>
+    <div class="logo">${LOGO}<h1>Shield Clash</h1></div>
     <div class="howto"><button class="main" data-act="tut">How to play</button><span class="hint">New here? It takes about two minutes.</span></div>
     <div class="howto modesw" id="modesw"></div>
 
