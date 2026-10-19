@@ -17,7 +17,7 @@ function shieldsHTML(p){
   const attacked=G.attackTarget==='player'&&G.attacking&&!p.bz.includes(G.attacking);
   return `<div class="shields ${attacked?'attacked':''}"><span class="lbl">Shields ${p.sh.length}</span>${p.sh.map(s=>{
     const t=G.targeting?.uids.has(s.uid),br=G.breaking&&G.breaking.uids.has(s.uid);
-    return `<div class="back shield ${t?'target':''} ${br?'shatter':''}" data-shield="${s.uid}" ${t?'tabindex="0" role="button"':''} aria-label="Shield ${s.shL}">${s.shL}</div>`;
+    return `<div class="back shield ${t?'target':''} ${br?'shatter':''}" data-shield="${s.uid}" ${t?'tabindex="0" role="button"':''} aria-label="Shield ${s.shL}"><span>${s.shL}</span></div>`;
   }).join('')}</div>`;
 }
 function cls(c,p,z){
@@ -36,23 +36,30 @@ function cls(c,p,z){
 function sideHTML(p){
   const side=p===G.p[0]?0:1;
   const bz=p.bz.length?p.bz.map(c=>cardHTML(c,cls(c,p,'bz'))).join(''):'<div class="empty">No creatures in the battle zone</div>';
-  const top=`<div class="info"><b>${side===0?'You':(G.mp?esc(p.name):'Opponent')}</b><span>${esc(p.deckName)}</span><span>Deck ${p.deck.length}</span><button class="link" data-act="pile" data-v="gy:${side}">Graveyard ${p.gy.length}</button>${side?`<span>Hand ${p.hand.length}</span>`:''}</div>
+  const top=`<div class="info"><b>${side===0?'You':(G.mp?esc(p.name):'Opponent')}</b><span>${esc(p.deckName)}</span><span>Deck ${p.deck.length}</span><button class="link" data-act="pile" data-v="gy:${side}">Graveyard ${p.gy.length}</button>${side?`<span>Hand ${p.hand.length}</span>${sysHTML()}`:''}</div>
     <div class="stack">${shieldsHTML(p)}${manaHTML(p,side)}</div>`;
   if(side)return `<section class="side">${top}<div class="zone bzone">${bz}</div></section>`;
   const hand=p.hand.length?p.hand.map(c=>cardHTML(c,cls(c,p,'hand'))).join(''):'<div class="empty">Your hand is empty</div>';
   return `<section class="side"><div class="zone bzone">${bz}</div>${top}<div class="lbl">Hand</div><div class="zone">${hand}</div></section>`;
 }
+// The game menu and sound switch sit in the board's top corner, out of the action bar, whose
+// buttons change with every step. The menu works when the game can be paused for it.
+const ICON={
+  menu:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+};
+function menuOpen(){return !!G&&!G.over&&!G.modal&&!G.targeting&&(G.mp?true:G.turn===0&&!G.busy)}
+const sysHTML=()=>`<span class="sys"><button class="icon" data-act="menu" aria-label="Game menu" title="Game menu"${menuOpen()?'':' disabled'}>${ICON.menu}</button>${soundBtn(true)}</span>`;
 const btn=(a,l,main,v)=>`<button data-act="${a}"${v!=null?` data-v="${v}"`:''} class="${main?'main':''}">${l}</button>`;
 // The turn steps: charge, then summon and cast, then attack.
 const stepOf=p=>p.attacked?'Attack step':p.played||p.charged?'Main step':'Charge step';
 function barHTML(){
   const me=G.p[0];
   const oppName=G.mp?esc(G.p[1].name):'Opponent',lost=G.winner!==G.p[0];
-  if(G.mp&&!IN_CLAUDE&&NET.status&&!G.over)return `<span class="turn">Offline</span><span class="prompt">${NET.status}</span>${btn('menu','Menu')}`;
+  if(G.mp&&!IN_CLAUDE&&NET.status&&!G.over)return `<span class="turn">Offline</span><span class="prompt">${NET.status}</span>`;
   if(G.over)return `<span class="prompt">${G.left!=null?`${oppName} left the game.`:G.why==='deck'?(lost?'Your deck ran out.':`${oppName}'s deck ran out.`):lost?`${oppName} broke through.`:'You broke through every shield.'}</span>${btn('new',G.mp?'Back to start page':'Play again',1)}`;
   if(G.req&&G.mp&&!G.targeting&&G.req.seat!==VIEW)return `<span class="turn">Waiting</span><span class="prompt">${oppName} is deciding what to do…</span>`;
   if(G.targeting)return `<span class="turn">Choose</span><span class="prompt">${esc(G.targeting.msg)}</span>${G.targeting.required?'':btn('skip',G.targeting.skip||'Skip')}`;
-  if(G.turn!==0)return `<span class="turn">${G.mp?oppName+"'s":"Opponent's"} turn</span><span class="prompt">${G.mp?'Their moves show up here as they play. ':''}Watch for blocks and shield triggers.</span>${G.mp?btn('menu','Menu'):''}`;
+  if(G.turn!==0)return `<span class="turn">${G.mp?oppName+"'s":"Opponent's"} turn</span><span class="prompt">${G.mp?'Their moves show up here as they play. ':''}Watch for blocks and shield triggers.</span>`;
   if(G.busy)return `<span class="turn">Your turn</span><span class="prompt">Resolving…</span>`;
   const s=selCard();let h=`<span class="turn">Your turn</span><span class="step">${stepOf(me)}</span>`;
   const canCharge=!me.charged&&!me.played&&!me.attacked;
@@ -81,7 +88,7 @@ function barHTML(){
   }else{
     h+=`<span class="prompt">${G.notice||(me.attacked?'Attack with ready creatures, or end your turn.':canCharge?'Pick a card to charge as mana, then summon and attack.':'Summon creatures or attack with ready ones.')}</span>`;
   }
-  return h+btn('end','End turn')+btn('menu','Menu')+soundBtn();
+  return h+'<button data-act="end" class="endturn">End turn</button>';
 }
 // The log folds away (closed by default on phones) and stays as the player left it.
 let logOpen=!matchMedia('(max-width:600px), (max-height:500px)').matches;

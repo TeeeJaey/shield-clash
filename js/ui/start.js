@@ -25,6 +25,16 @@ function renderModeSw(){
     <span class="hint">${PLAYMODE==='friend'?'Pick your deck below, then create a room or join one with a code.':'Pick a deck below to start a duel.'}</span>`;
   const st=document.getElementById('start');if(st)st.classList.toggle('friendmode',PLAYMODE==='friend');
 }
+// Deck tiles wear a card frame: their civilizations' colors (blended like a multicolored
+// card), with the first civilization's light and deep tones on the plates inside.
+function frameVars(civs){
+  const cs=civs.filter(e=>PAL[e]),P=PAL[cs[0]]||PAL.unknown;
+  const fr=!cs.length?PAL.unknown.frame:cs.length===1?PAL[cs[0]].frame
+    :cs.length===2?`linear-gradient(135deg,${PAL[cs[0]].frame} 45%,${PAL[cs[1]].frame} 55%)`
+    :`linear-gradient(135deg,${cs.map((e,i)=>`${PAL[e].frame} ${Math.round(i/cs.length*100)}% ${Math.round((i+1)/cs.length*100)}%`).join(',')})`;
+  return `--fr:${fr};--lt:${P.light};--dp:${P.deep}`;
+}
+const dotsHTML=civs=>`<span class="dots">${civs.map(e=>`<span style="--el:${CIV[e].c}"></span>`).join('')}</span>`;
 // Starting with a deck either begins a duel against the computer or opens the room screen
 function playWith(deckVal,deck){if(PLAYMODE==='friend')showOnline(null,deckVal);else startGame(deck())}
 function renderMyDecks(){
@@ -36,8 +46,7 @@ function renderMyDecks(){
     const btns=PENDING_DEL===d.id
       ?`<span class="hint">Delete this deck?</span><button data-act="ddelyes" data-v="${d.id}">Delete</button><button data-act="ddelno" data-v="${d.id}">Keep</button>`
       :`${ready?`<button class="main" data-act="dplay" data-v="${d.id}">Play</button>`:''}<button data-act="dedit" data-v="${d.id}">Edit</button><button data-act="ddel" data-v="${d.id}" aria-label="Delete ${esc(d.name)}">Delete</button>`;
-    return `<div class="mydeck"><span class="dots">${civs.map(e=>`<span style="--el:${CIV[e].c}"></span>`).join('')}</span>
-      <b>${esc(d.name)}</b><small>${ready?`${tot} cards, ready to play.`:`${tot} cards. Needs at least ${DECK_MIN} to play.`}${civs.length?` ${civs.map(e=>CIV[e].n).join(', ')}.`:''}</small>
+    return `<div class="mydeck" style="${frameVars(civs)}"><span class="dplate">${dotsHTML(civs)}<b>${esc(d.name)}</b></span><small>${ready?`${tot} cards, ready to play.`:`${tot} cards. Needs at least ${DECK_MIN} to play.`}${civs.length?` ${civs.map(e=>CIV[e].n).join(', ')}.`:''}</small>
       <div class="mdb">${btns}</div></div>`}).join('')}</div>`;
 }
 function showStart(){
@@ -49,11 +58,10 @@ function showStart(){
 
     <div id="mydecks"></div>
     <p><b class="pickh">Pick a deck</b></p>
-    <div class="decks">${PRESETS.map((d,i)=>`<button class="deck" data-act="preset" data-v="${i}">
-      <span class="dots">${d.civ.map(e=>`<span style="--el:${CIV[e].c}"></span>`).join('')}</span>
-      <b>${d.n}</b><small>${CIV[d.civ[0]].n} and ${CIV[d.civ[1]].n}. ${d.d}</small></button>`).join('')}
-      <button class="deck" data-act="random"><span class="dots"><span style="--el:#A32D2D"></span><span style="--el:#185FA5"></span><span style="--el:#3B6D11"></span><span style="--el:#854F0B"></span><span style="--el:#3C3489"></span></span><b>Random optimal deck</b><small>A strong mix of all five civilizations, built fresh every time.</small></button>
-      <button class="deck" data-act="builder"><b>Build a new deck</b><small>Choose 50 to 60 cards. It saves automatically and shows up here.</small></button></div>
+    <div class="decks">${PRESETS.map((d,i)=>`<button class="deck" data-act="preset" data-v="${i}" style="${frameVars(d.civ)}">
+      <span class="dplate">${dotsHTML(d.civ)}<b>${d.n}</b></span><small>${CIV[d.civ[0]].n} and ${CIV[d.civ[1]].n}. ${d.d}</small></button>`).join('')}
+      <button class="deck" data-act="random" style="${frameVars(Object.keys(CIV))}"><span class="dplate">${dotsHTML(Object.keys(CIV))}<b>Random optimal deck</b></span><small>A strong mix of all five civilizations, built fresh every time.</small></button>
+      <button class="deck blank" data-act="builder"><span class="dplate"><b>Build a new deck</b></span><small>Choose 50 to 60 cards. It saves automatically and shows up here.</small></button></div>
     <p class="credit">Made by Tejas Jadhav and Claude Opus 5.5</p>
   </div></div>`;
   PENDING_DEL=null;

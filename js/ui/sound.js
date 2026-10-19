@@ -87,10 +87,16 @@ function toggleSound(){
   SND.on=!SND.on;
   try{window.storage.set('shieldclash-sound',SND.on?'on':'off',false)}catch(e){}
   if(SND.on)sfx('charge');
-  document.querySelectorAll('[data-act=sound]').forEach(b=>{b.textContent=soundLabel();b.setAttribute('aria-pressed',SND.on)});
+  document.querySelectorAll('[data-act=sound]').forEach(b=>{b.outerHTML=soundBtn(b.classList.contains('icon'))});
 }
 const soundLabel=()=>SND.on?'Sound on':'Sound off';
-const soundBtn=()=>`<button data-act="sound" aria-pressed="${SND.on}" title="Sound effects (M)">${soundLabel()}</button>`;
+const SOUND_ICON=on=>`<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 8h3l4-3.5v11l-4-3.5h-3z" fill="currentColor"/>${on
+  ?'<path d="M13.5 7.2a4 4 0 0 1 0 5.6M15.6 5a7 7 0 0 1 0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'
+  :'<path d="M13.5 8l4 4M17.5 8l-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'}</svg>`;
+// A labelled button (start screen) or a round icon (the board's corner).
+const soundBtn=icon=>icon
+  ?`<button class="icon" data-act="sound" aria-pressed="${SND.on}" aria-label="${soundLabel()}" title="${soundLabel()} (M)">${SOUND_ICON(SND.on)}</button>`
+  :`<button data-act="sound" aria-pressed="${SND.on}" title="Sound effects (M)">${soundLabel()}</button>`;
 // Browsers only start audio after a tap or key press; a quiet tick confirms buttons and cards.
 document.addEventListener('pointerdown',e=>{
   if(!SND.on)return;

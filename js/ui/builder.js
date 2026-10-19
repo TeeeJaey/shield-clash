@@ -34,7 +34,7 @@ function renderBuilder(){
     <span class="bmsg">${BUILD.msg||'Decks hold 50 to 60 cards, with up to 4 copies of each. Your deck saves automatically. Tap a card to zoom in. Two civilizations is the classic setup; more is risky for mana.'}</span></header>`;
   const civs=['all',...Object.keys(CIV)];
   h+=`<nav class="tabs">${civs.map(e=>{const pool=e==='all'?DEFS:DEFS.filter(d=>civsOf(d).includes(e)),n=pool.reduce((t,d)=>t+(BUILD.counts[d.id]||0),0);
-    return `<button data-act="bfilter" data-v="${e}" class="${BUILD.filter===e?'main':''}" style="--el:${e==='all'?'currentColor':CIV[e].c}"><span class="tdot"></span>${e==='all'?'All':CIV[e].n}${n?` (${n})`:''}</button>`}).join('')}</nav>`;
+    return `<button data-act="bfilter" data-v="${e}" class="${BUILD.filter===e?'main':''} ${e==='all'?'all':''}" style="--el:${e==='all'?'currentColor':CIV[e].c};--tab:${e==='all'?'var(--ink)':CIV[e].c}"><span class="tdot"></span>${e==='all'?'All':CIV[e].n}${n?` (${n})`:''}</button>`}).join('')}</nav>`;
   const f=BUILD.find||(BUILD.find={q:'',mech:'all',type:'all',sort:'cost',mine:false});
   const select=(key,label,options)=>`<label class="fld"><span>${label}</span><select data-build="${key}">${options.map(([v,t])=>`<option value="${esc(v)}" ${f[key]===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
   h+=`<div class="collection-tools build-tools"><label class="fld"><span>Search</span><input id="build-search" type="search" placeholder="Name, race, or ability" value="${esc(f.q)}"></label>
