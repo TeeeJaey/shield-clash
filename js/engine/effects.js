@@ -76,6 +76,8 @@ async function pickFx(p,e,src,optional){
     chosen.push(c);
   }
   if(!chosen.length){log(`${src.n}: nothing chosen.`);return}
+  // Creatures chosen for the same destruction are destroyed together.
+  if(e.a==='destroy'&&!e.ifDragon){chosen.forEach(c=>anim(c,'die'));render();await sleep(300);destroyAll(chosen.map(c=>[ownerOf(c),c]));return}
   for(const c of chosen){
     if(e.a==='destroy'){anim(c,'die');render();await sleep(300)}
     const dragon=dragonRace(c);
@@ -86,7 +88,7 @@ async function pickFx(p,e,src,optional){
 async function allFx(p,e,src){
   const hit=matching(e.q,p,src);
   if(!hit.length){log(`${src.n} affects no creatures.`);return}
-  if(e.a==='destroy'){hit.forEach(c=>anim(c,'die'));render();await sleep(450)}
+  if(e.a==='destroy'){hit.forEach(c=>anim(c,'die'));render();await sleep(450);destroyAll(hit.map(c=>[ownerOf(c),c]));return}
   for(const c of hit)doAct(e.a,c,e,p);
 }
 // Searching a deck shows the player their own deck; the deck is shuffled afterwards.
@@ -180,7 +182,7 @@ async function shieldsFx(p,e,src){
     if(e.to==='mana')toMana(p,[s]);else p.hand.push(s);
   }
   if(taken.length)log(`${V(p,'You put','Opponent puts')} ${taken.length===1?'a shield':taken.length+' shields'} into ${V(p,'your','their')} ${e.to==='mana'?'mana zone':'hand'}.`);
-  if(e.to==='hand'&&e.trig)for(const s of taken)await shieldTrigger(p,s);
+  if(e.to==='hand'&&e.trig)await useTriggers(p,taken);
 }
 async function jsonFx(p,e,src,optional){
   const o=opp(p);
@@ -280,7 +282,7 @@ async function jsonFx(p,e,src,optional){
     const score=v=>o.bz.filter(c=>power(c)===v).length-p.bz.filter(c=>power(c)===v).length;
     const n=await chooseEffect(p,src.n,'Choose a number.',values.map(v=>({label:String(v),val:v})),values.slice().sort((a,b)=>score(b)-score(a))[0]);
     const v=values.includes(n)?n:values[0];log(`${V(p,'You choose','Opponent chooses')} ${v}.`);
-    for(const q of G.p)q.bz.filter(c=>power(c)===v).forEach(c=>destroy(q,c));
+    destroyAll(allBz(c=>power(c)===v));
     return;
   }
   if(e.k==='tapRest'){
@@ -324,7 +326,7 @@ async function jsonFx(p,e,src,optional){
       const c=await pickCard(p,cands,`${src.n}: Destroy creatures with total power ${e.max} or less (${left} left).`,{optional:true,aiPick:cs=>cs.slice().sort((a,b)=>power(b)-power(a))[0]});
       if(!c)break;chosen.push(c);left-=power(c);
     }
-    for(const c of chosen){anim(c,'die');destroy(o,c)}
+    chosen.forEach(c=>anim(c,'die'));destroyAll(chosen.map(c=>[o,c]));
     return;
   }
   if(e.k==='shock'){
@@ -341,7 +343,7 @@ async function jsonFx(p,e,src,optional){
     for(let k=0;k<p.sh.length&&keep.length<o.sh.length;k++){const s=await pickCard(o,o.sh.filter(s=>!keep.includes(s)),`${src.n}: Choose a shield to keep.`,{hidden:true,aiPick:aiRandom});keep.push(s)}
     const rest=o.sh.filter(s=>!keep.includes(s));o.sh=keep;o.hand.push(...rest);
     log(`${rest.length} of ${whose(o)} shields go to hand.`);render();
-    for(const s of rest)await shieldTrigger(o,s);
+    await useTriggers(o,rest);
     return;
   }
   if(e.k==='darts'){
@@ -411,9 +413,7 @@ async function jsonFx(p,e,src,optional){
   }
   if(e.k==='rampPer'){const n=p.mana.length;for(let i=0;i<n&&p.deck.length;i++){const c=p.deck.pop();c.tapped=true;p.mana.push(c)}log(`${n} cards go from ${whose(p)} deck to the mana zone tapped.`);return}
   if(e.k==='breakSh'){
-    const n=Math.min(e.n,o.sh.length),broken=o.sh.splice(o.sh.length-n);
-    o.hand.push(...broken);log(`${src.n} breaks ${n===1?'a shield':n+' shields'}.`);render();
-    for(const s of broken)await shieldTrigger(o,s);
+    await breakShields(o,await chooseShields(p,o,Math.min(e.n,o.sh.length),src.n));
     return;
   }
 }

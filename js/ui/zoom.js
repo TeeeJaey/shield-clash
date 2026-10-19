@@ -9,10 +9,20 @@ function detailRules(c){
 let ZOOM=null;
 function openZoom(c){if(!c)return;ZOOM=c;renderZoom()}
 function closeZoom(){ZOOM=null;renderZoom()}
+// A face-up pile (graveyard or mana zone); tapping a card in it shows that card.
+function openPile(title,cards){ZOOM={pile:{title,cards:cards.slice().reverse()}};renderZoom()}
 function renderZoom(){
   const el=$('#zoom');
   if(!ZOOM){el.innerHTML='';return}
   setPhase();
+  if(ZOOM.pile){
+    const {title,cards}=ZOOM.pile;
+    el.innerHTML=`<div class="overlay" data-zbg="1"><div class="zbox pilebox" role="dialog" aria-label="${esc(title)}">
+      <button class="zclose" data-zclose="1" aria-label="Close">×</button><h2>${esc(title)}</h2>
+      ${cards.length?`<div class="pile">${cards.map((c,i)=>`<div class="pitem" data-pile="${i}">${cardHTML({...c,uid:0,tapped:false},'',true)}${c.tapped?'<small>Tapped</small>':''}</div>`).join('')}</div>`:'<p class="zmeta">No cards.</p>'}
+      <p class="hint">Newest first. Tap a card to read it.</p></div></div>`;
+    return;
+  }
   const c=ZOOM,e=archiveCivilization(c);
   const kind=[e.n,c.e2?CIV[c.e2].n:'',c.printedType,c.race].filter(Boolean).join(' · ');
   const stats=`Cost ${c.cost??'unlisted'}${c.printedPower?', power '+c.printedPower:''}`;
@@ -50,7 +60,9 @@ document.addEventListener('contextmenu',e=>{
 document.addEventListener('click',e=>{
   if(swallow){swallow=false;e.stopImmediatePropagation();e.preventDefault();return}
   if(e.target.closest('#zoom')){
-    if(e.target.closest('[data-zclose]')||e.target.matches('[data-zbg]'))closeZoom();
+    const pi=e.target.closest('[data-pile]');
+    if(pi&&ZOOM&&ZOOM.pile)openZoom(ZOOM.pile.cards[+pi.dataset.pile]);
+    else if(e.target.closest('[data-zclose]')||e.target.matches('[data-zbg]'))closeZoom();
     e.stopImmediatePropagation();return;
   }
   const d=e.target.closest('[data-def]');

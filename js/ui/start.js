@@ -44,7 +44,7 @@ function showStart(){
   G=null;$('#app').innerHTML='';
   $('#layer').innerHTML=`<div class="overlay" id="start"><div class="dialog">
     <div class="logo">${LOGO}<h1>Shield Clash</h1></div>
-    <div class="howto"><button class="main" data-act="tut">How to play</button><span class="hint">${DEFS.length} cards available for duels</span></div>
+    <div class="howto"><button class="main" data-act="tut">How to play</button>${soundBtn()}<span class="hint">${DEFS.length} cards available for duels</span></div>
     <div class="howto modesw" id="modesw"></div>
 
     <div id="mydecks"></div>

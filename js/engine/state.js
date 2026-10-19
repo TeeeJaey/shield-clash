@@ -1,6 +1,10 @@
 function anim(c,k){if(G)(G.fx||(G.fx={}))[c.uid]={k,t0:now()}}
-let G=null,UID=0,BUILD={counts:{},msg:'',filter:'fire'};
-const inst=id=>({...DEF[id],uid:++UID,tapped:false,sick:true,under:[]});
+let G=null,BUILD={counts:{},msg:'',filter:'fire'};
+// Instance ids are random, so an id never hints at which card it is (decklists are shared
+// online and counting ids would otherwise reveal hidden cards).
+const usedUids=new Set();
+const newUid=()=>{let u;do u=1+Math.floor(Math.random()*2**30);while(usedUids.has(u));usedUids.add(u);return u};
+const inst=id=>({...DEF[id],uid:newUid(),tapped:false,sick:true,under:[]});
 const opp=p=>G.p[0]===p?G.p[1]:G.p[0];
 // Finds a card in a hand or battle zone by instance id.
 function findCard(uid){
@@ -8,14 +12,26 @@ function findCard(uid){
   for(const p of G.p)for(const z of ['hand','bz']){const c=p[z].find(x=>x.uid===uid);if(c)return{p,z,c}}
   return null;
 }
-function log(m){G.log.unshift(m);if(G.log.length>60)G.log.pop()}
+// logSeq counts every line ever logged (and logId names the game), so the UI can tell which lines are new.
+function log(m){G.log.unshift(m);if(G.log.length>60)G.log.pop();G.logSeq=(G.logSeq||0)+1;G.logId=G.logId||Math.random().toString(36).slice(2)}
+const shieldBy=uid=>G&&G.p.flatMap(p=>p.sh).find(s=>s.uid===uid)||null;
+// Shields carry a letter (A, B, C…) for as long as they stay shields, so both players can
+// tell which one was broken or chosen. New shields take the next letter.
+const shieldLetter=n=>(n>=26?shieldLetter(Math.floor(n/26)-1):'')+String.fromCharCode(65+n%26);
+function labelShields(){
+  if(!G)return;
+  for(const p of G.p){
+    for(const z of ['deck','hand','mana','bz','gy'])for(const c of p[z])if(c.shL)delete c.shL;
+    for(const s of p.sh)if(!s.shL)s.shL=shieldLetter(p.shN=(p.shN??-1)+1);
+  }
+}
 
 const SHIELDS=8;
 // Log lines can name players from either side's view: V(p,'You draw','Opponent draws') shows the first
 // text to the player sitting in p's seat and the second to the other player.
 let VIEW=0;
 const V=(p,you,them)=>`\u0001${p.seat}\u0002${you}\u0002${them}\u0003`;
-const seatName=st=>{const p=G&&G.mp&&G.p.find(x=>x.seat===st);return p?esc(p.name):null};
+const seatName=st=>{const p=G&&G.mp&&G.p.find(x=>x.seat===st);return p?p.name:null};
 const viewText=t=>String(t).replace(/\u0001(\d)\u0002([^\u0002]*)\u0002([^\u0003]*)\u0003/g,(_,st,a,b)=>{
   if(+st===VIEW)return a;
   const nm=seatName(+st);

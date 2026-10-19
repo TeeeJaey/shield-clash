@@ -16,7 +16,7 @@ function makeCardCatalog(rows){
     const out=[];
     for(const w of phrase.split(/ and (?:all )?|, | or /)){
       if(/^(?:creatures? )?of that race$|^that race$/.test(w.trim())){out.push('$race');continue}
-      const r=races.find(r=>{const n=clean(r);return [n,n+'s',n.replace(/y$/,'ies'),n.replace(/ie$/,'ies')].includes(w.trim())});
+      const r=races.find(r=>{const n=clean(r);return [n,n+'s',n+'es',n.replace(/y$/,'ies'),n.replace(/ie$/,'ies')].includes(w.trim())});
       if(!r)return null;
       out.push(r);
     }
@@ -634,7 +634,7 @@ function makeCardCatalog(rows){
         if(vortex&&(m=/^(.+?) and one of your (.+)$/.exec(base))&&racesIn(m[1])&&racesIn(m[2])){c.vortex=[racesIn(m[1])[0],racesIn(m[2])[0]];c.evo=c.vortex.join(' and ')}
         else if(!vortex&&/^creatures? that has dragon in its race$/.test(base)){c.evoDragon=1;c.evo='Dragon'}
         else if(!vortex&&(m=/^(.+?) or (.+)$/.exec(base))&&racesIn(m[1])&&racesIn(m[2])){c.evoRaces=[racesIn(m[1])[0],racesIn(m[2])[0]];c.evo=c.evoRaces.join(' or ')}
-        else if(!vortex)c.evo=base&&races.find(r=>[clean(r),clean(r)+'s',clean(r).replace(/y$/,'ies')].includes(base));
+        else if(!vortex)c.evo=base&&races.find(r=>[clean(r),clean(r)+'s',clean(r)+'es',clean(r).replace(/y$/,'ies')].includes(base));
         known=!!c.evo;
       }else if(c.t==='s'&&rule==='after you cast this spell, put it into your mana zone instead of your graveyard'){c.charger=1;known=true}
       else if(c.t==='s'&&(m=new RegExp('^you can cast this spell only if all the cards in your mana zone are '+CIVS+' cards$').exec(rule))){c.needMono=m[1];known=true}

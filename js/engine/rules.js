@@ -3,7 +3,13 @@
 // Decisions go through chooseEffect/pickCard, which ask the right party; legality
 // (who may attack, be attacked or block) lives in one place below and is shared by
 // the UI, the AI and the engine itself.
-function draw(p,n){for(let i=0;i<n;i++){if(!p.deck.length){win(opp(p));return}p.hand.push(p.deck.pop())}}
+function draw(p,n){for(let i=0;i<n&&p.deck.length;i++)p.hand.push(p.deck.pop());deckOut()}
+// A player whose deck runs out loses straight away (checked after every step that can empty a deck).
+function deckOut(){
+  if(!G||G.over)return;
+  const out=G.p.find(q=>!q.deck.length);
+  if(out){log(`${V(out,'Your',"The opponent's")} deck is empty.`);G.why='deck';win(opp(out))}
+}
 function canPay(p,c){const u=p.mana.filter(m=>!m.tapped);return u.length>=costOf(c,p)&&manaCovers(signatures(u),civsOf(c))}
 // Mana is grouped by what it can pay for: "fire", or "fire/nature" for a multicolored
 // card, which pays for either civilization but never both at once.
@@ -19,10 +25,12 @@ function manaCovers(counts,need){
 }
 const bases=(p,c)=>c.evo?p.bz.filter(x=>evolvesOn(c,x)):[];
 // Vortex evolution needs one creature of each of two races.
-const vortexOK=(p,c)=>!c.vortex||c.vortex.every(r=>p.bz.some(x=>racesOf(x).includes(r)))&&p.bz.filter(x=>c.vortex.some(r=>racesOf(x).includes(r))).length>=2;
+const vortexOK=(p,c)=>!c.vortex||p.bz.some(x=>racesOf(x).includes(c.vortex[0])&&p.bz.some(y=>y!==x&&racesOf(y).includes(c.vortex[1])));
 const monoMana=(p,civ)=>p.mana.length>0&&p.mana.every(m=>civsOf(m).includes(civ));
 const spellAllowed=c=>c.t!=='s'||rulesInPlay('onlySpells').every(([civ])=>civsOf(c).includes(civ));
-const canPlay=(p,c)=>c.playable&&canPay(p,c)&&(!c.evo||bases(p,c).length>0)&&vortexOK(p,c)&&spellAllowed(c)&&(!c.needSpell||!!p.castSpell)&&(!c.needMono||monoMana(p,c.needMono))&&(!c.needBehind||opp(p).sh.length>p.sh.length);
+// Turn steps: charge, then summon and cast, then attack. Once a creature has attacked (or tapped
+// for its ability instead), the main step is over for the turn.
+const canPlay=(p,c)=>c.playable&&!p.attacked&&canPay(p,c)&&(!c.evo||bases(p,c).length>0)&&vortexOK(p,c)&&spellAllowed(c)&&(!c.needSpell||!!p.castSpell)&&(!c.needMono||monoMana(p,c.needMono))&&(!c.needBehind||opp(p).sh.length>p.sh.length);
 // Pays for a card while keeping the most useful mana untapped. It tries every way of
 // splitting the cost across the kinds of mana available and picks the one that
 // leaves the most other cards in hand still payable, then the most civilizations open.
@@ -97,9 +105,24 @@ function discardCard(p,c){
 }
 // Abilities that trigger while something else is happening (a creature is destroyed in
 // the middle of a battle) wait in G.queue and resolve once the current step is done.
+// The turn player's waiting abilities resolve first, then the other player's; a player with
+// several waiting chooses their order. Anything triggered meanwhile joins the wait.
 function queueFx(p,fx,src){if(fxList(fx).length)(G.queue||(G.queue=[])).push({p,fx,src})}
 async function flushFx(){
-  while(G.queue&&G.queue.length&&!G.over){const t=G.queue.shift();await resolveFx(t.p,t.fx,t.src)}
+  while(G.queue&&G.queue.length&&!G.over){
+    const tp=G.p[G.turn]||G.p[0],mine=G.queue.filter(t=>t.p===tp),pool=mine.length?mine:G.queue;
+    const t=pool.length>1?await chooseOrder(pool):pool[0];
+    G.queue.splice(G.queue.indexOf(t),1);
+    await resolveFx(t.p,t.fx,t.src);
+  }
+  deckOut();
+}
+async function chooseOrder(pool){
+  const label=t=>`${t.src.n}: ${fxDesc(t.fx)}`;
+  if(new Set(pool.map(label)).size===1)return pool[0];
+  const i=await chooseEffect(pool[0].p,'Choose the order','These abilities trigger at the same time. Choose the one that resolves first; the others follow.',
+    pool.map((t,i)=>({label:label(t),val:i,main:i===0})),0);
+  return pool[Number.isInteger(i)&&pool[i]?i:0];
 }
 const toMana=(p,cards)=>cards.forEach(c=>{c.tapped=!!c.e2;p.mana.push(c)});
 function destroy(p,c){
@@ -113,10 +136,18 @@ function destroy(p,c){
   else if(to==='shield'){p.sh.push(c);p.gy.push(...pile.slice(1));log(`${c.n} would be destroyed, but becomes a new shield instead.`)}
   else{
     p.gy.push(...pile);log(`${c.n} is destroyed.`);queueFx(p,tc.onDie,c);
-    for(const q of G.p)for(const x of q.bz)if(T(x).onAnyDie)queueFx(q,T(x).onAnyDie,x);
-    for(const x of p.bz)for(const w of T(x).onOwnDie||[])if((!w.races||w.races.some(r=>hasRace(c,r)))&&(!w.oppTurn||G.p[G.turn]!==p))queueFx(p,w.fx,x);
+    for(const [q,x,t] of G.lookBack||watchers())if(x!==c&&t.onAnyDie)queueFx(q,t.onAnyDie,x);
+    for(const [q,x,t] of G.lookBack||watchers())if(q===p&&x!==c)for(const w of t.onOwnDie||[])if((!w.races||w.races.some(r=>hasRace(c,r)))&&(!w.oppTurn||G.p[G.turn]!==p))queueFx(p,w.fx,x);
   }
 }
+const watchers=()=>G.p.flatMap(q=>q.bz.map(x=>[q,x,T(x)]));
+// Creatures destroyed at the same time ([owner, creature] pairs, chosen before any leaves) all
+// see each other go: "whenever another creature is destroyed" looks back at the moment before.
+function destroyAll(list){
+  G.lookBack=watchers();
+  try{for(const [q,c] of list)destroy(q,c)}finally{G.lookBack=null}
+}
+const allBz=f=>G.p.flatMap(q=>q.bz.filter(c=>f(c,q)).map(c=>[q,c]));
 function bounce(p,c){const pile=leaveBz(p,c);if(pile){p.hand.push(...pile);log(`${c.n} returns to ${whose(p)} hand.`)}}
 const whose=o=>V(o,'your',"the opponent's");
 
@@ -135,10 +166,10 @@ function targetsFor(f,p){
 }
 function simpleFx(p,f,src){
   const all=/^sweepAll(\d+)$/.exec(f);
-  if(all){for(const owner of [p,opp(p)])owner.bz.filter(c=>power(c)<=+all[1]).forEach(c=>destroy(owner,c));return}
+  if(all){destroyAll(allBz(c=>power(c)<=+all[1]));return}
   if(f==='draw1')f='draw';
   const o=opp(p),sw=/^sweep(\d+)$/.exec(f);
-  if(sw){const hit=o.bz.filter(c=>power(c)<=+sw[1]);if(!hit.length)log(`${src.n} hits nothing.`);hit.forEach(c=>destroy(o,c));return}
+  if(sw){const hit=allBz((c,q)=>q===o&&power(c)<=+sw[1]);if(!hit.length)log(`${src.n} hits nothing.`);destroyAll(hit);return}
   if(f==='draw'||f==='draw2'||f==='draw3'){const n=f==='draw'?1:+f.slice(4);draw(p,n);log(`${V(p,'You draw','Opponent draws')} ${n===1?'a card':n+' cards'}.`)}
   else if(f==='ramp'||f==='ramp2'){const n=f==='ramp'?1:2;for(let i=0;i<n&&p.deck.length;i++){const c=p.deck.pop();c.tapped=!!c.e2;p.mana.push(c);log(`${c.n} goes to ${whose(p)} mana zone.`)}}
   else if(f==='discardAll'){const o=opp(p);o.hand.slice().forEach(c=>discardCard(o,c));log(`${V(o,'You discard','Opponent discards')} the entire hand.`)}
@@ -150,10 +181,10 @@ function simpleFx(p,f,src){
   else if(f==='tapSelf'){if(src&&!src.tapped&&ownerOf(src)){src.tapped=true;log(`${src.n} is tapped.`)}}
   else if(f==='destroySelf'){const owner=src&&ownerOf(src);if(owner)destroy(owner,src)}
   else if(f==='bounceSelf'){const owner=src&&ownerOf(src);if(owner)bounce(owner,src)}
-  else if(f==='sweepBlockers'){for(const owner of [p,o])owner.bz.filter(c=>T(c).block).forEach(c=>destroy(owner,c))}
+  else if(f==='sweepBlockers'){destroyAll(allBz(c=>T(c).block))}
   else if(f==='tapBlockers'){o.bz.filter(c=>T(c).block).forEach(c=>tapBy(p,c));log(`All of ${whose(o)} blockers are tapped.`)}
-  else if(f==='bounceBlockers'){for(const owner of [p,o])owner.bz.filter(c=>T(c).block).forEach(c=>bounce(owner,c))}
-  else if(/^bounceAll\d+$/.test(f)){const n=+f.slice(9);for(const owner of [p,o])owner.bz.filter(c=>power(c)<=n).forEach(c=>bounce(owner,c))}
+  else if(f==='bounceBlockers'){allBz(c=>T(c).block).forEach(([q,c])=>bounce(q,c))}
+  else if(/^bounceAll\d+$/.test(f)){const n=+f.slice(9);allBz(c=>power(c)<=n).forEach(([q,c])=>bounce(q,c))}
   else if(f.startsWith('grantOwn:')){
     const g=JSON.parse(f.slice(9));
     for(const c of p.bz){c.boost=(c.boost||0)+g.power;if(Object.keys(g.traits).length)c.tmp=mergeTraits(c.tmp||{},g.traits)}
@@ -174,18 +205,18 @@ async function chooseEffect(p,title,text,opts,aiValue){
   if(p.remote)return remoteDecide(p,'choice',{title,text,opts});
   return ask(title,text,opts);
 }
-// Choose one card from any zone. Battle-zone cards are picked on the board; cards in
-// other zones (mana, shields) are offered as a list. Face-down shields are numbered,
-// never named. Returns the card, or null when an optional choice is skipped.
+// Choose one card from any zone. Battle-zone cards and shields are picked on the board;
+// cards in other zones (mana, hand) are offered as a list. Face-down shields go by their
+// letter, never their name. Returns the card, or null when an optional choice is skipped.
 async function pickCard(p,cards,msg,{optional=false,hidden=false,aiPick}={}){
   cards=cards.filter(c=>choosable(p,c));
   if(!cards.length)return null;
   if(p.ai)return aiPick?aiPick(cards):cards[0];
-  if(cards.every(c=>G.p.some(q=>q.bz.includes(c)))){
+  if(cards.every(c=>G.p.some(q=>q.bz.includes(c)||q.sh.includes(c)))){
     if(p.remote)return cardBy(await remoteDecide(p,'target',{uids:cards.map(c=>c.uid),msg,required:!optional}));
     return pickTarget(cards,msg,optional?'Skip':null);
   }
-  const opts=cards.map((c,i)=>({label:hidden?`Shield ${i+1}`:c.n,val:i}));
+  const opts=cards.map((c,i)=>({label:hidden?`Shield ${c.shL||i+1}`:c.n,val:i}));
   if(optional)opts.push({label:'Skip',val:-1});
   const i=await chooseEffect(p,'Choose a card',msg,opts,0);
   if(Number.isInteger(i)&&i>=0&&i<cards.length)return cards[i];
@@ -375,7 +406,7 @@ async function chooseBase(p,c,cancel){
   if(c.vortex){
     const out=[];
     for(const r of c.vortex){
-      const b=p.bz.filter(x=>racesOf(x).includes(r)&&!out.includes(x));
+      const b=p.bz.filter(x=>racesOf(x).includes(r)&&!out.includes(x)&&(out.length||p.bz.some(y=>y!==x&&racesOf(y).includes(c.vortex[1]))));
       const pickOne=p.ai?b.sort((x,y)=>x.p-y.p)[0]:await pickCard(p,b,`Choose the ${r} for ${c.n}.`,{optional:cancel});
       if(!pickOne)return null;out.push(pickOne);
     }
@@ -399,7 +430,7 @@ async function playCard(p,c){
   if(!canPlay(p,c))return;
   let base=null;
   if(c.evo){base=await chooseBase(p,c,true);if(!base)return}
-  pay(p,c);p.hand.splice(p.hand.indexOf(c),1);
+  pay(p,c);p.hand.splice(p.hand.indexOf(c),1);p.played=true;
   // "Whenever your opponent summons a creature or casts a spell".
   for(const x of opp(p).bz)if(T(x).onOppPlay)queueFx(opp(p),T(x).onOppPlay,x);
   if(c.t==='s'){
@@ -425,7 +456,7 @@ async function battle(ap,a,dp,d,{blocked=false}={}){
   anim(d,'hit');render();await sleep(380);
   if(dDies)anim(d,'die');if(aDies)anim(a,'die');
   if(dDies||aDies){render();await sleep(450)}
-  if(dDies)destroy(dp,d);if(aDies)destroy(ap,a);
+  destroyAll([...(dDies?[[dp,d]]:[]),...(aDies?[[ap,a]]:[])]);
   // After-battle abilities of creatures still in the battle zone.
   for(const [p,c,won] of [[ap,a,aWins],[dp,d,dWins]]){
     if(!p.bz.includes(c))continue;
@@ -446,8 +477,8 @@ async function chooseBlocker(o,att,blockers,target){
   return b;
 }
 async function attack(p,att,target){
-  G.attacking=att;
-  try{await attackSteps(p,att,target)}finally{G.attacking=null}
+  p.attacked=true;G.attacking=att;G.attackTarget=target;
+  try{await attackSteps(p,att,target)}finally{G.attacking=null;G.attackTarget=null}
   // "When this creature attacks a player, destroy it after the attack."
   if(target==='player'&&T(att).atkPlayerDie&&!G.over&&p.bz.includes(att)){log(`${att.n} is destroyed after the attack.`);destroy(p,att);await flushFx();render()}
 }
@@ -489,7 +520,6 @@ async function attackSteps(p,att,target){
   }
   if(!o.sh.length){log(`${att.n} lands the final blow.`);win(p);return}
   let n=Math.min(breaks(att),o.sh.length);
-  const broken=[];
   (p.brokeBy||(p.brokeBy=[])).push(att.uid);
   // "When one of your shields would be broken, you may destroy this creature instead."
   for(let k=n;k>0;k--){
@@ -504,16 +534,50 @@ async function attackSteps(p,att,target){
   }
   await flushFx();
   if(G.over)return;
-  G.breaking={p:o,n};render();await sleep(450);G.breaking=null;
-  const defenderChooses=o.bz.some(x=>T(x).chooseBroken);
+  // The attacker chooses which shields break, unless a creature lets the defender choose.
+  const chosen=await chooseShields(o.bz.some(x=>T(x).chooseBroken)?o:p,o,n,att.n);
+  await breakShields(o,chosen,{toGy:!!T(att).breakToGy});
+}
+// Choose n of o's shields to break, one at a time on the board ("shield 2 of 3").
+async function chooseShields(chooser,o,n,by){
+  labelShields();
+  const out=[];
+  if(n>=o.sh.length)return o.sh.slice();
   for(let i=0;i<n;i++){
-    const s=defenderChooses?await pickCard(o,o.sh.slice(),'Choose a shield to break.',{hidden:true,aiPick:aiRandom}):o.sh[o.sh.length-1];
-    o.sh.splice(o.sh.indexOf(s),1);
-    if(T(att).breakToGy)o.gy.push(s);else{o.hand.push(s);broken.push(s)}
+    const left=o.sh.filter(s=>!out.includes(s));
+    const s=await pickCard(chooser,left,`${by} breaks ${n===1?'a shield':n+' shields'}. Choose ${n===1?'which shield':`shield ${i+1} of ${n}`} to break.`,{hidden:true,aiPick:aiRandom});
+    out.push(left.includes(s)?s:left[0]);
   }
-  if(n)log(`${['','A shield breaks','Two shields break','Three shields break'][Math.min(n,3)]||n+' shields break'}${T(att).breakToGy?' and goes to the graveyard':''}.`);render();
-  for(const s of broken)await shieldTrigger(o,s);
+  return out;
+}
+// Broken shields go to hand all at once; then the defender uses any shield triggers among
+// them, in the order they choose.
+async function breakShields(o,list,{toGy=false}={}){
+  if(!list.length)return;
+  labelShields();
+  const names=list.map(s=>s.shL).join(list.length===2?' and ':', ');
+  G.breaking={p:o,uids:new Set(list.map(s=>s.uid))};render();await sleep(450);G.breaking=null;
+  for(const s of list){o.sh.splice(o.sh.indexOf(s),1);(toGy?o.gy:o.hand).push(s)}
+  log(`${V(o,'Your',"The opponent's")} shield${list.length===1?'':'s'} ${names} break${list.length===1?'s':''}${toGy?' and go to the graveyard':''}.`);render();
+  if(!toGy)await useTriggers(o,list);
   render();
+}
+// Online, the defender always confirms a break, so waiting for them never reveals whether a
+// shield held a trigger.
+async function useTriggers(o,broken){
+  const confirm=!!(G.mp&&o.remote);
+  for(let first=true;!G.over;first=false){
+    const left=broken.filter(s=>o.hand.includes(s)),usable=left.filter(s=>canTrigger(o,s));
+    if(!usable.length){
+      if(confirm&&first)await chooseEffect(o,'Shields broken',`From your shields: ${left.map(s=>s.n).join(', ')}. No shield triggers to use.`,[{label:'OK',val:true,main:1}],true);
+      return;
+    }
+    if(usable.length===1){await shieldTrigger(o,usable[0]);return}
+    const i=await chooseEffect(o,'Shield triggers',`From your shields: ${left.map(s=>s.n).join(', ')}. Choose a shield trigger to use next.`,
+      [...usable.map((s,i)=>({label:`Use ${s.n}`,val:i,main:i===0})),{label:'Use no more',val:-1}],usable.findIndex(s=>aiUseTrig(o,s)));
+    if(!Number.isInteger(i)||!usable[i])return;
+    await shieldTrigger(o,usable[i],true);
+  }
 }
 // A broken shield with "shield trigger" may be cast, or summoned if it is a creature,
 // for no cost. An evolution still needs a creature of its race to evolve from.
@@ -521,9 +585,9 @@ const canTrigger=(o,s)=>s.trig&&o.hand.includes(s)&&(s.t==='s'||!s.evo||bases(o,
 // "Players can't use the shield trigger abilities of darkness cards", and creatures that
 // stop the opponent's shield triggers.
 const triggerAllowed=(o,s)=>rulesInPlay('noTrigCiv').every(([civ])=>!civsOf(s).includes(civ))&&rulesInPlay('noOppTrig').every(([,q])=>q===o);
-async function shieldTrigger(o,s){
+async function shieldTrigger(o,s,chosen=false){
   if(G.over||!canTrigger(o,s))return;
-  const use=o.ai?aiUseTrig(o,s):o.remote?!!(await remoteDecide(o,'trig',{s:s.uid})):await askTrig(s);
+  const use=chosen||(o.ai?aiUseTrig(o,s):o.remote?!!(await remoteDecide(o,'trig',{s:s.uid})):await askTrig(s));
   if(!use)return;
   if(s.t==='s'){
     o.hand.splice(o.hand.indexOf(s),1);
@@ -552,7 +616,7 @@ const canTapAbility=(c,p)=>!!T(c).tapAb&&p.bz.includes(c)&&!c.tapped&&(!c.sick||
 async function useTapAbility(p,c,i=0){
   if(!canTapAbility(c,p))return;
   const fx=T(c).tapAb[i];
-  c.tapped=true;log(`${c.n} taps to use its ability.`);render();
+  c.tapped=true;p.attacked=true;log(`${c.n} taps to use its ability.`);render();
   await resolveFx(p,fx,c);
   render();
 }
@@ -562,7 +626,7 @@ function win(p){G.over=true;G.winner=p;G.targeting=null;G.modal=null;log(V(p,'Yo
 // Start-of-turn bookkeeping: untap, then draw (the first player skips the first draw).
 async function beginTurn(p){
   G.turn=G.p.indexOf(p);
-  p.charged=false;p.castSpell=false;p.brokeBy=[];
+  p.charged=false;p.played=false;p.attacked=false;p.castSpell=false;p.brokeBy=[];
   if(p.mustAtkNext)p.mustAtkNext='now';
   // Silent skill: a tapped creature may stay tapped to use its ability.
   const silent=[];
@@ -601,13 +665,14 @@ async function endTurn(p){
   for(const c of p.bz.slice()){
     if(G.over)return;
     if(!p.bz.includes(c))continue;
-    if(T(c).endDieAlone&&p.bz.length===1){log(`${c.n} is alone at the end of the turn.`);destroy(p,c)}
-    else if(T(c).endBounce||T(c).endBounceBroke&&(p.brokeBy||[]).includes(c.uid)){bounce(p,c)}
-    else if(T(c).onEnd)await resolveFx(p,T(c).onEnd,c);
-    else if(T(c).endUntap&&c.tapped){
+    // A creature can have several end-of-turn abilities; each one happens while it's still here.
+    if(T(c).onEnd)await resolveFx(p,T(c).onEnd,c);
+    if(p.bz.includes(c)&&T(c).endUntap&&c.tapped){
       const yes=await chooseEffect(p,c.n,`Untap ${c.n}?`,[{label:'Untap it',val:true,main:1},{label:'Leave it tapped',val:false}],true);
       if(yes){c.tapped=false;log(`${c.n} untaps.`)}
     }
+    if(p.bz.includes(c)&&(T(c).endBounce||T(c).endBounceBroke&&(p.brokeBy||[]).includes(c.uid)))bounce(p,c);
+    if(p.bz.includes(c)&&T(c).endDieAlone&&p.bz.length===1){log(`${c.n} is alone at the end of the turn.`);destroy(p,c)}
     await flushFx();
   }
   // "At the end of the turn, ..." effects set up during the turn.

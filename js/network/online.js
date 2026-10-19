@@ -12,7 +12,10 @@ const hasStore=()=>true;
 // remembers the latest value and both devices see the same data.
 const NET={map:{},client:null,code:null,status:'',url:null};
 const BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt','wss://test.mosquitto.org:8081/mqtt'];
-const MQ_SRC=['https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js','https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js','https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js'];
+// Each copy is pinned by its hash, so a CDN serving altered code is refused.
+const MQ5='sha384-u4uqeACkFcoKl57rBQJHVGDd1pqhW4w8X3WjTu1ZksPdxoLqdt34jpoNkJisE25W';
+const MQ_SRC=[['https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js',MQ5],['https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js',MQ5],
+  ['https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js','sha384-ZFaJg22VvVm4+3ZqY9eRIHGmqdEQb+c7XO+0IKspqdtPGFu6xRiPnK8xeNA//kQJ']];
 const TOP='shieldclash/v1/';
 const keyTopic=k=>TOP+k.split(':').join('/');
 const topicKey=t=>t.slice(TOP.length).split('/').join(':');
@@ -24,7 +27,7 @@ function loadMQTT(){
     let i=0;
     const next=()=>{
       if(i>=MQ_SRC.length){mqLib=null;rej(new Error('lib'));return}
-      const sc=document.createElement('script');sc.src=MQ_SRC[i++];sc.async=true;
+      const [src,hash]=MQ_SRC[i++],sc=document.createElement('script');sc.src=src;sc.integrity=hash;sc.crossOrigin='anonymous';sc.async=true;
       sc.onload=()=>window.mqtt&&window.mqtt.connect?res(window.mqtt):next();sc.onerror=()=>{sc.remove();next()};
       document.head.appendChild(sc);
     };
@@ -109,22 +112,25 @@ async function sdel(k){
   try{await window.storage.delete(k,true)}catch(e){}
 }
 
-const cardBy=uid=>uid==null?null:(findCard(uid)?.c||null);
+const cardBy=uid=>uid==null?null:(findCard(uid)?.c||shieldBy(uid)||null);
 const ZONES=['deck','hand','mana','bz','sh','gy'];
-const packCard=c=>{const o={i:c.id,u:c.uid};if(c.tapped)o.t=1;if(c.sick)o.s=1;if(c.boost)o.b=c.boost;if(c.tmp)o.m=c.tmp;if(c.tmpNext){o.n=c.tmpNext;o.ns=c.tmpNextSeat}if(c.under&&c.under.length)o.d=c.under.map(packCard);return o};
-const unpackCard=o=>({...DEF[o.i],uid:o.u,tapped:!!o.t,sick:!!o.s,boost:o.b||0,...(o.m?{tmp:o.m}:{}),...(o.n?{tmpNext:o.n,tmpNextSeat:o.ns}:{}),under:(o.d||[]).map(unpackCard)});
-function packPlayer(p){const q={seat:p.seat,name:p.name,deckName:p.deckName,charged:!!p.charged,castSpell:!!p.castSpell,brokeBy:p.brokeBy||[],mustAtkNext:p.mustAtkNext||null};ZONES.forEach(z=>q[z]=p[z].map(packCard));return q}
-function unpackPlayer(q){const p={seat:q.seat,name:q.name,deckName:q.deckName,charged:!!q.charged,castSpell:!!q.castSpell,brokeBy:q.brokeBy||[],...(q.mustAtkNext?{mustAtkNext:q.mustAtkNext}:{})};ZONES.forEach(z=>p[z]=(q[z]||[]).map(unpackCard));return p}
+const packCard=c=>{const o={i:c.id,u:c.uid};if(c.tapped)o.t=1;if(c.sick)o.s=1;if(c.boost)o.b=c.boost;if(c.tmp)o.m=c.tmp;if(c.tmpNext){o.n=c.tmpNext;o.ns=c.tmpNextSeat}if(c.under&&c.under.length)o.d=c.under.map(packCard);if(c.shL)o.l=c.shL;return o};
+const unpackCard=o=>({...DEF[o.i],uid:o.u,tapped:!!o.t,sick:!!o.s,boost:o.b||0,...(o.m?{tmp:o.m}:{}),...(o.n?{tmpNext:o.n,tmpNextSeat:o.ns}:{}),under:(o.d||[]).map(unpackCard),...(o.l?{shL:o.l}:{})});
+function packPlayer(p){const q={seat:p.seat,name:p.name,deckName:p.deckName,charged:!!p.charged,played:!!p.played,attacked:!!p.attacked,shN:p.shN??-1,castSpell:!!p.castSpell,brokeBy:p.brokeBy||[],mustAtkNext:p.mustAtkNext||null};ZONES.forEach(z=>q[z]=p[z].map(packCard));return q}
+function unpackPlayer(q){const p={seat:q.seat,name:q.name,deckName:q.deckName,charged:!!q.charged,played:!!q.played,attacked:!!q.attacked,shN:q.shN??-1,castSpell:!!q.castSpell,brokeBy:q.brokeBy||[],...(q.mustAtkNext?{mustAtkNext:q.mustAtkNext}:{})};ZONES.forEach(z=>p[z]=(q[z]||[]).map(unpackCard));return p}
 function toWire(){
   const canon=G.p[0].seat===0?[G.p[0],G.p[1]]:[G.p[1],G.p[0]];
   return {seq:MP.seq,players:canon.map(packPlayer),turnSeat:G.p[G.turn].seat,turnNo:G.turnNo,
-    log:G.log.slice(0,40),over:G.over,winnerSeat:G.over&&G.winner?G.winner.seat:null,req:G.req||null,needStart:!!G.needStart,left:G.left??null};
+    log:G.log.slice(0,40),logSeq:G.logSeq||0,logId:G.logId||null,over:G.over,winnerSeat:G.over&&G.winner?G.winner.seat:null,req:G.req||null,needStart:!!G.needStart,left:G.left??null,why:G.why||null,
+    att:G.attacking?G.attacking.uid:null,atT:G.attackTarget==='player'?'player':G.attackTarget?G.attackTarget.uid:null,blk:G.blocker?G.blocker.uid:null};
 }
 function fromWire(w){
   const pl=w.players.map(q=>({...unpackPlayer(q),remote:q.seat!==MP.seat,ai:false}));
   const keep=G&&G.mp?{modal:G.modal,targeting:G.targeting}:{modal:null,targeting:null};
-  G={mp:true,shields:SHIELDS,p:[pl[MP.seat],pl[1-MP.seat]],turn:w.turnSeat===MP.seat?0:1,turnNo:w.turnNo,log:w.log,over:w.over,
-    winner:w.winnerSeat==null?null:pl[w.winnerSeat],req:w.req,needStart:w.needStart,left:w.left,busy:false,fx:{},breaking:null,sel:null,...keep};
+  G={mp:true,shields:SHIELDS,p:[pl[MP.seat],pl[1-MP.seat]],turn:w.turnSeat===MP.seat?0:1,turnNo:w.turnNo,log:w.log,logSeq:w.logSeq||0,logId:w.logId,over:w.over,
+    winner:w.winnerSeat==null?null:pl[w.winnerSeat],req:w.req,needStart:w.needStart,left:w.left,why:w.why,busy:false,fx:{},breaking:null,sel:null,...keep};
+  // The attack in progress, so the waiting player sees the attacker, its target and the blocker.
+  G.attacking=cardBy(w.att);G.attackTarget=w.atT==='player'?'player':cardBy(w.atT);G.blocker=cardBy(w.blk);
 }
 let pushT=null;
 function mpPush(now){
@@ -257,10 +263,13 @@ async function mpHost(){
     const lob=await sget(RK(code,'lobby'));
     if(lob&&lob.guest){
       $('#layer').innerHTML='';
-      const me=mkPlayer(name,false,deck,SHIELDS,0),them=mkPlayer(lob.guest.name,false,lob.guest.deck,SHIELDS,1);
+      // The guest's name and deck come from the relay: keep only real, playable cards.
+      const gname=String(lob.guest.name||'Player').slice(0,16),gdeck={n:String(lob.guest.deck&&lob.guest.deck.n||'Deck').slice(0,40),
+        ids:(Array.isArray(lob.guest.deck&&lob.guest.deck.ids)?lob.guest.deck.ids:[]).filter(id=>DEF[id]&&DEF[id].playable).slice(0,DECK_MAX)};
+      const me=mkPlayer(name,false,deck,SHIELDS,0),them=mkPlayer(gname,false,gdeck,SHIELDS,1);
       them.remote=true;
       G={mp:true,shields:SHIELDS,p:[me,them],turn:0,turnNo:0,log:[],sel:null,busy:false,targeting:null,modal:null,over:false,fx:{},breaking:null,req:null};
-      log(`${esc(name)} (${esc(deck.n)}) vs ${esc(lob.guest.name)} (${esc(lob.guest.deck.n)}). Each side has ${SHIELDS} shields. ${esc(name)} goes first and skips the first draw.`);
+      log(`${name} (${deck.n}) vs ${gname} (${gdeck.n}). Each side has ${SHIELDS} shields. ${name} goes first and skips the first draw.`);
       await sset(RK(code,'lobby'),{...lob,started:true});
       startTurn(0);
       MP.timer=setTimeout(mpPoll,1400);

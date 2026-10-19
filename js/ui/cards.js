@@ -35,25 +35,30 @@ function fitCardText(card){
   for(const selector of ['.txt']){
     const text=card.querySelector(selector);
     if(!text)continue;
-    text.style.removeProperty('font-size');
+    text.style.removeProperty('font-size');text.classList.remove('clipped');
     const style=getComputedStyle(text),maxSize=parseFloat(style.fontSize);
     const key=[selector,text.textContent,text.clientWidth,text.clientHeight,style.font,style.letterSpacing].join('|');
     const cached=cardTextSizes.get(key);
     if(cached!==undefined){
-      if(cached!==maxSize)text.style.fontSize=cached+'px';
+      if(cached.size!==maxSize)text.style.fontSize=cached.size+'px';
+      if(cached.clip)text.classList.add('clipped');
       continue;
     }
     const fits=()=>text.scrollWidth<=text.clientWidth&&text.scrollHeight<=text.clientHeight;
-    if(fits()){cardTextSizes.set(key,maxSize);continue}
-    let low=1,high=maxSize;
+    if(fits()){cardTextSizes.set(key,{size:maxSize});continue}
+    // Text never shrinks below a readable size; what still doesn't fit fades out (tap to read).
+    const floor=Math.min(maxSize,Math.max(6,maxSize*.55));
+    text.style.fontSize=floor+'px';
+    if(!fits()){text.classList.add('clipped');cardTextSizes.set(key,{size:floor,clip:true});continue}
+    let low=floor,high=maxSize;
     // Find the largest font that fits both the available width and height.
-    for(let i=0;i<8;i++){
+    for(let i=0;i<6;i++){
       const mid=(low+high)/2;
       text.style.fontSize=mid+'px';
       if(fits())low=mid;else high=mid;
     }
     text.style.fontSize=low+'px';
-    cardTextSizes.set(key,low);
+    cardTextSizes.set(key,{size:low});
   }
 }
 function queueCardFit(card){

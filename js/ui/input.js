@@ -4,7 +4,7 @@ async function act(fn){G.busy=true;G.sel=null;render();try{await fn()}finally{G.
 function onCard(uid){
   if(!G||G.over||G.modal)return;
   if(G.targeting){
-    if(G.targeting.uids.has(uid)){const r=G.targeting.resolve;const t=findCard(uid).c;G.targeting=null;r(t)}
+    if(G.targeting.uids.has(uid)){const r=G.targeting.resolve;const t=findCard(uid)?.c||shieldBy(uid);G.targeting=null;r(t)}
     return;
   }
   const f=findCard(uid);if(!f)return;
@@ -19,6 +19,7 @@ function onCard(uid){
 }
 function onAct(a,v){
   // menus and deck builder
+  if(a==='sound'){toggleSound();return}
   if(a==='setmode'){PLAYMODE=v==='friend'?'friend':'cpu';renderModeSw();try{window.storage.set('shieldclash-mode',PLAYMODE,false)}catch(e){}return}
   if(a==='preset'){const pr=PRESETS[+v];playWith('p'+v,()=>({n:pr.n,ids:presetIds(pr.civ)}));return}
   if(a==='builder'){showBuilder();return}
@@ -40,7 +41,7 @@ function onAct(a,v){
   if(a==='mpjoin'){mpJoin();return}
   if(a==='mpcancel'){mpLeave(true);if(!IN_CLAUDE)netClose();return}
   if(a==='menu'&&G&&G.mp&&!G.over&&!G.modal&&!G.targeting){
-    ask('Game menu',`Leaving ends the game for both of you, and ${esc(G.p[1].name)} wins.`,
+    ask('Game menu',`Leaving ends the game for both of you, and ${G.p[1].name} wins.`,
       [{label:'Keep playing',val:null,main:1},{label:'Leave game',val:'leave'}]).then(v=>{if(v==='leave')mpLeave()});
     return}
   if(a==='menu'&&G&&!G.over&&G.turn===0&&!G.busy&&!G.modal&&!G.targeting){
@@ -58,11 +59,12 @@ function onAct(a,v){
   if(a==='bstart'&&legal(total())){const ids=expand(BUILD.counts),n=(BUILD.name||'').trim()||'Your deck';saveDeck().then(()=>{if(PLAYMODE==='friend'&&BUILD.id)showOnline(null,'d'+BUILD.id);else startGame({n,ids})});return}
   if(!G)return;
   // in game
+  if(a==='pile'){const [z,side]=String(v).split(':'),p=G.p[+side];if(p&&(z==='gy'||z==='mana'))openPile(`${side==='0'?'Your':G.mp?p.name+"'s":"Opponent's"} ${z==='gy'?'graveyard':'mana zone'}`,p[z]);return}
   if(a==='ans'&&G.modal){const m=G.modal;G.modal=null;render();m.resolve(m.opts[+v].val);return}
   if(a==='skip'&&G.targeting&&!G.targeting.required){const r=G.targeting.resolve;G.targeting=null;r(null);return}
   if(G.turn!==0||G.busy||G.over)return;
   const me=G.p[0],s=selCard();
-  if(a==='charge'&&s&&!me.charged){me.hand.splice(me.hand.indexOf(s),1);toMana(me,[s]);me.charged=true;G.sel=null;log(`${V(me,'You charge','Opponent charges')} ${s.n} as mana.`);render()}
+  if(a==='charge'&&s&&!me.charged&&!me.played&&!me.attacked){me.hand.splice(me.hand.indexOf(s),1);toMana(me,[s]);me.charged=true;G.sel=null;log(`${V(me,'You charge','Opponent charges')} ${s.n} as mana.`);render()}
   else if(a==='play'&&s)act(()=>playCard(me,s));
   else if(a==='atkp'&&s&&canAttackPlayer(s,me))act(()=>attack(me,s,'player'));
   else if(a==='tapab'&&s&&canTapAbility(s,me))act(()=>useTapAbility(me,s,+v||0));
@@ -78,9 +80,9 @@ function onAct(a,v){
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(b){if(!b.disabled)onAct(b.dataset.act,b.dataset.v);return}
-  const c=e.target.closest('[data-uid]');if(c)onCard(+c.dataset.uid);
+  const c=e.target.closest('[data-uid],[data-shield]');if(c)onCard(+(c.dataset.uid||c.dataset.shield));
 });
 document.addEventListener('keydown',e=>{
-  if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-uid]')){e.preventDefault();onCard(+e.target.dataset.uid)}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-uid],[data-shield]')){e.preventDefault();onCard(+(e.target.dataset.uid||e.target.dataset.shield))}
   else if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-def]')){e.preventDefault();openZoom(DEF[e.target.dataset.def])}
 });
