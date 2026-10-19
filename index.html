@@ -42,21 +42,30 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 .manas{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
 .mana{width:22px;height:22px;border-radius:50%;background:var(--el);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;border:1.5px solid var(--ink)}
 .mana.used{opacity:.3}
-.card{position:relative;width:112px;height:174px;border-radius:9px;background:var(--fr);padding:4px;display:flex;flex-direction:column;gap:3px;cursor:pointer;transition:transform .15s}
-.nbar{display:flex;gap:4px;align-items:center;background:var(--lt);border-radius:5px;padding:2px 4px;min-height:26px}
-.cost{flex:none;width:19px;height:19px;border-radius:50%;background:var(--dp);color:var(--lt);font-weight:700;font-size:11.5px;display:grid;place-items:center}
-.nm{font-weight:700;font-size:10.5px;line-height:1.12;color:var(--dp);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.art{position:relative;height:44px;flex:none;border-radius:5px;overflow:hidden;background:var(--md)}
+/* Card layout from the 112px design, in container units so every display size keeps its proportions. */
+.card{position:relative;container-type:inline-size;width:112px;aspect-ratio:112/174;flex:none;border-radius:8%/5.2%;background:var(--fr);cursor:pointer;transition:transform .15s}
+.cbody{height:100%;box-sizing:border-box;padding:3.6cqw;display:flex;flex-direction:column;gap:2.7cqw}
+.nbar{display:flex;gap:3.6cqw;align-items:center;background:var(--lt);border-radius:4.5cqw;padding:1.8cqw 3.6cqw;min-height:23cqw;flex:none}
+.cost{flex:none;width:17cqw;height:17cqw;border-radius:50%;background:var(--dp);color:var(--lt);font-weight:700;font-size:10.3cqw;display:grid;place-items:center}
+.nm{min-width:0;font-weight:700;font-size:9.4cqw;line-height:1.12;color:var(--dp);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.art{position:relative;height:50cqw;flex:none;border-radius:4.5cqw;overflow:hidden;background:var(--md)}
 .art svg{display:block;width:100%;height:100%}
-.trg{position:absolute;right:3px;top:2px;font-size:8px;font-weight:700;background:var(--dp);color:var(--lt);padding:0 4px;border-radius:3px}
-.txt{background:var(--lt);border-radius:5px;padding:3px 5px;font-size:9.5px;line-height:1.28;color:var(--dp);flex:1;overflow:hidden}
-.bot{display:flex;justify-content:space-between;align-items:center;gap:4px}
-.rc{font-size:8.5px;font-weight:700;color:var(--lt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding-left:2px}
-.pw{background:var(--dp);color:var(--lt);font-weight:700;font-size:11px;padding:0 7px;border-radius:4px;line-height:1.5}
-.card.isevo::before{content:"";position:absolute;inset:1.5px;border:1.5px solid var(--lt);border-radius:8px;pointer-events:none;opacity:.75}
-.card.legend::after{content:"";position:absolute;inset:0;border:2px solid #EF9F27;border-radius:9px;pointer-events:none}
+.art img{display:block;width:100%;height:100%;object-fit:cover}
+.missing-art{height:100%;display:grid;place-items:center;text-align:center;padding:10%;font-size:7cqw;color:var(--dp);background:var(--lt)}
+.trg{position:absolute;right:2.7cqw;top:1.8cqw;font-size:7.1cqw;font-weight:700;background:var(--dp);color:var(--lt);padding:0 3.6cqw;border-radius:2.7cqw}
+.txt{min-height:0;background:var(--lt);border-radius:4.5cqw;padding:2.7cqw 4.5cqw;font-size:8.5cqw;line-height:1.28;color:var(--dp);flex:1;overflow:hidden;overflow-wrap:break-word}
+.txt p{margin:0 0 .2em}
+.txt p:last-child{margin-bottom:0}
+.txt em{font-style:italic;opacity:.8}
+.bot{display:flex;justify-content:space-between;align-items:center;gap:3.6cqw;flex:none}
+.rc{font-size:7.6cqw;font-weight:700;color:var(--lt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding-left:1.8cqw}
+.pw{flex:none;background:var(--dp);color:var(--lt);font-weight:700;font-size:9.8cqw;padding:0 6.2cqw;border-radius:3.6cqw;line-height:1.5}
+.card.multicolor{background:linear-gradient(135deg,var(--fr) 45%,var(--second) 55%)}
+.printed-rules{padding-left:18px;margin:0;display:grid;gap:9px;line-height:1.5}
+.card.isevo::before{content:"";position:absolute;inset:1.3cqw;border:1.3cqw solid var(--lt);border-radius:inherit;pointer-events:none;opacity:.75}
+.card.legend::after{content:"";position:absolute;inset:0;border:1.8cqw solid #EF9F27;border-radius:inherit;pointer-events:none}
 .card.tapped{transform:rotate(9deg);opacity:.62}
-.tag{position:absolute;left:7px;top:35px;font-size:8.5px;font-weight:700;background:var(--ink);color:var(--bg);padding:0 4px;border-radius:3px;z-index:1}
+.tag{position:absolute;left:6.2cqw;top:57cqw;max-width:85%;font-size:7.6cqw;font-weight:700;background:var(--ink);color:var(--bg);padding:0 3.6cqw;border-radius:2.7cqw;z-index:1}
 .card.can{box-shadow:0 0 0 3px var(--hi)}
 .card.sel{transform:translateY(-8px);box-shadow:0 0 0 3px var(--hi)}
 .card.target{box-shadow:0 0 0 3px var(--danger)}
@@ -94,10 +103,7 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 @media (max-width:600px){
   .shields .back{width:20px;height:28px}.shields{gap:3px}
   .tcard{zoom:.78}.tvis{padding:12px 8px}
-  .card{width:86px;height:136px;padding:3px;gap:2px}
-  .nbar{min-height:22px;padding:1px 3px}.nm{font-size:9px}.cost{width:16px;height:16px;font-size:10px}
-  .art{height:32px}.rc{font-size:7.5px}.trg{font-size:7px}
-  .txt{font-size:8.5px;line-height:1.22;padding:2px 3px}.pw{font-size:9.5px;padding:0 4px}.rc{letter-spacing:-.2px}.tag{top:25px;font-size:7.5px}
+  .card{width:86px}
   .zone{min-height:142px}
   #start h1{font-size:34px}
 }
@@ -114,7 +120,8 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 .kw div{line-height:1.45;font-size:13.5px}
 .kw b{display:block}
 .zclose{position:absolute;right:12px;top:12px;width:34px;height:34px;padding:0;border-radius:50%;font-size:18px;line-height:1}
-.card.big{width:250px;height:390px;padding:8px;gap:6px;border-radius:16px;cursor:default;flex:none;margin:0 auto}
+.card.big{width:250px;border-radius:16px;cursor:default;margin:0 auto}
+.card.big .cbody{padding:8px;gap:6px}
 .card.big .nbar{min-height:50px;padding:4px 8px;border-radius:9px;gap:8px}
 .card.big .cost{width:36px;height:36px;font-size:20px}
 .card.big .nm{font-size:17px;-webkit-line-clamp:3}
@@ -123,7 +130,7 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 .card.big .trg{font-size:12px;padding:1px 7px;right:6px;top:5px;border-radius:5px}
 .card.big .txt{font-size:13.5px;line-height:1.4;padding:8px 10px;border-radius:9px}
 .card.big .pw{font-size:19px;padding:2px 12px;border-radius:7px}
-.card.big.legend::after{border-radius:16px;border-width:3px}
+.card.big.legend::after{border-width:3px}
 .card.big.isevo::before{border-radius:14px;inset:3px;border-width:2px}
 .zoomwrap .art *,.dialog .art *{animation-play-state:running}
 .dcard{display:flex;justify-content:center}
@@ -243,6 +250,8 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 <div id="app"></div>
 <div id="layer"></div>
 <div id="zoom"></div>
+<script src="assets/data/cards-data.js"></script>
+<script src="card-catalog.js"></script>
 <script>
 // Inside the Claude app, window.storage is provided (personal + shared data).
 // Anywhere else (GitHub Pages, a downloaded file) we keep decks in localStorage
@@ -263,110 +272,14 @@ const CIV={
   fire:{n:'Fire',c:'#A32D2D'},water:{n:'Water',c:'#185FA5'},nature:{n:'Nature',c:'#3B6D11'},
   light:{n:'Light',c:'#854F0B'},darkness:{n:'Dark',c:'#3C3489'}
 };
-/* ---------- card art: original procedural illustrations ---------- */
+/* ---------- card palette and civilization emblems ---------- */
 const PAL={
   fire:{frame:'#A32D2D',light:'#FCEBEB',mid:'#F09595',deep:'#501313',soft:'#F7C1C1'},
   water:{frame:'#185FA5',light:'#E6F1FB',mid:'#85B7EB',deep:'#042C53',soft:'#B5D4F4'},
   nature:{frame:'#3B6D11',light:'#EAF3DE',mid:'#97C459',deep:'#173404',soft:'#C0DD97'},
   light:{frame:'#854F0B',light:'#FAEEDA',mid:'#FAC775',deep:'#412402',soft:'#FCE3B4'},
-  darkness:{frame:'#3C3489',light:'#EEEDFE',mid:'#AFA9EC',deep:'#26215C',soft:'#CECBF6'}
-};
-// Each figure is drawn in a 40x40 box, feet near y=38. 'L' = fill with the light tone (eyes, details).
-const FIG={
- Drake:[
-  'M15 25 L8 6 L17 15 L19 4 L24 17 Z',
-  'M4 36 C3 30 8 25 15 24 C20 23 24 24 27 21 L30 15 L37 13 L39 16 L35 18 L38 21 L32 22 C31 28 27 33 21 35 C15 37 10 37 4 36 Z',
-  'M4 36 C1 37 0 33 2 31 C2 34 3 35 5 35 Z',
-  'M13 34 L12 39 L15 39 L16 34 Z','M21 33 L21 39 L24 39 L24 32 Z',
-  ['L','M33 15.5 a1.2 1.2 0 1 0 0.1 0 Z']],
- Raider:[
-  'M15 9 L11 2 L17 6 Z','M25 9 L29 2 L23 6 Z',
-  'M20 5 a5 5 0 1 0 0.1 0 Z',
-  'M13 15 L27 15 L29 27 L11 27 Z',
-  'M13 27 L18 27 L17 38 L12 38 Z','M22 27 L27 27 L28 38 L23 38 Z',
-  'M27 16 L33 21 L31 23 L26 19 Z','M31 22 L38 3 L40 4 L34 23 Z',
-  'M13 16 L6 19 L7 27 L12 26 Z',
-  ['L','M17.5 9 h2 v1.5 h-2 Z M21 9 h2 v1.5 h-2 Z']],
- Firebird:[
-  'M19 20 C13 11 6 8 0 9 C4 13 4 15 2 17 C7 17 11 20 15 25 Z',
-  'M21 20 C27 11 34 8 40 9 C36 13 36 15 38 17 C33 17 29 20 25 25 Z',
-  'M20 14 C24 14 25 20 24 27 C23 31 17 31 16 27 C15 20 16 14 20 14 Z',
-  'M20 8 a4 4 0 1 0 0.1 0 Z','M23 11 L27 12.5 L23 14 Z',
-  'M17 29 L12 39 L18 34 L20 40 L22 34 L28 39 L23 29 Z',
-  ['L','M21 11 a1 1 0 1 0 0.1 0 Z']],
- Tidefolk:[
-  'M18 4 a4.5 4.5 0 1 0 0.1 0 Z',
-  'M13 13 L23 13 L24 23 L12 23 Z',
-  'M12 23 L24 23 C26 29 24 33 19 35 L26 37 L22 40 L15 37 C10 34 9 28 12 23 Z',
-  'M23 15 L28 18 L27 19 L22 17 Z',
-  'M27 6 L28.5 6 L28.5 34 L27 34 Z','M24 3 L24 9 L31.5 9 L31.5 3 L30.3 3 L30.3 7.8 L28.4 7.8 L28.4 2 L27.1 2 L27.1 7.8 L25.2 7.8 L25.2 3 Z',
-  'M12 7 C9 9 9 14 11 17 L13 13 Z',
-  ['L','M19 7.5 a0.9 0.9 0 1 0 0.1 0 Z']],
- Serpent:[
-  ['S','M3 37 C9 26 17 40 23 30 C28 21 22 15 29 10'],
-  'M27 6 C31 4 37 6 39 9 L33 10 L36 13 C33 14 30 13 28 12 Z',
-  'M8 30 L9 25 L11 30 Z','M15 33 L17 28 L18 34 Z','M22 24 L26 21 L25 26 Z',
-  ['L','M33 7.5 a0.9 0.9 0 1 0 0.1 0 Z']],
- Glyphmind:[
-  ['S2','M20 6 a14 14 0 1 0 0.1 0 Z'],
-  'M20 11 a9 9 0 1 0 0.1 0 Z',
-  ['L','M20 16.5 a3.5 3.5 0 1 0 0.1 0 Z'],
-  'M4 18 h4 v4 h-4 Z','M32 18 h4 v4 h-4 Z','M18 2 h4 v4 h-4 Z','M18 34 h4 v4 h-4 Z'],
- Wildkin:[
-  'M12 18 L14 13 L16 18 L18 12 L20 18 L22 13 L24 18 Z',
-  'M20 18 C29 18 33 21 33 27 C33 32 28 34 20 34 C11 34 6 32 6 26 C6 21 11 18 20 18 Z',
-  'M30 21 L37 22 L39 28 L33 31 L30 29 Z','M36 23 L40 16 L38 24 Z','M37 28 L40 26 L38 30 Z',
-  'M29 19 L30 15 L33 20 Z',
-  'M9 31 h4 v8 h-4 Z','M15 32 h4 v7 h-4 Z','M23 32 h4 v7 h-4 Z','M28 31 h4 v8 h-4 Z',
-  ['L','M34 24 a0.9 0.9 0 1 0 0.1 0 Z']],
- Giant:[
-  'M20 4 a10 10 0 1 0 0.1 0 Z','M11 10 a6.5 6.5 0 1 0 0.1 0 Z','M29 10 a6.5 6.5 0 1 0 0.1 0 Z',
-  'M14 39 L16 19 L24 19 L26 39 L22 39 L20 31 L18 39 Z',
-  'M16 22 L5 27 L6 30 L16 26 Z','M24 22 L35 27 L34 30 L24 26 Z',
-  'M5 27 L2 25 M5 28 L2 31',
-  ['L','M17.5 22 a1.2 1.2 0 1 0 0.1 0 Z M22.5 22 a1.2 1.2 0 1 0 0.1 0 Z']],
- Rootling:[
-  'M20 22 C14 14 6 16 7 9 C14 8 19 14 20 22 Z','M20 22 C26 14 34 16 33 9 C26 8 21 14 20 22 Z',
-  'M19 18 h2 v6 h-2 Z',
-  'M20 23 a8 8 0 1 0 0.1 0 Z',
-  'M14 36 L13 39 L17 39 L17 36 Z','M23 36 L23 39 L27 39 L26 36 Z',
-  ['L','M17 29 a1.3 1.3 0 1 0 0.1 0 Z M23 29 a1.3 1.3 0 1 0 0.1 0 Z']],
- Sentinel:[
-  'M15 3 h10 v10 h-10 Z','M19 0 h2 v4 h-2 Z',
-  'M12 14 L28 14 L29 29 L11 29 Z',
-  'M12 29 L18 29 L17 39 L12 39 Z','M22 29 L28 29 L28 39 L23 39 Z',
-  'M8 2 L9.5 2 L9.5 36 L8 36 Z','M6.5 5 L8.7 0 L11 5 Z',
-  'M22 15 L36 15 L36 26 C36 32 29 37 29 37 C29 37 22 32 22 26 Z',
-  ['L','M16.5 7 h7 v1.6 h-7 Z M28.2 18 h1.6 v13 h-1.6 Z M24.5 22 h9 v1.6 h-9 Z']],
- Choir:[
-  ['S1','M14.5 2.2 C14.5 0.6 25.5 0.6 25.5 2.2 C25.5 3.8 14.5 3.8 14.5 2.2 Z'],
-  'M20 6 a3.8 3.8 0 1 0 0.1 0 Z',
-  'M16 14 L24 14 L29 39 L11 39 Z',
-  'M16 16 C9 8 3 9 0 18 C5 17 6 21 3 24 C8 23 11 24 14 27 Z',
-  'M24 16 C31 8 37 9 40 18 C35 17 34 21 37 24 C32 23 29 24 26 27 Z'],
- Starborn:[
-  'M20 2 L23 15 L36 10 L26 20 L38 26 L24 25 L20 38 L16 25 L2 26 L14 20 L4 10 L17 15 Z',
-  ['L','M20 13 L25 20 L20 27 L15 20 Z'],
-  'M5 3 a1.5 1.5 0 1 0 0.1 0 Z','M35 34 a1.5 1.5 0 1 0 0.1 0 Z','M36 3 a1 1 0 1 0 0.1 0 Z'],
- Fiend:[
-  'M16 8 L11 0 L18 5 Z','M24 8 L29 0 L22 5 Z',
-  'M20 6 a4.5 4.5 0 1 0 0.1 0 Z',
-  'M15 15 L1 6 L4 15 L0 19 L6 20 L3 26 L14 24 Z','M25 15 L39 6 L36 15 L40 19 L34 20 L37 26 L26 24 Z',
-  'M14 14 L26 14 L28 28 L12 28 Z',
-  'M13 28 L18 28 L17 39 L13 39 Z','M22 28 L27 28 L27 39 L23 39 Z',
-  ['S','M27 26 C33 30 34 35 38 33'],
-  ['L','M17.5 10 L19.5 11 L17.5 11.6 Z M22.5 10 L20.5 11 L22.5 11.6 Z']],
- Crawler:[
-  ['S','M14 26 L6 20 L2 26 M14 29 L5 29 L1 35 M15 32 L8 36 L6 40 M26 26 L34 20 L38 26 M26 29 L35 29 L39 35 M25 32 L32 36 L34 40'],
-  'M20 20 C27 20 30 24 30 29 C30 34 26 37 20 37 C14 37 10 34 10 29 C10 24 13 20 20 20 Z',
-  'M20 13 a5 5 0 1 0 0.1 0 Z',
-  'M16 13 L13 9 L17 11 Z','M24 13 L27 9 L23 11 Z',
-  ['L','M17.5 17 a1 1 0 1 0 0.1 0 Z M22.5 17 a1 1 0 1 0 0.1 0 Z M20 24 v10']],
- Wraith:[
-  'M20 3 C28 3 31 11 30 20 L33 37 L28 33 L25 39 L21 33 L17 39 L14 33 L8 37 L10 20 C9 11 12 3 20 3 Z',
-  ['L','M20 9 C24 9 26 13 25 18 C24 22 16 22 15 18 C14 13 16 9 20 9 Z'],
-  'M17.6 14.5 a1.3 1.3 0 1 0 0.1 0 Z','M22.4 14.5 a1.3 1.3 0 1 0 0.1 0 Z',
-  'M10 22 L3 28 L5 30 L11 25 Z','M30 22 L37 28 L35 30 L29 25 Z']
+  darkness:{frame:'#3C3489',light:'#EEEDFE',mid:'#AFA9EC',deep:'#26215C',soft:'#CECBF6'},
+  unknown:{frame:'#68717d',light:'#edf0f3',mid:'#bbc3cc',deep:'#29323d',soft:'#d5dbe1'}
 };
 const EMB={
  fire:'M20 3 C26 11 31 16 29 26 C28 33 23 37 20 37 C14 37 9 32 10 25 C11 19 15 17 16 11 C19 15 21 17 22 20 C23 15 22 9 20 3 Z',
@@ -375,71 +288,6 @@ const EMB={
  light:'M20 11 a9 9 0 1 0 0.1 0 Z M20 0 L22 7 L18 7 Z M20 40 L22 33 L18 33 Z M0 20 L7 18 L7 22 Z M40 20 L33 18 L33 22 Z M6 6 L11 10 L10 11 Z M34 34 L29 30 L30 29 Z M34 6 L30 11 L29 10 Z M6 34 L10 29 L11 30 Z',
  darkness:'M28 6.1 A16 16 0 1 0 28 33.9 A14 14 0 0 1 28 6.1 Z'
 };
-function hashStr(s){let h=2166136261;for(const ch of s)h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0}
-function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-// How each race moves, and which parts of the drawing are wings.
-const MOVE={Drake:'hover',Firebird:'hover',Choir:'hover',Fiend:'hover',Raider:'breathe',Sentinel:'breathe',Tidefolk:'breathe',Wildkin:'breathe',
-  Serpent:'sway',Giant:'sway',Rootling:'sway',Wraith:'float',Glyphmind:'float',Starborn:'spin',Crawler:'scuttle'};
-const WING={Drake:{0:'wu'},Firebird:{0:'wl',1:'wr'},Choir:{3:'wl',4:'wr'},Fiend:{3:'wl',4:'wr'},Glyphmind:{0:'ring'}};
-const dl=(r,max)=>`style="animation-delay:calc(var(--ph) - ${(r()*max).toFixed(2)}s)"`;
-function scene(e,P,r){
-  let s='';
-  if(e==='fire'){
-    const h=34+r()*8;
-    s+=`<path d="M0 60 L0 ${h} L${14+r()*8} ${h-14-r()*8} L${32+r()*6} ${h-4} L${50+r()*10} ${h-20-r()*8} L${72+r()*6} ${h-6} L${86+r()*6} ${h-15} L100 ${h-2} L100 60 Z" fill="${P.frame}" opacity=".55"/>`;
-    s+=`<path d="M0 60 L0 54 Q25 49 50 54 T100 52 L100 60 Z" fill="${P.deep}" opacity=".5"/>`;
-    for(let i=0;i<8;i++)s+=`<circle class="p-ember" ${dl(r,2)} cx="${(r()*100).toFixed(1)}" cy="${(20+r()*35).toFixed(1)}" r="${(0.6+r()*1.1).toFixed(1)}" fill="${P.light}"/>`;
-  }else if(e==='water'){
-    for(let i=0;i<4;i++){const y=22+i*11+r()*3,o=r()*20;
-      s+=`<path class="p-wave" ${dl(r,4)} d="M-10 ${y} Q${2.5+o/4} ${y-4} 15 ${y} T40 ${y} T65 ${y} T90 ${y} T115 ${y} L115 62 L-10 62 Z" fill="${i%2?P.frame:P.soft}" opacity="${.25+i*.12}"/>`}
-    for(let i=0;i<7;i++)s+=`<circle class="p-bubble" ${dl(r,4)} cx="${(r()*100).toFixed(1)}" cy="${(25+r()*30).toFixed(1)}" r="${(0.8+r()*1.6).toFixed(1)}" fill="none" stroke="${P.light}" stroke-width=".7"/>`;
-  }else if(e==='nature'){
-    s+=`<ellipse cx="${20+r()*20}" cy="62" rx="45" ry="${18+r()*6}" fill="${P.frame}" opacity=".4"/><ellipse cx="${70+r()*20}" cy="64" rx="45" ry="${16+r()*6}" fill="${P.frame}" opacity=".55"/>`;
-    for(let i=0;i<5;i++){const x=r()*100,h=10+r()*12,y=50-r()*8;s+=`<path class="p-tree" ${dl(r,4)} d="M${x} ${y-h} L${x+5} ${y} L${x-5} ${y} Z" fill="${P.deep}" opacity=".35"/>`}
-    for(let i=0;i<4;i++)s+=`<path class="p-leaf" ${dl(r,4)} d="M${(r()*100).toFixed(1)} ${(r()*20).toFixed(1)} q2 -2 4 0 q-2 2 -4 0 Z" fill="${P.light}"/>`;
-  }else if(e==='light'){
-    const cx=50+(r()-.5)*30;let rays='';
-    for(let i=0;i<9;i++){const a=-Math.PI*(0.08+i*0.105),x1=cx+Math.cos(a-.04)*140,y1=-4+Math.sin(a-.04)*-140,x2=cx+Math.cos(a+.04)*140,y2=-4+Math.sin(a+.04)*-140;
-      rays+=`<path d="M${cx} -4 L${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)} Z" fill="${P.light}" opacity=".45"/>`}
-    s+=`<g class="p-rays" ${dl(r,4)}>${rays}</g>`;
-    for(let i=0;i<6;i++){const x=r()*100,y=r()*50,k=1+r()*1.5;s+=`<path class="p-twinkle" ${dl(r,2)} d="M${x} ${y-k*2} L${x+k*.6} ${y} L${x} ${y+k*2} L${x-k*.6} ${y} Z" fill="${P.light}"/>`}
-  }else{
-    const mx=15+r()*70,my=10+r()*8;
-    s+=`<circle cx="${mx}" cy="${my}" r="8" fill="${P.light}" opacity=".8"/><circle cx="${mx+3.5}" cy="${my-2}" r="7" fill="${P.mid}"/>`;
-    for(let i=0;i<3;i++){const y=38+i*8+r()*3;s+=`<path class="p-mist" ${dl(r,8)} d="M-12 ${y} Q30 ${y-5} 55 ${y} T112 ${y-1} L112 62 L-12 62 Z" fill="${P.deep}" opacity="${.2+i*.15}"/>`}
-    for(let i=0;i<6;i++)s+=`<circle class="p-twinkle" ${dl(r,2)} cx="${(r()*100).toFixed(1)}" cy="${(r()*28).toFixed(1)}" r=".7" fill="${P.light}"/>`;
-  }
-  return s;
-}
-function figSVG(parts,P,race){
-  const w=WING[race]||{};
-  return parts.map((p,i)=>{
-    const c=w[i]?` class="${w[i]}"`:'';
-    if(typeof p==='string')return `<path${c} d="${p}" fill="${P.deep}"/>`;
-    if(p[0]==='L')return `<path class="eye" d="${p[1]}" fill="${P.light}" stroke="${P.light}" stroke-width=".4"/>`;
-    if(p[0]==='S')return `<path${c} d="${p[1]}" fill="none" stroke="${P.deep}" stroke-width="4" stroke-linecap="round"/>`;
-    if(p[0]==='S1')return `<path${c} d="${p[1]}" fill="none" stroke="${P.deep}" stroke-width="1.4"/>`;
-    if(p[0]==='S2')return `<path${c} d="${p[1]}" fill="none" stroke="${P.deep}" stroke-width="1.6" stroke-dasharray="3 2.5"/>`;
-  }).join('');
-}
-function cardArt(c,compact){
-  const P=PAL[c.e],r=mulberry(hashStr(c.id));
-  let s=scene(c.e,P,r);
-  if(c.t==='s'){
-    let rays='';
-    for(let i=0;i<12;i++){const a=i*Math.PI/6+r()*.2;rays+=`<path d="M50 30 L${(50+Math.cos(a-.08)*70).toFixed(1)} ${(30+Math.sin(a-.08)*70).toFixed(1)} L${(50+Math.cos(a+.08)*70).toFixed(1)} ${(30+Math.sin(a+.08)*70).toFixed(1)} Z" fill="${P.light}" opacity=".3"/>`}
-    s+=`<g class="p-burst">${rays}</g><circle class="p-glow" cx="50" cy="30" r="19" fill="${P.light}" opacity=".55"/>`;
-    s+=`<g transform="translate(32 12) scale(.9)"><g class="a-pulse"><path d="${EMB[c.e]}" fill="${P.deep}"/></g></g>`;
-  }else{
-    // compact = small cards with a short picture window, so the creature is drawn smaller to keep its head in view
-    const big=c.cost>=7,j=r()*.12,sc=compact?(big?1.05:0.94)+j/2:(big?1.32:1.12)+j,flip=r()<.35;
-    const w=40*sc,x=50-w/2+(r()-.5)*18,y=60-38*sc-1;
-    if(big||c.evo)s+=`<circle class="p-glow" cx="${(x+w/2).toFixed(1)}" cy="${(y+20*sc).toFixed(1)}" r="${(21*sc).toFixed(1)}" fill="${P.light}" opacity="${big?.5:.35}"/>`;
-    const tf=flip?`translate(${(x+w).toFixed(1)} ${y.toFixed(1)}) scale(${-sc.toFixed(2)} ${sc.toFixed(2)})`:`translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${sc.toFixed(2)})`;
-    s+=`<g transform="${tf}"><g class="fig a-${MOVE[c.race]||'breathe'}" ${dl(r,4)}>${figSVG(FIG[c.race]||FIG.Raider,P,c.race)}</g></g>`;
-  }
-  return `<svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><rect width="100" height="60" fill="${P.mid}"/>${s}</svg>`;
-}
 const FXT={
   bounce:"Return an enemy creature to its owner's hand.",kill:'Destroy an enemy creature.',
   killTapped:'Destroy a tapped enemy creature.',
@@ -453,246 +301,24 @@ const FXT={
 };
 const fxList=f=>f?(Array.isArray(f)?f:[f]):[];
 function fxText(f){
+  if(f.startsWith('optional:'))return 'You may '+fxText(f.slice(9)).replace(/^./,s=>s.toLowerCase());
+  const up=/^drawUp(\d+)$/.exec(f);if(up)return `Draw up to ${up[1]} card${up[1]==='1'?'':'s'}.`;
+  if(f==='draw1')return 'Draw a card.';
+  if(f==='bounceAny')return "Return a creature to its owner's hand.";
+  if(f==='killUntapped')return 'Destroy an untapped enemy creature.';
+  if(f==='killBlocker')return 'Destroy an enemy blocker.';
+  if(f==='discardAll')return 'Your opponent discards their hand.';
+  if(f==='discardShield')return 'Put one of your shields into your graveyard without using its shield trigger.';
+  const all=/^sweepAll(\d+)$/.exec(f);if(all)return `Destroy all creatures with ${all[1]} power or less.`;
   const m=/^(burn|sweep)(\d+)$/.exec(f);
   if(m)return m[1]==='burn'?`Destroy an enemy creature with ${m[2]} power or less.`:`Destroy all enemy creatures with ${m[2]} power or less.`;
   return FXT[f];
 }
 const fxDesc=f=>fxList(f).map(fxText).join(' ');
-const DEFS=[];
-const C=(id,n,e,cost,p,race,a={})=>DEFS.push({id,n,e,t:'c',cost,p,race,...a});
-const S=(id,n,e,cost,fx,trig)=>DEFS.push({id,n,e,t:'s',cost,fx,trig});
-const E=(id,n,e,cost,p,race,a={})=>C(id,n,e,cost,p,race,{evo:race,...a});
-
-/* ===== FIRE ===== */
-C('spark','Spark Goblin','fire',1,1000,'Raider',{speed:1});
-C('wisp','Kindle Wisp','fire',1,1000,'Firebird',{pa:1000});
-C('sprite','Ember Sprite','fire',1,1000,'Firebird',{speed:1,pa:1000});
-C('scrap','Ash Scrapper','fire',2,2000,'Raider',{pa:1000});
-C('bpup','Blaze Pup','fire',2,2000,'Raider',{speed:1});
-C('lancer','Scorch Lancer','fire',2,1000,'Raider',{pa:3000});
-C('chick','Flamewing Chick','fire',2,2000,'Firebird',{onDie:'draw'});
-C('raider','Cinder Raider','fire',3,3000,'Raider',{speed:1});
-C('hatch','Ember Hatchling','fire',3,3000,'Drake',{pa:1000});
-C('smolder','Smoldering Brute','fire',3,4000,'Raider');
-E('chief','Blaze Raider Chief','fire',3,5000,'Raider',{pa:2000});
-C('drakeling','Ember Drakeling','fire',4,4000,'Drake',{pa:2000});
-C('harrier','Ashwing Harrier','fire',4,2000,'Firebird',{speed:1,onAtk:'burn2000'});
-C('pyroclast','Pyroclast Raider','fire',4,4000,'Raider',{speed:1});
-C('cinderclaw','Cinderclaw Drake','fire',4,5000,'Drake');
-C('golem','Lava Golem','fire',4,3000,'Raider',{pa:3000});
-E('ascend','Firebird Ascendant','fire',4,6000,'Firebird',{br:2});
-C('knuckle','Lava Knuckle','fire',5,5000,'Raider',{pa:3000,speed:1});
-C('baron','Molten Fist Baron','fire',5,5000,'Raider',{onSum:'burn2000'});
-C('phoenix','Phoenix Herald','fire',5,4000,'Firebird',{onDie:'shieldadd'});
-C('blastwyv','Blastfire Wyvern','fire',5,6000,'Drake',{pa:2000});
-E('pyrelord','Pyre Drake Lord','fire',5,8000,'Drake',{br:2,pa:2000});
-C('wyrm','Magma Wyrm','fire',6,6000,'Drake',{br:2,speed:1});
-C('ravager','Volcanic Ravager','fire',6,7000,'Drake',{br:2});
-C('warlord','Searing Warlord','fire',6,6000,'Raider',{br:2,speed:1,pa:1000});
-C('ashcapt','Ashen Wing Captain','fire',6,6000,'Firebird',{onSum:'burn4000'});
-E('magmaheart','Magmaheart Dragon','fire',6,11000,'Drake',{br:3});
-C('sovereign','Inferno Sovereign','fire',7,9000,'Drake',{br:3});
-C('furnace','Furnace Colossus','fire',7,10000,'Drake',{br:2});
-C('marauder','Inferno Marauder','fire',7,9000,'Raider',{br:2,speed:1});
-C('ragna','Crimson Ragnadrake, Lord of Embers','fire',8,12000,'Drake',{br:3,speed:1});
-C('solarking','Solar Flare Dragonking','fire',9,15000,'Drake',{br:3,onSum:'sweep3000'});
-S('fireball','Fireball Toss','fire',1,'burn2000',0);
-S('flare','Flare Burst','fire',2,'burn3000',1);
-S('magma','Magma Geyser','fire',3,'burn4000',1);
-S('gale','Blazing Gale','fire',3,'killTapped',1);
-S('rain','Searing Rain','fire',4,'sweep2000',0);
-S('scorch','Scorch the Earth','fire',4,'manaburn',1);
-S('eruption','Volcanic Eruption','fire',5,'sweep3000',0);
-S('roar','Dragonfire Roar','fire',5,'burn6000',1);
-
-/* ===== WATER ===== */
-C('droplet','Droplet Sprite','water',1,1000,'Tidefolk',{block:1,noP:1});
-C('ink','Ink Squid','water',1,1000,'Serpent',{onDie:'draw'});
-C('scout','Bubble Scout','water',2,1000,'Tidefolk',{onSum:'draw'});
-C('eel','Surge Eel','water',2,2000,'Serpent',{block:1,noP:1});
-C('scribe','Ripple Scribe','water',2,2000,'Glyphmind',{onAtk:'draw'});
-C('kelp','Kelp Lurker','water',2,1000,'Serpent',{unbl:1});
-C('pearl','Pearl Diver','water',2,2000,'Tidefolk');
-C('reef','Reef Guard','water',3,3000,'Tidefolk',{block:1,noP:1});
-C('courier','Mist Courier','water',3,2000,'Tidefolk',{unbl:1});
-C('seeker','Glyph Seeker','water',3,2000,'Glyphmind',{onSum:'draw'});
-C('shoal','Shoal Defender','water',3,4000,'Tidefolk',{block:1,noP:1});
-C('coralk','Coral Knight','water',3,3000,'Tidefolk',{block:1});
-E('archivist','Glyphmind Archivist','water',3,5000,'Glyphmind',{onAtk:'draw'});
-C('undereel','Undercurrent Eel','water',4,3000,'Serpent',{unbl:1});
-C('mirror','Mirror Tide Mage','water',4,3000,'Glyphmind',{onSum:'bounce'});
-C('riptide','Riptide Warden','water',4,4000,'Tidefolk',{block:1});
-C('angler','Abyssal Angler','water',4,4000,'Serpent',{onAtk:'draw'});
-C('foam','Foamcrest Wanderer','water',4,5000,'Tidefolk');
-E('prime','Tidecaller Prime','water',4,6000,'Tidefolk',{br:2});
-E('commodore','Tidefolk Commodore','water',4,7000,'Tidefolk',{block:1,br:2});
-C('sage','Coral Sage','water',5,3000,'Tidefolk',{onSum:'draw2'});
-C('wraith','Tidal Wraith','water',5,5000,'Serpent',{unbl:1});
-C('vortex','Vortex Strategist','water',5,5000,'Glyphmind',{onSum:'tapone',onAtk:'draw'});
-E('serpemp','Serpent Emperor','water',5,9000,'Serpent',{br:2,unbl:1});
-C('oracle','Fathom Oracle','water',6,4000,'Glyphmind',{onSum:'draw3'});
-C('maelstrom','Maelstrom Serpent','water',6,7000,'Serpent',{unbl:1});
-C('brine','Brine Colossus','water',6,7000,'Serpent',{br:2,block:1});
-C('rider','Current Rider','water',6,5000,'Tidefolk',{speed:1,unbl:1});
-C('lev','Deep Leviathan','water',7,8000,'Serpent',{br:2,onSum:'bounce'});
-C('admiral','Wavebreaker Admiral','water',7,9000,'Tidefolk',{br:2,onAtk:'bounce'});
-C('tempest','Tempest Glyphlord','water',7,8000,'Glyphmind',{br:2,onSum:'draw2'});
-C('endless','Leviathan of the Endless Deep','water',9,12000,'Serpent',{br:3,unbl:1});
-S('veil','Mist Veil','water',1,'tapone',0);
-S('whirl','Whirlpool Snare','water',2,['tapone','draw'],1);
-S('undertow','Undertow','water',3,'bounce',1);
-S('insight','Insight Current','water',3,'draw2',1);
-S('memory','Memory Drain','water',3,['draw','discard'],0);
-S('deep','Deep Insight','water',4,'draw3',0);
-S('rewind','Tidal Rewind','water',5,['bounce','bounce'],1);
-S('crush','Crushing Tide','water',6,['bounce','tapall'],1);
-
-/* ===== NATURE ===== */
-C('mole','Burrow Mole','nature',1,1000,'Wildkin');
-C('seedling','Seedling Sprite','nature',1,2000,'Rootling');
-C('beetle','Moss Beetle','nature',2,3000,'Wildkin');
-C('fern','Fern Hopper','nature',2,1000,'Wildkin',{onSum:'ramp'});
-C('moth','Leafwing Moth','nature',2,1000,'Rootling',{onDie:'ramp'});
-C('sprout','Sproutling','nature',3,2000,'Wildkin',{onSum:'ramp'});
-C('badger','Bramble Badger','nature',3,4000,'Wildkin');
-C('shaman','Rootling Shaman','nature',3,2000,'Rootling',{onSum:'ramp',onDie:'ramp'});
-C('canopy','Canopy Stalker','nature',3,3000,'Wildkin',{speed:1});
-C('ram','Hornback Ram','nature',3,3000,'Wildkin',{pa:2000});
-E('rootelder','Rootling Elder','nature',3,6000,'Rootling',{onSum:'ramp'});
-C('boar','Thornback Boar','nature',4,5000,'Wildkin',{pa:1000});
-C('bear','Barkhide Bear','nature',4,6000,'Wildkin');
-C('thicket','Thicket Guardian','nature',4,5000,'Rootling',{block:1});
-C('keeper','Ancient Grove Keeper','nature',4,4000,'Rootling',{onSum:'recover'});
-E('alpha','Alpha Hornbeast','nature',4,8000,'Wildkin',{br:2});
-C('rhino','Stampede Rhino','nature',5,6000,'Wildkin',{speed:1});
-C('tusker','Wild Tusker','nature',5,7000,'Wildkin',{pa:1000});
-C('matriarch','Grove Matriarch','nature',5,5000,'Rootling',{onSum:'ramp2'});
-C('tortoise','Mossback Tortoise','nature',5,6000,'Giant',{block:1});
-E('packlord','Fangclaw Packlord','nature',5,10000,'Wildkin',{br:2,pa:2000});
-C('oak','Elder Oak','nature',6,8000,'Giant',{br:2});
-C('charger','Thunderhoof Charger','nature',6,8000,'Wildkin',{speed:1});
-C('hydra','Swamp Hydra','nature',6,7000,'Giant',{br:2,onDie:'recover'});
-C('elderwood','Elderwood Sentinel','nature',6,6000,'Rootling',{block:1,onSum:'ramp'});
-E('wildking','Giant King of the Wilds','nature',6,14000,'Giant',{br:3});
-C('ironbark','Ironbark Giant','nature',7,11000,'Giant',{br:2});
-C('behemoth','Verdant Behemoth','nature',7,9000,'Giant',{br:2,onSum:'recover'});
-C('colossus','Mountain Colossus','nature',8,13000,'Giant',{br:3});
-C('greatfang','Primeval Greatfang','nature',8,13000,'Wildkin',{br:3,pa:2000});
-C('mammoth','Raging Mammoth','nature',8,10000,'Wildkin',{br:2,speed:1});
-C('titan','Worldroot Titan','nature',9,17000,'Giant',{br:3,onSum:'ramp'});
-S('seed','Seed Toss','nature',1,'ramp',0);
-S('growth','Wild Growth','nature',2,'ramp',1);
-S('regrow','Regrowth Call','nature',2,'recover',1);
-S('harvest','Bountiful Harvest','nature',3,'ramp2',0);
-S('rebirth','Natural Rebirth','nature',3,['recover','ramp'],1);
-S('surge','Primal Surge','nature',4,['ramp','draw'],1);
-S('roots','Crushing Roots','nature',4,'killTapped',1);
-S('bloom','Lifebloom','nature',5,['ramp2','recover'],0);
-
-/* ===== LIGHT ===== */
-C('glimmer','Glimmer Page','light',1,1000,'Choir',{block:1,noP:1});
-C('acolyte','Spark Acolyte','light',1,2000,'Starborn',{block:1,noP:1});
-C('prismspr','Prism Sprite','light',1,1000,'Starborn',{onDie:'shieldadd'});
-C('halo','Halo Sentry','light',2,2500,'Sentinel',{block:1,noP:1});
-C('drone','Beacon Drone','light',2,2000,'Starborn',{onSum:'tapone'});
-C('aurora','Aurora Scout','light',2,2000,'Choir',{block:1});
-C('archer','Lumen Archer','light',3,3000,'Choir',{onSum:'tapone'});
-C('gleam','Gleam Paladin','light',3,3000,'Sentinel',{block:1,noP:1});
-C('hlancer','Halo Lancer','light',3,3000,'Starborn',{pa:1000});
-C('squire','Dawnguard Squire','light',3,3000,'Sentinel',{block:1});
-C('dawn','Dawn Knight','light',4,4500,'Sentinel',{block:1});
-C('cleric','Solace Cleric','light',4,2000,'Choir',{onSum:'shieldadd'});
-C('bastion','Lumen Bastion','light',4,6000,'Sentinel',{block:1,noP:1});
-C('starfall','Starfall Archer','light',4,4000,'Starborn',{onAtk:'tapone'});
-C('twiherald','Twilight Herald','light',4,4000,'Choir',{onDie:'draw'});
-E('aegis','Aegis Archon','light',4,7000,'Sentinel',{block:1,br:2});
-E('overseer','Starborn Overseer','light',4,7000,'Starborn',{onAtk:'tapone',br:2});
-C('herald','Radiant Herald','light',5,5500,'Choir',{onSum:'shieldadd'});
-C('templar','Radiant Templar','light',5,6000,'Sentinel',{block:1});
-C('vanguard','Shining Vanguard','light',5,5000,'Sentinel',{onAtk:'shieldadd'});
-C('lsage','Luminous Sage','light',5,4000,'Starborn',{onSum:['draw','tapone']});
-E('exalted','Choir Exalted','light',5,9000,'Choir',{block:1,br:2});
-C('prism','Prism Warden','light',6,7500,'Sentinel',{block:1,br:2});
-C('dawnsong','Choir of Dawnsong','light',6,5000,'Choir',{onSum:'tapall'});
-C('arbiter','Celestial Arbiter','light',6,7000,'Starborn',{br:2,onSum:'tapone'});
-C('vigil','Vigil Keeper','light',6,6000,'Sentinel',{block:1,onSum:'shieldadd'});
-C('sunforged','Sunforged Colossus','light',7,10000,'Sentinel',{br:2,block:1});
-C('lightseraph','Lightbringer Seraph','light',7,9000,'Choir',{br:2,onSum:'shieldadd'});
-E('paragon','Sentinel Paragon','light',7,13000,'Sentinel',{block:1,br:3});
-C('seraph','Seraph of the Ninth Sky','light',8,12000,'Choir',{br:3});
-C('citadel','Sky Citadel Warden','light',8,11000,'Sentinel',{br:3,block:1});
-C('archangel','Archangel of the Last Light','light',9,15000,'Choir',{br:3,block:1});
-S('ray','Blinding Ray','light',1,'tapone',0);
-S('ward','Sanctuary Ward','light',2,'shieldadd',1);
-S('guide','Guiding Star','light',2,'draw',1);
-S('blessing',"Dawn's Blessing",'light',3,['shieldadd','tapone'],1);
-S('snare','Holy Snare','light',4,'tapall',1);
-S('barrier','Holy Barrier','light',4,'shield2',1);
-S('purify','Purifying Light','light',4,'killTapped',1);
-S('judgement','Judgement Beam','light',5,['tapall','draw'],1);
-
-/* ===== DARKNESS ===== */
-C('imp','Gloom Imp','darkness',1,1000,'Crawler',{onDie:'draw'});
-C('leech','Shadow Leech','darkness',1,2000,'Crawler');
-C('rat','Bone Rat','darkness',2,2000,'Crawler',{pa:1000});
-C('maggot','Grave Maggot','darkness',2,1000,'Crawler',{block:1,slayer:1,noP:1});
-C('gnawer','Skull Gnawer','darkness',2,2000,'Crawler',{pa:2000});
-C('bat','Carrion Bat','darkness',2,2000,'Wraith',{speed:1});
-C('stalker','Night Stalker','darkness',3,2000,'Fiend',{slayer:1});
-C('whisper','Crypt Whisperer','darkness',3,2000,'Wraith',{onSum:'discard'});
-C('hollow','Hollow Wraith','darkness',3,3000,'Wraith',{onDie:'draw'});
-E('queen','Crawler Queen','darkness',3,6000,'Crawler',{slayer:1});
-C('marquis','Hollow Marquis','darkness',4,4000,'Fiend',{onSum:'recover'});
-C('venom','Venom Fiend','darkness',4,3000,'Fiend',{slayer:1});
-C('plague','Plague Crawler','darkness',4,4000,'Crawler',{onSum:'burn2000'});
-C('gravek','Gravebound Knight','darkness',4,5000,'Crawler',{block:1,noP:1});
-C('bloodmoon','Bloodmoon Stalker','darkness',4,4000,'Fiend',{pa:2000});
-C('banshee','Wailing Banshee','darkness',4,3000,'Wraith',{onAtk:'discard'});
-C('siphon','Shade Siphon','darkness',4,2000,'Wraith',{onSum:'manaburn'});
-E('wraithlord','Wraith Lord','darkness',4,7000,'Wraith',{onAtk:'discard',br:2});
-C('ghoul','Wailing Ghoul','darkness',5,5000,'Crawler',{onSum:'discard'});
-C('reaper','Soul Reaper','darkness',5,5000,'Wraith',{onAtk:'discard'});
-C('duke','Necro Duke','darkness',5,6000,'Fiend',{onDie:'recover'});
-C('ghoulbrute','Ghoul Brute','darkness',5,7000,'Crawler');
-E('prince','Dread Fiend Prince','darkness',5,9000,'Fiend',{br:2});
-C('tyrant','Bone Tyrant','darkness',6,7000,'Fiend',{br:2});
-C('assassin','Midnight Assassin','darkness',6,5000,'Wraith',{slayer:1,onSum:'killTapped'});
-C('harbinger','Doom Harbinger','darkness',6,8000,'Fiend',{br:2});
-C('blight','Blight Mother','darkness',6,6000,'Crawler',{onSum:'sweep2000'});
-C('lich','Lich of the Black Mire','darkness',7,9000,'Wraith',{br:2,onSum:'discard2'});
-E('ruinking','Fiend King of Ruin','darkness',7,14000,'Fiend',{br:3,onSum:'kill'});
-C('overlord','Abyssal Overlord','darkness',8,12000,'Fiend',{br:3});
-C('nightmare','Nightmare Colossus','darkness',8,12000,'Fiend',{br:3,slayer:1});
-C('devourer','Abyss Devourer','darkness',9,16000,'Fiend',{br:3,onSum:'kill'});
-S('bargain','Dark Bargain','darkness',2,'discard',1);
-S('hex','Hex Blast','darkness',2,'burn2000',1);
-S('gravecall','Grave Call','darkness',2,'recover',0);
-S('deathtouch','Death Touch','darkness',3,'killTapped',1);
-S('mindrot','Mind Rot','darkness',3,'discard2',0);
-S('rend','Soul Rend','darkness',4,'kill',1);
-S('voidh','Void Harvest','darkness',5,['kill','recover'],0);
-S('purge','Shadow Purge','darkness',6,['kill','discard'],1);
-
-const DEF={};
-DEFS.forEach(d=>{
-  if(DEF[d.id])console.warn('duplicate id',d.id);
-  const a=[];
-  if(d.evo)a.push(`Evolution: put on one of your ${d.evo}s.`);
-  if(d.speed)a.push('Speed attacker.');
-  if(d.block)a.push('Blocker.');
-  if(d.noP)a.push("Can't attack players.");
-  if(d.pa)a.push(`Power attacker +${d.pa}.`);
-  if(d.br===2)a.push('Double breaker.');
-  if(d.br===3)a.push('Triple breaker.');
-  if(d.unbl)a.push("Can't be blocked.");
-  if(d.slayer)a.push('Slayer.');
-  if(d.onSum)a.push('On summon: '+fxDesc(d.onSum));
-  if(d.onAtk)a.push('When it attacks: '+fxDesc(d.onAtk));
-  if(d.onDie)a.push('When destroyed: '+fxDesc(d.onDie));
-  if(d.fx)a.push(fxDesc(d.fx));
-  if(d.trig)a.push('Shield trigger.');
-  d.txt=a.join(' ');DEF[d.id]=d;
-});
+const CATALOG=makeCardCatalog(window.CARD_DATABASE);
+const DEFS=CATALOG.filter(c=>c.playable&&c.duelId===c.id);
+const DEF=Object.fromEntries(CATALOG.map(c=>[c.id,c]));
+const archiveCivilization=c=>CIV[c.e]||{n:'Unspecified',c:'#68717d'};
 const PRESETS=[
   {n:'Blazing roots',civ:['fire','nature'],d:'Ramp into huge attackers.'},
   {n:'Tidewall',civ:['water','light'],d:'Blockers, card draw, control.'},
@@ -717,24 +343,27 @@ function presetIds(civ){
         pick.push(d);got++;
       }
     }
+    for(const d of cs){
+      if(pick.length>=12)break;
+      if(pick.includes(d)||(d.evo&&!pick.some(x=>!x.evo&&x.race===d.evo)))continue;
+      pick.push(d);
+    }
     pick.forEach(d=>ids.push(d.id,d.id));
     const extra=pick.find(d=>d.cost<=2&&!d.evo)||pick[0];ids.push(extra.id);
   }
   return ids;
 }
 
-// Builds a strong mixed-civilization deck: rates every card, then fills a
-// classic cost curve with 3-4 copies of the best cards in each cost range.
-// Ratings come from 8,000 simulated duels: how much more often decks with
-// each card won. Higher means the card pulls its weight.
-const RATING={"spark":3.6,"wisp":1.4,"sprite":4.3,"scrap":1.1,"bpup":3.7,"lancer":2.2,"chick":4.2,"raider":4.0,"hatch":4.8,"smolder":2.8,"chief":2.9,"drakeling":1.6,"harrier":4.5,"pyroclast":3.9,"cinderclaw":1.6,"golem":3.5,"ascend":0.4,"knuckle":3.0,"baron":4.4,"phoenix":4.6,"blastwyv":4.2,"pyrelord":-1.3,"wyrm":4.1,"ravager":3.3,"warlord":4.4,"ashcapt":1.8,"magmaheart":0.9,"sovereign":3.3,"furnace":1.9,"marauder":2.8,"ragna":-1.1,"solarking":1.7,"fireball":0.9,"flare":2.2,"magma":1.3,"gale":2.4,"rain":3.4,"scorch":-0.4,"eruption":1.2,"roar":4.2,"droplet":-0.7,"ink":0.4,"scout":-0.7,"eel":-2.0,"scribe":-1.0,"kelp":-1.2,"pearl":0.1,"reef":-0.6,"courier":-1.5,"seeker":0.1,"shoal":0.4,"coralk":-0.1,"archivist":-4.9,"undereel":-1.5,"mirror":1.5,"riptide":0.0,"angler":-1.1,"foam":-0.7,"prime":-0.3,"commodore":-2.9,"sage":-2.3,"wraith":-1.8,"vortex":-1.7,"serpemp":-1.7,"oracle":-3.2,"maelstrom":-1.2,"brine":-0.1,"rider":-1.0,"lev":-1.1,"admiral":1.5,"tempest":-2.6,"endless":-4.2,"veil":-2.1,"whirl":-3.6,"undertow":-2.0,"insight":-2.4,"memory":-3.2,"deep":-3.3,"rewind":1.0,"crush":1.6,"mole":-0.2,"seedling":0.7,"beetle":1.1,"fern":0.5,"moth":-0.6,"sprout":-2.3,"badger":-2.0,"shaman":0.6,"canopy":1.0,"ram":1.5,"rootelder":-0.4,"boar":-0.9,"bear":-1.4,"thicket":0.7,"keeper":0.2,"alpha":-0.2,"rhino":0.6,"tusker":0.6,"matriarch":0.7,"tortoise":2.1,"packlord":-1.9,"oak":-0.7,"charger":-0.8,"hydra":-0.1,"elderwood":0.6,"wildking":-1.3,"ironbark":0.0,"behemoth":-1.1,"colossus":-3.0,"greatfang":2.5,"mammoth":-3.5,"titan":-2.3,"seed":-2.4,"growth":-0.5,"regrow":-2.2,"harvest":-0.9,"rebirth":0.9,"surge":-1.6,"roots":-2.1,"bloom":-0.8,"glimmer":0.2,"acolyte":-0.8,"prismspr":2.1,"halo":1.1,"drone":0.5,"aurora":-0.3,"archer":0.6,"gleam":2.0,"hlancer":1.6,"squire":-1.3,"dawn":-0.5,"cleric":0.7,"bastion":1.7,"starfall":-2.1,"twiherald":-0.6,"aegis":-2.5,"overseer":-2.0,"herald":2.4,"templar":1.3,"vanguard":1.0,"lsage":-0.5,"exalted":-2.2,"prism":1.0,"dawnsong":-1.5,"arbiter":-2.5,"vigil":1.2,"sunforged":-0.2,"lightseraph":0.5,"paragon":-2.2,"seraph":-0.6,"citadel":1.8,"archangel":1.0,"ray":-1.7,"ward":0.6,"guide":-0.5,"blessing":0.7,"snare":-2.8,"barrier":5.1,"purify":-0.2,"judgement":1.2,"imp":-0.1,"leech":-0.4,"rat":-1.7,"maggot":-1.0,"gnawer":-1.6,"bat":-0.6,"stalker":-3.0,"whisper":-0.5,"hollow":-1.3,"queen":-1.5,"marquis":-2.9,"venom":-1.5,"plague":-1.0,"gravek":2.1,"bloodmoon":-4.1,"banshee":-0.3,"siphon":-1.3,"wraithlord":-0.9,"ghoul":-0.4,"reaper":0.8,"duke":-0.4,"ghoulbrute":-2.9,"prince":-4.5,"tyrant":-2.3,"assassin":-0.4,"harbinger":0.2,"blight":-0.5,"lich":-2.2,"ruinking":-3.3,"overlord":-1.6,"nightmare":-2.3,"devourer":-1.7,"bargain":-1.5,"hex":-1.3,"gravecall":-1.6,"deathtouch":-0.9,"mindrot":-1.6,"rend":2.2,"voidh":-0.3,"purge":2.9};
+// Rank the actual cards by cost, power, and supported abilities.
 function cardValue(d){
-  let v=RATING[d.id]||0;
-  if(d.evo)v-=1;
+  let v=d.t==='c'?d.p/1000-d.cost*.65:1;
+  if(d.speed)v+=2;if(d.block)v+=1;if(d.unbl)v+=1.5;if(d.slayer)v+=1.5;
+  if(d.br)v+=d.br-1;if(d.pa)v+=d.pa/2000;if(d.onSum)v+=1.5;
+  if(d.trig)v+=2;if(d.noAtk)v-=1.5;if(d.evo)v-=1;
   return v+Math.random()*2.5;
 }
 // Builds a strong deck using all five civilizations. Each civilization first gets
-// 7 cards along a cost curve (cheap, mid, big) from its best-rated cards, then the
+// 8 cards along a cost curve (cheap, mid, big) from its highest-rated cards, then the
 // last 5 slots go to the best remaining cards, so every color has mana to cast with.
 function smartDeck(){
   const civs=Object.keys(CIV),CAP=12;
@@ -805,10 +434,10 @@ function startGame(mine,theirs){
 }
 
 /* ---------- core rules ---------- */
-function draw(p,n){for(let i=0;i<n;i++)if(p.deck.length)p.hand.push(p.deck.pop())}
+function draw(p,n){for(let i=0;i<n;i++){if(!p.deck.length){win(opp(p));return}p.hand.push(p.deck.pop())}}
 function canPay(p,c){const u=p.mana.filter(m=>!m.tapped);return u.length>=c.cost&&u.some(m=>m.e===c.e)}
 const bases=(p,c)=>c.evo?p.bz.filter(x=>x.race===c.evo):[];
-const canPlay=(p,c)=>canPay(p,c)&&(!c.evo||bases(p,c).length>0);
+const canPlay=(p,c)=>c.playable&&canPay(p,c)&&(!c.evo||bases(p,c).length>0);
 // Pays for a card while keeping the most useful mana untapped. It tries every way
 // of splitting the cost across civilizations and picks the one that leaves the most
 // other cards in hand still playable, then the most different civilizations open.
@@ -842,37 +471,68 @@ function destroy(p,c){
   for(const f of fxList(c.onDie))if(!targetsFor(f,p))simpleFx(p,f,c);
 }
 function targetsFor(f,p){
+  if(f.startsWith('optional:'))return targetsFor(f.slice(9),p);
   const o=opp(p),m=/^burn(\d+)$/.exec(f);
   if(m)return o.bz.filter(c=>c.p<=+m[1]);
   if(f==='bounce'||f==='kill')return o.bz.slice();
   if(f==='killTapped')return o.bz.filter(c=>c.tapped);
   if(f==='tapone')return o.bz.filter(c=>!c.tapped);
+  if(f==='bounceAny')return [...o.bz,...p.bz];
+  if(f==='killUntapped')return o.bz.filter(c=>!c.tapped);
+  if(f==='killBlocker')return o.bz.filter(c=>c.block);
   return null;
 }
 const whose=o=>V(o,'your',"the opponent's");
 function simpleFx(p,f,src){
+  const all=/^sweepAll(\d+)$/.exec(f);
+  if(all){for(const owner of [p,opp(p)])owner.bz.filter(c=>c.p<=+all[1]).forEach(c=>destroy(owner,c));return}
+  if(f==='draw1')f='draw';
   const o=opp(p),sw=/^sweep(\d+)$/.exec(f);
   if(sw){const hit=o.bz.filter(c=>c.p<=+sw[1]);if(!hit.length)log(`${src.n} hits nothing.`);hit.forEach(c=>destroy(o,c));return}
   if(f==='draw'||f==='draw2'||f==='draw3'){const n=f==='draw'?1:+f.slice(4);draw(p,n);log(`${V(p,'You draw','Opponent draws')} ${n===1?'a card':n+' cards'}.`)}
-  else if(f==='ramp'||f==='ramp2'){const n=f==='ramp'?1:2;for(let i=0;i<n&&p.deck.length;i++){const c=p.deck.pop();c.tapped=true;p.mana.push(c);log(`${c.n} goes to ${whose(p)} mana zone.`)}}
+  else if(f==='ramp'||f==='ramp2'){const n=f==='ramp'?1:2;for(let i=0;i<n&&p.deck.length;i++){const c=p.deck.pop();c.tapped=!!c.e2;p.mana.push(c);log(`${c.n} goes to ${whose(p)} mana zone.`)}}
+  else if(f==='discardAll'){const o=opp(p);o.gy.push(...o.hand.splice(0));log(`${V(o,'You discard','Opponent discards')} the entire hand.`)}
   else if(f==='tapall'){o.bz.forEach(c=>c.tapped=true);log(`All of ${whose(o)} creatures are tapped.`)}
   else if(f==='discard'||f==='discard2'){const n=f==='discard'?1:2;for(let i=0;i<n&&o.hand.length;i++){const c=o.hand.splice(Math.floor(Math.random()*o.hand.length),1)[0];o.gy.push(c);log(`${V(o,'You discard','Opponent discards')} ${c.n}.`)}}
   else if(f==='shieldadd'||f==='shield2'){const n=f==='shieldadd'?1:2;let k=0;for(;k<n&&p.deck.length;k++)p.sh.push(p.deck.pop());if(k)log(`${V(p,'You add','Opponent adds')} ${k===1?'a shield':k+' shields'}.`)}
   else if(f==='recover'){const c=p.gy.filter(x=>x.t==='c').sort((a,b)=>b.cost-a.cost)[0];if(c){p.gy.splice(p.gy.indexOf(c),1);p.hand.push(c);log(`${c.n} returns from ${whose(p)} graveyard to hand.`)}else log('No creature in the graveyard to return.')}
   else if(f==='manaburn'){if(o.mana.length){const c=o.mana.splice(Math.floor(Math.random()*o.mana.length),1)[0];c.tapped=false;o.gy.push(c);log(`${c.n} is knocked out of ${whose(o)} mana zone.`)}}
 }
+async function chooseEffect(p,title,text,opts,aiValue){
+  if(p.ai)return aiValue;
+  if(p.remote)return remoteDecide(p,'choice',{title,text,opts});
+  return ask(title,text,opts);
+}
 async function resolveFx(p,fx,src){
-  for(const f of fxList(fx)){
+  for(const printedFx of fxList(fx)){
     if(G.over)return;
+    const optional=printedFx.startsWith('optional:'),f=optional?printedFx.slice(9):printedFx;
+    const up=/^drawUp(\d+)$/.exec(f);
+    if(up){
+      const max=+up[1],opts=Array.from({length:max+1},(_,n)=>({label:`Draw ${n} card${n===1?'':'s'}`,val:n}));
+      const n=await chooseEffect(p,src.n,fxText(f),opts,Math.min(max,p.deck.length));
+      if(Number.isInteger(n)&&n>=0&&n<=max)draw(p,n);
+      render();continue;
+    }
+    if(f==='discardShield'){
+      if(p.sh.length){
+        const opts=p.sh.map((_,i)=>({label:`Shield ${i+1}`,val:i}));
+        const index=await chooseEffect(p,src.n,fxText(f),opts,Math.floor(Math.random()*p.sh.length));
+        const i=Number.isInteger(index)&&index>=0&&index<p.sh.length?index:0;
+        p.gy.push(p.sh.splice(i,1)[0]);log(`${src.n} puts one of ${whose(p)} shields into the graveyard.`);
+      }
+      render();continue;
+    }
     const o=opp(p),tg=targetsFor(f,p);
     if(tg){
       if(!tg.length){log(`${src.n}: no target.`);continue}
-      const msg=`${src.n}: choose an enemy creature. ${fxText(f)}`;
-      const t=p.ai?tg.sort((a,b)=>b.p-a.p)[0]:p.remote?cardBy(await remoteDecide(p,'target',{uids:tg.map(c=>c.uid),msg})):await pickTarget(tg,msg,'Skip');
+      const msg=`${src.n}: ${fxText(f)}`;
+      const t=p.ai?tg.slice().sort((a,b)=>(o.bz.includes(b)-o.bz.includes(a))||(b.p-a.p))[0]:p.remote?cardBy(await remoteDecide(p,'target',{uids:tg.map(c=>c.uid),msg,required:!optional})):await pickTarget(tg,msg,optional?'Skip':null);
       if(!t){log(`${src.n}: effect skipped.`);continue}
-      if(f==='bounce'){const pile=leaveBz(o,t);o.hand.push(...pile);log(`${t.n} returns to ${whose(o)} hand.`)}
+      const owner=p.bz.includes(t)?p:o;
+      if(f==='bounce'||f==='bounceAny'){const pile=leaveBz(owner,t);owner.hand.push(...pile);log(`${t.n} returns to ${whose(owner)} hand.`)}
       else if(f==='tapone'){t.tapped=true;log(`${t.n} is tapped.`)}
-      else{anim(t,'die');render();await sleep(450);destroy(o,t)}
+      else{anim(t,'die');render();await sleep(450);destroy(owner,t)}
     }else simpleFx(p,f,src);
     render();
   }
@@ -1020,9 +680,9 @@ async function aiTurn(p){
   const me=G.p[0];
   for(const c of [...p.bz]){
     if(G.over)return;
-    if(!p.bz.includes(c)||c.tapped||c.sick)continue;
+    if(!p.bz.includes(c)||c.tapped||c.sick||c.noAtk)continue;
     const pa=atkPow(c);
-    const prey=me.bz.filter(x=>x.tapped&&(c.slayer||pa>x.p)).sort((a,b)=>b.p-a.p)[0];
+    const prey=me.bz.filter(x=>(x.tapped||c.hunts)&&(c.slayer||pa>x.p)).sort((a,b)=>b.p-a.p)[0];
     if(c.noP){if(prey){await sleep(800);await attack(p,c,prey)}continue}
     const blockers=me.bz.filter(x=>x.block&&!x.tapped);
     const top=Math.max(0,...blockers.map(b=>b.p));
@@ -1036,7 +696,7 @@ async function aiTurn(p){
 
 /* ---------- player prompts ---------- */
 function pickTarget(tg,msg,skip){
-  return new Promise(res=>{G.targeting={uids:new Set(tg.map(c=>c.uid)),resolve:res,msg,skip};render()});
+  return new Promise(res=>{G.targeting={uids:new Set(tg.map(c=>c.uid)),resolve:res,msg,skip,required:skip===null};render()});
 }
 function ask(title,text,opts,card){
   return new Promise(res=>{G.modal={title,text,opts,resolve:res,card};render()});
@@ -1070,8 +730,8 @@ function onCard(uid){
   if(G.turn!==0||G.busy){openZoom(f.c);return}
   const me=G.p[0];
   if(f.p===me&&f.z==='hand')G.sel=G.sel?.uid===uid?null:{zone:'hand',uid};
-  else if(f.p===me&&f.z==='bz'&&!f.c.tapped&&!f.c.sick)G.sel=G.sel?.uid===uid?null:{zone:'bz',uid};
-  else if(f.p!==me&&f.z==='bz'&&f.c.tapped&&G.sel?.zone==='bz'){const a=selCard();act(()=>attack(me,a,f.c));return}
+  else if(f.p===me&&f.z==='bz'&&!f.c.tapped&&!f.c.sick&&!f.c.noAtk)G.sel=G.sel?.uid===uid?null:{zone:'bz',uid};
+  else if(f.p!==me&&f.z==='bz'&&(f.c.tapped||selCard()?.hunts)&&G.sel?.zone==='bz'){const a=selCard();act(()=>attack(me,a,f.c));return}
   else{G.sel=null;openZoom(f.c)}
   render();
 }
@@ -1107,7 +767,7 @@ function onAct(a,v){
       [{label:'Keep playing',val:null,main:1},{label:'Restart this game',val:'restart'},{label:'Back to start page',val:'start'}])
     .then(v=>{if(v==='restart')startGame(...G.decks);else if(v==='start')showStart()});
     return}
-  if(a==='bplus'){if(total()<DECK_MAX&&(BUILD.counts[v]||0)<MAX_COPY)BUILD.counts[v]=(BUILD.counts[v]||0)+1;BUILD.msg='';renderBuilder();autoSave();return}
+  if(a==='bplus'){if(DEF[v]?.playable&&DEF[v].duelId===v&&total()<DECK_MAX&&(BUILD.counts[v]||0)<MAX_COPY)BUILD.counts[v]=(BUILD.counts[v]||0)+1;BUILD.msg='';renderBuilder();autoSave();return}
   if(a==='bminus'){if(BUILD.counts[v])BUILD.counts[v]--;BUILD.msg='';renderBuilder();autoSave();return}
   if(a==='bfilter'){BUILD.filter=v;renderBuilder();window.scrollTo(0,0);return}
   if(a==='bclear'){BUILD.counts={};BUILD.msg='';renderBuilder();autoSave();return}
@@ -1117,12 +777,12 @@ function onAct(a,v){
   if(!G)return;
   // in game
   if(a==='ans'&&G.modal){const m=G.modal;G.modal=null;render();m.resolve(m.opts[+v].val);return}
-  if(a==='skip'&&G.targeting){const r=G.targeting.resolve;G.targeting=null;r(null);return}
+  if(a==='skip'&&G.targeting&&!G.targeting.required){const r=G.targeting.resolve;G.targeting=null;r(null);return}
   if(G.turn!==0||G.busy||G.over)return;
   const me=G.p[0],s=selCard();
   if(a==='charge'&&s&&!me.charged){me.hand.splice(me.hand.indexOf(s),1);s.tapped=false;me.mana.push(s);me.charged=true;G.sel=null;log(`${V(me,'You charge','Opponent charges')} ${s.n} as mana.`);render()}
   else if(a==='play'&&s)act(()=>playCard(me,s));
-  else if(a==='atkp'&&s&&!s.noP)act(()=>attack(me,s,'player'));
+  else if(a==='atkp'&&s&&!s.noP&&!s.noAtk)act(()=>attack(me,s,'player'));
   else if(a==='cancel'){G.sel=null;render()}
   else if(a==='view'&&s)openZoom(s);
   else if(a==='end'){G.sel=null;startTurn(1)}
@@ -1151,18 +811,15 @@ const GLOSS=[
  [d=>d.trig,()=>'Shield trigger',()=>'If this card comes out of one of your broken shields, you can cast it for free right away.'],
 ];
 let ZOOM=null;
-function openZoom(c){ZOOM=c;renderZoom()}
+function openZoom(c){if(!c)return;ZOOM=c;renderZoom()}
 function closeZoom(){ZOOM=null;renderZoom()}
 function renderZoom(){
   const el=$('#zoom');
   if(!ZOOM){el.innerHTML='';return}
   setPhase();
-  const c=ZOOM,e=CIV[c.e];
-  const kind=c.t==='s'?`${e.n} spell`:`${e.n} ${c.evo?'evolution ':''}creature, ${c.race}`;
-  const stats=c.t==='s'?`Cost ${c.cost}`:`Cost ${c.cost}, power ${c.p}`;
-  const kws=GLOSS.filter(g=>g[0](c)).map(g=>`<div><b>${g[1](c)}</b>${g[2](c)}</div>`).join('');
-  const eff=[c.onSum?`<div><b>When summoned</b>${fxDesc(c.onSum)}</div>`:'',c.onAtk?`<div><b>When it attacks</b>${fxDesc(c.onAtk)}</div>`:'',
-    c.onDie?`<div><b>When destroyed</b>${fxDesc(c.onDie)}</div>`:'',c.fx?`<div><b>Effect</b>${fxDesc(c.fx)}</div>`:''].join('');
+  const c=ZOOM,e=archiveCivilization(c);
+  const kind=[e.n,c.e2?CIV[c.e2].n:'',c.printedType,c.race].filter(Boolean).join(' · ');
+  const stats=`Cost ${c.cost??'unlisted'}${c.printedPower?', power '+c.printedPower:''}`;
   const st=[];
   if(c.uid&&G){
     if(G.p.some(p=>p.bz.includes(c))){st.push(c.tapped?'Tapped.':'Untapped.');if(c.sick)st.push("Arrived this turn, so it can't attack yet.")}
@@ -1171,9 +828,10 @@ function renderZoom(){
   el.innerHTML=`<div class="overlay" data-zbg="1"><div class="zbox zoomwrap" role="dialog" aria-label="${c.n}">
     <button class="zclose" data-zclose="1" aria-label="Close">×</button>
     ${cardHTML({...c,uid:0,tapped:false},'big',true)}
-    <div class="zinfo"><h2>${c.n}</h2><p class="zmeta">${kind}. ${stats}.</p>
+    <div class="zinfo"><h2>${esc(c.n)}</h2><p class="zmeta">${esc(kind)}. ${stats}.</p>
+      <p class="zmeta">${esc(c.set)} · ${esc(c.setNumber)}/${esc(c.setCount)}${c.rarity?' · '+esc(c.rarity):''}</p>
       ${st.length?`<p>${st.join(' ')}</p>`:''}
-      <div class="kw">${eff}${kws}</div>
+      <ul class="printed-rules">${c.rules.map(rule=>`<li>${esc(rule)}</li>`).join('')}</ul>
       <p class="hint">Tap outside or press Esc to close.</p></div>
   </div></div>`;
 }
@@ -1226,8 +884,9 @@ function fillDeck(){
 }
 let MYDECKS=null,saveT=null,PENDING_DEL=null;
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const expand=counts=>{const ids=[];for(const id in counts)if(DEF[id])for(let i=0;i<counts[id];i++)ids.push(id);return ids};
-const deckTotal=counts=>Object.values(counts).reduce((a,b)=>a+b,0);
+const validCounts=counts=>Object.fromEntries(Object.entries(counts).filter(([id])=>DEF[id]?.playable&&DEF[id].duelId===id).map(([id,n])=>[id,Math.min(MAX_COPY,Math.max(0,Math.floor(Number(n)||0)))]));
+const expand=counts=>{const ids=[];for(const [id,n] of Object.entries(validCounts(counts)))for(let i=0;i<n;i++)ids.push(id);return ids};
+const deckTotal=counts=>Object.values(validCounts(counts)).reduce((a,b)=>a+b,0);
 async function storeDecks(){try{return !!(await window.storage.set('shieldclash-decks',JSON.stringify(MYDECKS),false))}catch(e){return false}}
 async function loadDecks(){
   if(MYDECKS)return MYDECKS;
@@ -1257,7 +916,7 @@ async function showBuilder(id){
   G=null;$('#layer').innerHTML='';
   await loadDecks();
   const d=id&&MYDECKS.find(x=>x.id===id);
-  BUILD=d?{counts:{...d.counts},msg:'',filter:BUILD.filter||'fire',id:d.id,name:d.name,saved:'Saved'}
+  BUILD=d?{counts:validCounts(d.counts),msg:Object.keys(d.counts).some(id=>!DEF[id]?.playable)?'This deck uses cards from the previous card set. Add archive cards to update it.':'',filter:BUILD.filter||'fire',id:d.id,name:d.name,saved:'Saved'}
          :{counts:{},msg:'',filter:'fire',id:null,name:`My deck ${MYDECKS.length+1}`,saved:''};
   renderBuilder();window.scrollTo(0,0);
 }
@@ -1285,11 +944,64 @@ function renderBuilder(){
 }
 
 /* ---------- rendering ---------- */
-const ARTC={};
-const artFor=(c,big)=>{const k=c.id+(big?'+':'');return ARTC[k]||(ARTC[k]=cardArt(c,!big))};
+const imageSources=(full,thumb,width,thumbWidth)=>thumb&&width>thumbWidth?` srcset="${esc(thumb)} ${thumbWidth}w, ${esc(full)} ${width}w"`:'';
+const imageSize=cls=>cls.includes('big')?'205px':'(max-width:600px) 71px, 92px';
+const artFor=(c,cls)=>c.art?`<img src="${esc(c.artThumb||c.art)}"${imageSources(c.art,c.artThumb,c.artWidth,c.artThumbWidth)} sizes="${imageSize(cls)}" alt="${esc(c.n)} artwork" loading="lazy" decoding="async">`:'<div class="missing-art">Artwork unavailable</div>';
+function cardRules(c){
+  return c.rules.map(rule=>`<p>${esc(rule).replace(/(\([^)]*\))/g,'<em>$1</em>')}</p>`).join('');
+}
+// Fit rendered text rather than guessing from character counts: wrapping also
+// depends on word lengths, reminders, the font, and the displayed card width.
+const pendingCardFits=new Set();
+const cardTextSizes=new Map();
+let cardFitFrame=0;
+function fitCardText(card){
+  if(!card.isConnected||!card.clientWidth)return;
+  for(const selector of ['.txt']){
+    const text=card.querySelector(selector);
+    if(!text)continue;
+    text.style.removeProperty('font-size');
+    const style=getComputedStyle(text),maxSize=parseFloat(style.fontSize);
+    const key=[selector,text.textContent,text.clientWidth,text.clientHeight,style.font,style.letterSpacing].join('|');
+    const cached=cardTextSizes.get(key);
+    if(cached!==undefined){
+      if(cached!==maxSize)text.style.fontSize=cached+'px';
+      continue;
+    }
+    const fits=()=>text.scrollWidth<=text.clientWidth&&text.scrollHeight<=text.clientHeight;
+    if(fits()){cardTextSizes.set(key,maxSize);continue}
+    let low=1,high=maxSize;
+    // Find the largest font that fits both the available width and height.
+    for(let i=0;i<8;i++){
+      const mid=(low+high)/2;
+      text.style.fontSize=mid+'px';
+      if(fits())low=mid;else high=mid;
+    }
+    text.style.fontSize=low+'px';
+    cardTextSizes.set(key,low);
+  }
+}
+function queueCardFit(card){
+  pendingCardFits.add(card);
+  if(cardFitFrame)return;
+  cardFitFrame=requestAnimationFrame(()=>{
+    cardFitFrame=0;
+    pendingCardFits.forEach(fitCardText);
+    pendingCardFits.clear();
+  });
+}
+const cardSizeObserver=new ResizeObserver(entries=>entries.forEach(({target})=>queueCardFit(target)));
+const cardsIn=node=>node.nodeType===1?[...(node.matches('.card')?[node]:[]),...node.querySelectorAll('.card')]:[];
+new MutationObserver(records=>{
+  for(const record of records){
+    record.removedNodes.forEach(node=>cardsIn(node).forEach(card=>{cardSizeObserver.unobserve(card);pendingCardFits.delete(card)}));
+    record.addedNodes.forEach(node=>cardsIn(node).forEach(card=>{cardSizeObserver.observe(card);queueCardFit(card)}));
+  }
+}).observe(document.body,{childList:true,subtree:true});
+document.fonts.ready.then(()=>{cardTextSizes.clear();document.querySelectorAll('.card').forEach(queueCardFit)});
 function cardHTML(c,cls='',plain=false){
-  const e=CIV[c.e],P=PAL[c.e];
-  const pw=c.t==='c'?(c.pa?`${c.p}+`:c.p):'Spell';
+  const e=archiveCivilization(c),P=PAL[c.e]||PAL.unknown;
+  const pw=c.t==='s'?'Spell':c.printedPower;
   const isBig=cls.includes('big');
   const sub=c.t==='s'?e.n:(c.evo?(isBig?'Evolution ':'Evo '):'')+c.race;
   const tags=[];
@@ -1298,21 +1010,23 @@ function cardHTML(c,cls='',plain=false){
   let fxc='',fxd='0ms';
   const f=G&&c.uid&&G.fx&&G.fx[c.uid];
   if(f){const age=now()-f.t0;if(age<600){fxc='fx-'+f.k;fxd=`-${age}ms`}else delete G.fx[c.uid]}
-  return `<div class="card ${c.t==='s'?'spell':''} ${c.evo?'isevo':''} ${c.br===3?'legend':''} ${c.tapped?'tapped':''} ${fxc} ${cls}" ${plain?'':c.uid?`data-uid="${c.uid}" tabindex="0"`:`data-def="${c.id}" tabindex="0"`} style="--fxd:${fxd};--fr:${P.frame};--lt:${P.light};--dp:${P.deep};--md:${P.mid}" title="${c.n}: ${c.txt}" aria-label="${c.n}, ${e.n}, cost ${c.cost}${c.t==='c'?', power '+c.p:', spell'}. ${c.txt}">
-    <div class="nbar"><span class="cost">${c.cost}</span><span class="nm">${c.n}</span></div>
-    <div class="art">${artFor(c,isBig)}${c.trig?'<span class="trg">Trigger</span>':''}</div>
-    <div class="txt">${c.txt.replace(' Shield trigger.','')}</div>
+  const attrs=plain?'':c.uid?`data-uid="${c.uid}" tabindex="0"`:`data-def="${c.id}" tabindex="0"`;
+  const palette=`--fxd:${fxd};--fr:${P.frame};--lt:${P.light};--dp:${P.deep};--md:${P.mid};--second:${(PAL[c.e2]||P).frame}`;
+  return `<div class="card ${c.e2?'multicolor':''} ${c.t==='s'?'spell':''} ${c.evo?'isevo':''} ${c.br===3?'legend':''} ${c.tapped?'tapped':''} ${fxc} ${cls}" ${attrs} style="${palette}" title="${esc(c.n+': '+c.txt)}" aria-label="${esc(c.n)}, ${e.n}, cost ${c.cost??'unlisted'}${c.t==='c'?', power '+c.p:', spell'}. ${esc(c.txt)}">
+    <div class="cbody"><div class="nbar"><span class="cost">${c.cost??'–'}</span><span class="nm">${esc(c.n)}</span></div>
+    <div class="art">${artFor(c,cls)}${c.trig?'<span class="trg">Trigger</span>':''}</div>
+    <div class="txt">${cardRules(c)}</div>
+    <div class="bot"><span class="rc">${esc(sub)}</span>${pw?`<span class="pw">${esc(pw)}</span>`:''}</div></div>
     ${tags.length?`<span class="tag">${tags.join(', ')}</span>`:''}
-    <div class="bot"><span class="rc">${sub}</span><span class="pw">${pw}</span></div>
   </div>`;
 }
 function cls(c,p,z){
   const k=[],mine=p===G.p[0],free=G.turn===0&&!G.busy&&!G.targeting&&!G.modal&&!G.over;
   if(G.targeting?.uids.has(c.uid))k.push('target');
   if(G.sel?.uid===c.uid)k.push('sel');
-  if(free&&mine&&z==='bz'&&!c.tapped&&!c.sick)k.push('can');
+  if(free&&mine&&z==='bz'&&!c.tapped&&!c.sick&&!c.noAtk)k.push('can');
   if(free&&mine&&z==='hand'&&canPlay(p,c))k.push('can');
-  if(free&&!mine&&z==='bz'&&c.tapped&&G.sel?.zone==='bz')k.push('target');
+  if(free&&!mine&&z==='bz'&&(c.tapped||selCard()?.hunts)&&G.sel?.zone==='bz')k.push('target');
   return k.join(' ');
 }
 function sideHTML(p){
@@ -1332,7 +1046,7 @@ function barHTML(){
   if(G.mp&&!IN_CLAUDE&&NET.status&&!G.over)return `<span class="turn">Offline</span><span class="prompt">${NET.status}</span>${btn('menu','Menu')}`;
   if(G.over)return `<span class="prompt">${G.left!=null?`${oppName} left the game.`:lost?`${oppName} broke through.`:'You broke through every shield.'}</span>${btn('new',G.mp?'Back to start page':'Play again',1)}`;
   if(G.req&&G.mp&&!G.targeting&&G.req.seat!==VIEW)return `<span class="turn">Waiting</span><span class="prompt">${oppName} is deciding what to do…</span>`;
-  if(G.targeting)return `<span class="turn">Choose</span><span class="prompt">${G.targeting.msg}</span>${btn('skip',G.targeting.skip||'Skip')}`;
+  if(G.targeting)return `<span class="turn">Choose</span><span class="prompt">${G.targeting.msg}</span>${G.targeting.required?'':btn('skip',G.targeting.skip||'Skip')}`;
   if(G.turn!==0)return `<span class="turn">${G.mp?oppName+"'s":"Opponent's"} turn</span><span class="prompt">${G.mp?'Their moves show up here as they play. ':''}Watch for blocks and shield triggers.</span>${G.mp?btn('menu','Menu'):''}`;
   if(G.busy)return `<span class="turn">Your turn</span><span class="prompt">Resolving…</span>`;
   const s=selCard();let h='<span class="turn">Your turn</span>';
@@ -1345,10 +1059,10 @@ function barHTML(){
     if(canPlay(me,s))h+=btn('play',s.t==='s'?'Cast':s.evo?'Evolve':'Summon',1);
     h+=btn('view','View card')+btn('cancel','Cancel');
   }else if(s&&G.sel.zone==='bz'){
-    const any=G.p[1].bz.some(c=>c.tapped);
-    if(s.noP)h+=`<span class="prompt">${s.n} can't attack players.${any?' Pick a tapped enemy creature to attack.':' No tapped enemy creatures to attack.'}</span>`;
+    const any=G.p[1].bz.some(c=>c.tapped||s.hunts),prey=s.hunts?'an enemy creature':'a tapped enemy creature';
+    if(s.noP)h+=`<span class="prompt">${s.n} can't attack players.${any?` Pick ${prey} to attack.`:' No creatures available to attack.'}</span>`;
     else{
-      h+=`<span class="prompt">${s.n} is ready.${any?' Pick a tapped enemy creature, or':''}</span>`;
+      h+=`<span class="prompt">${s.n} is ready.${any?` Pick ${prey}, or`:''}</span>`;
       h+=btn('atkp',G.p[1].sh.length?'Attack shields':'Attack directly',1);
     }
     h+=btn('view','View card')+btn('cancel','Cancel');
@@ -1561,7 +1275,8 @@ async function mpRespond(req){
     const pl=req.payload;
     if(req.kind==='block'){const b=await askBlock(cardBy(pl.att),pl.blockers.map(cardBy).filter(Boolean),pl.target==='player'?'player':cardBy(pl.target));val=b?b.uid:null}
     else if(req.kind==='trig'){val=!!(await askTrig(cardBy(pl.s)))}
-    else if(req.kind==='target'){const t=await pickTarget(pl.uids.map(cardBy).filter(Boolean),pl.msg,'Skip');val=t?t.uid:null}
+    else if(req.kind==='target'){const t=await pickTarget(pl.uids.map(cardBy).filter(Boolean),pl.msg,pl.required?null:'Skip');val=t?t.uid:null}
+    else if(req.kind==='choice'){val=await ask(pl.title,pl.text,pl.opts)}
     if(MP)await sset(RK(MP.code,'ans:'+req.id),{v:val});
     if(MP)MP.answered=req.id;
   }finally{if(MP)MP.responding=false;if(G)render()}
@@ -1693,7 +1408,11 @@ async function mpJoin(){
 
 /* ---------- how to play ---------- */
 let TUT=0;
-const mini=(id,extra={})=>cardHTML({...DEF[id],...extra},'',true);
+const tutorialCard=id=>({ragna:DEF['dm-7'],harrier:DEF['dm-152'],drakeling:DEF['dm-7'],courier:DEF['dm-4'],oak:DEF['dm-10'],dawn:DEF['dm-1'],stalker:DEF['dm-5'],
+  sprout:DEFS.find(c=>c.n==='Faerie Life'),boar:DEF['dm-9'],raider:DEFS.find(c=>c.e==='fire'&&c.cost===3&&c.t==='c'),
+  beetle:DEF['dm-9'],canopy:DEFS.find(c=>c.speed),cinderclaw:DEFS.find(c=>c.p===5000&&!c.pa),badger:DEFS.find(c=>c.p===4000&&!c.pa),
+  reef:DEF['dm-41'],flare:DEF['dm-98'],chief:DEF['dm-121'],evoBase:DEF['dm-19'],alpha:DEF['dm-10'],seraph:DEF['dm-1'],titan:DEF['dm-10'],devourer:DEF['dm-5']}[id]||DEF[id]||DEFS[0]);
+const mini=(id,extra={})=>cardHTML({...tutorialCard(id),...extra},'',true);
 const backs=(n,gone=0)=>`<div class="tshields">${Array.from({length:n},(_,i)=>`<div class="back ${i>=n-gone?'gone':''}"></div>`).join('')}</div>`;
 const chip=(e,used)=>`<span class="mana ${used?'used':''}" style="--el:${CIV[e].c}">${CIV[e].n[0]}</span>`;
 const TPAGES=[
@@ -1701,10 +1420,10 @@ const TPAGES=[
   v:()=>`<div class="tcol">${backs(8)}<span class="tcap">Your opponent's 8 shields</span></div><span class="arrow">→</span><div class="tcol">${mini('ragna')}<span class="tcap">One more hit wins</span></div>`,
   x:`<p>Each player starts with 8 face-down shields. Break all of your opponent's shields, then attack them once more to win.</p><p>You also lose if you need to draw a card and your deck is empty, so long games have a clock.</p>`},
  {t:'Reading a card',
-  v:()=>`<div class="tcard">${cardHTML(DEF.harrier,'big',true)}
-    <span class="mk" style="left:-7%;top:6%">1</span><span class="mk" style="left:107%;top:6%">2</span>
-    <span class="mk" style="left:107%;top:33%">3</span><span class="mk" style="left:107%;top:66%">4</span>
-    <span class="mk" style="left:-7%;top:95%">5</span><span class="mk" style="left:107%;top:95%">6</span></div>`,
+  v:()=>`<div class="tcard">${cardHTML(tutorialCard('harrier'),'big',true)}
+    <span class="mk" style="left:-7%;top:6%">1</span><span class="mk" style="left:107%;top:4%">2</span>
+    <span class="mk" style="left:107%;top:37%">3</span><span class="mk" style="left:107%;top:76%">4</span>
+    <span class="mk" style="left:107%;top:11%">5</span><span class="mk" style="left:-7%;top:93%">6</span></div>`,
   x:`<div class="tkey">
     <div><span class="mk">1</span><span><b>Cost.</b> How much mana it takes to play.</span></div>
     <div><span class="mk">2</span><span><b>Name.</b></span></div>
@@ -1738,10 +1457,10 @@ const TPAGES=[
   v:()=>`<div class="tcol">${backs(8,2)}<span class="tcap">2 shields broken</span></div><span class="arrow">→</span><div class="tcol">${mini('flare')}<span class="tcap">Goes to the hand. Trigger: free!</span></div>`,
   x:`<p>A broken shield isn't lost. It goes into its owner's hand, so every hit gives your opponent another card.</p><p>If that card is a <b>shield trigger</b>, its owner can cast it for free right away. That's how a losing player can turn the game around.</p><p><b>Double</b> and <b>triple breakers</b> break 2 or 3 shields with one attack.</p>`},
  {t:'Evolution',
-  v:()=>`<div class="tcol">${mini('raider')}<span class="tcap">A Raider in play</span></div><span class="arrow">+</span><div class="tcol">${mini('chief')}<span class="tcap">Goes on top</span></div>`,
+  v:()=>`<div class="tcol">${mini('evoBase')}<span class="tcap">A Guardian in play</span></div><span class="arrow">+</span><div class="tcol">${mini('chief')}<span class="tcap">Goes on top</span></div>`,
   x:`<p>Evolution creatures are played on top of one of your creatures of the matching race. They're cheap for their power and can attack right away.</p><p>The creature underneath becomes part of it. If the evolution is destroyed or sent back to hand, the cards underneath go with it.</p>`},
  {t:'Controls',
-  v:()=>`<div class="tcol">${cardHTML(DEF.alpha,'can',true)}<span class="tcap">Blue outline: ready to use</span></div><div class="tcol">${mini('oak',{tapped:true})}<span class="tcap">Tilted: tapped</span></div>`,
+  v:()=>`<div class="tcol">${cardHTML(tutorialCard('alpha'),'can',true)}<span class="tcap">Blue outline: ready to use</span></div><div class="tcol">${mini('oak',{tapped:true})}<span class="tcap">Tilted: tapped</span></div>`,
   x:`<p><b>Tap a card in your hand</b> to charge it as mana or play it. Cards you can afford have a blue outline.</p><p><b>Tap a ready creature</b>, then press Attack shields, or tap a tapped enemy creature with a red outline.</p><p><b>To read a card up close</b>, long-press it or right-click it.</p><p>Press <b>End turn</b> when you're done. The game log at the bottom shows what happened.</p>`},
  {t:"You're ready",
   v:()=>`<div class="tcol">${mini('seraph')}</div><div class="tcol">${mini('titan')}</div><div class="tcol">${mini('devourer')}</div>`,
@@ -1776,7 +1495,7 @@ function showStart(){
   G=null;$('#app').innerHTML='';
   $('#layer').innerHTML=`<div class="overlay" id="start"><div class="dialog">
     <div class="logo">${LOGO}<h1>Shield Clash</h1></div>
-    <div class="howto"><button class="main" data-act="tut">How to play</button><span class="hint">New here? It takes about two minutes.</span></div>
+    <div class="howto"><button class="main" data-act="tut">How to play</button><span class="hint">${CATALOG.length.toLocaleString()} cards · ${DEFS.length} available for duels</span></div>
     <div class="howto modesw" id="modesw"></div>
 
     <div id="mydecks"></div>
