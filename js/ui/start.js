@@ -64,7 +64,6 @@ function showStart(){
       <span class="dplate">${dotsHTML(d.civ)}<b>${d.n}</b></span><small>${CIV[d.civ[0]].n} and ${CIV[d.civ[1]].n}. ${d.d}</small></button>`).join('')}
       <button class="deck" data-act="random" style="${frameVars(Object.keys(CIV))}"><span class="dplate">${dotsHTML(Object.keys(CIV))}<b>Random optimal deck</b></span><small>A strong mix of all five civilizations, built fresh every time.</small></button>
       <button class="deck blank" data-act="builder"><span class="dplate"><b>Build a new deck</b></span><small>Choose 50 to 60 cards. It saves automatically and shows up here.</small></button></div>
-    <p class="credit">Made by Tejas Jadhav and Claude Opus 5.5</p>
   </div></div>`;
   PENDING_DEL=null;
   renderModeSw();
