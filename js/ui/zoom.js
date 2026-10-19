@@ -51,8 +51,8 @@ function renderZoom(){
   if(ZOOM.pile){
     const {title,cards}=ZOOM.pile;
     el.innerHTML=`<div class="overlay" data-zbg="1"><div class="zbox pilebox" role="dialog" aria-label="${esc(title)}">
-      <button class="zclose" data-zclose="1" aria-label="Close">×</button><h2>${esc(title)}<small>${cards.length} card${cards.length===1?'':'s'}</small></h2>
-      ${cards.length?`<div class="pile">${cards.map((c,i)=>`<div class="pitem" data-pile="${i}">${cardHTML({...c,uid:0,tapped:false},'',true)}${c.tapped?'<small>Tapped</small>':''}</div>`).join('')}</div>`:'<p class="zmeta">No cards.</p>'}
+      <button class="zclose" data-zclose="1" aria-label="Close">×</button><h2>${esc(title)}${cards.length?`<small>${cards.length} card${cards.length===1?'':'s'}</small>`:''}</h2>
+      ${cards.length?`<div class="pile">${cards.map((c,i)=>`<div class="pitem" data-pile="${i}">${cardHTML({...c,uid:0,tapped:false},'',true)}${c.tapped?'<small>Tapped</small>':''}</div>`).join('')}</div>`:`<p class="zmeta">Nothing here yet.</p>`}
       ${cards.length?'<p class="hint">Newest first. Tap a card to read it.</p>':''}</div></div>`;
     return;
   }
