@@ -74,7 +74,8 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 .card.isevo::before{content:"";position:absolute;inset:1.3cqw;border:1.3cqw solid var(--lt);border-radius:inherit;pointer-events:none;opacity:.75}
 .card.legend::after{content:"";position:absolute;inset:0;border:1.8cqw solid #EF9F27;border-radius:inherit;pointer-events:none}
 .card.tapped{transform:rotate(9deg);opacity:.62}
-.tag{position:absolute;left:6.2cqw;top:57cqw;max-width:85%;font-size:7.6cqw;font-weight:700;background:var(--ink);color:var(--bg);padding:0 3.6cqw;border-radius:2.7cqw;z-index:1}
+.tag{position:absolute;left:2.7cqw;bottom:1.8cqw;max-width:48%;font-size:7.1cqw;font-weight:700;background:var(--ink);color:var(--bg);padding:0 3.6cqw;border-radius:2.7cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag.under{left:auto;right:2.7cqw;background:var(--dp);color:var(--lt)}
 .card.can{box-shadow:0 0 0 3px var(--hi)}
 .card.sel{transform:translateY(-8px);box-shadow:0 0 0 3px var(--hi)}
 .card.target{box-shadow:0 0 0 3px var(--danger)}
@@ -147,6 +148,8 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 .card.big .art{height:140px;border-radius:9px}
 .card.big .rc{font-size:13px;padding-left:4px}
 .card.big .trg{font-size:12px;padding:1px 7px;right:6px;top:5px;border-radius:5px}
+.card.big .tag{font-size:12px;padding:1px 7px;left:6px;bottom:5px;border-radius:5px}
+.card.big .tag.under{left:auto;right:6px}
 .card.big .txt{font-size:15.5px;line-height:1.4;padding:8px 10px;border-radius:9px}
 .card.big .pw{font-size:19px;padding:2px 12px;border-radius:7px}
 .card.big.legend::after{border-width:3px}

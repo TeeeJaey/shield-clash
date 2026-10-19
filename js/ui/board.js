@@ -59,6 +59,7 @@ function barHTML(){
 function render(){
   if(!G)return;
   setPhase();
+  warmArt(G.p.flatMap(p=>[p.hand,p.bz,p.mana,p.sh,p.deck,p.gy].flat()));
   if(G.mp&&MP&&!MP.applying&&G.turn===0&&!G.over)mpPush();
   $('#app').innerHTML=`${sideHTML(G.p[1])}<div class="bar">${barHTML()}</div>${sideHTML(G.p[0])}
     <div class="log" aria-live="polite">${G.log.slice(0,30).map(l=>`<div>${viewText(l)}</div>`).join('')}</div>`;
