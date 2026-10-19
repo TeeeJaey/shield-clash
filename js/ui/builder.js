@@ -34,7 +34,7 @@ function renderBuilder(){
     <span class="bmsg">${BUILD.msg||'Decks hold 50 to 60 cards, with up to 4 copies of each. Your deck saves automatically. Tap a card to zoom in. Two civilizations is the classic setup; more is risky for mana.'}</span></header>`;
   const civs=['all',...Object.keys(CIV)];
   h+=`<nav class="tabs">${civs.map(e=>{const pool=e==='all'?DEFS:DEFS.filter(d=>civsOf(d).includes(e)),n=pool.reduce((t,d)=>t+(BUILD.counts[d.id]||0),0);
-    return `<button data-act="bfilter" data-v="${e}" class="${BUILD.filter===e?'main':''}" style="--el:${e==='all'?'var(--ink)':CIV[e].c}"><span class="tdot"></span>${e==='all'?'All':CIV[e].n}${n?` (${n})`:''}</button>`}).join('')}</nav>`;
+    return `<button data-act="bfilter" data-v="${e}" class="${BUILD.filter===e?'main':''}" style="--el:${e==='all'?'currentColor':CIV[e].c}"><span class="tdot"></span>${e==='all'?'All':CIV[e].n}${n?` (${n})`:''}</button>`}).join('')}</nav>`;
   const f=BUILD.find||(BUILD.find={q:'',mech:'all',type:'all',sort:'cost',mine:false});
   const select=(key,label,options)=>`<label class="fld"><span>${label}</span><select data-build="${key}">${options.map(([v,t])=>`<option value="${esc(v)}" ${f[key]===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
   h+=`<div class="collection-tools build-tools"><label class="fld"><span>Search</span><input id="build-search" type="search" placeholder="Name, race, or ability" value="${esc(f.q)}"></label>
@@ -48,17 +48,53 @@ function renderBuilder(){
     &&(!mech||mech.has(d))&&(f.type==='all'||(f.type==='evo'?!!d.evo:d.t===f.type&&!(f.type==='c'&&d.evo)))&&(!f.mine||BUILD.counts[d.id]>0))
     .sort(f.sort==='name'?(a,b)=>a.n.localeCompare(b.n):f.sort==='power'?(a,b)=>(b.p-a.p)||a.cost-b.cost:(a,b)=>(a.cost-b.cost)||a.n.localeCompare(b.n));
   const title=BUILD.filter==='all'?'All civilizations':CIV[BUILD.filter].n;
-  h+=`<section class="civ" style="--el:${BUILD.filter==='all'?'var(--ink)':CIV[BUILD.filter].c}"><h3>${title} <small class="bsaved">${shown.length} card${shown.length===1?'':'s'}</small></h3><div class="bgrid">`;
-  for(const d of shown){
-    const n=BUILD.counts[d.id]||0;
-    h+=`<div class="bitem">${cardHTML(d,'')}<div class="bc">
-      <button data-act="bminus" data-v="${d.id}" aria-label="Remove ${esc(d.n)}" ${n?'':'disabled'}>−</button><span>${n}</span>
-      <button data-act="bplus" data-v="${d.id}" aria-label="Add ${esc(d.n)}" ${n<MAX_COPY&&tot<DECK_MAX?'':'disabled'}>+</button></div></div>`;
-  }
+  h+=`<section class="civ" style="--el:${BUILD.filter==='all'?'var(--ink)':CIV[BUILD.filter].c}"><h3>${title} <small class="bsaved">${shown.length} card${shown.length===1?'':'s'}</small></h3><div class="bgrid" id="bgrid"></div>`;
   if(!shown.length)h+='<p class="empty">No cards match these filters.</p>';
-  h+='</div></section>';
+  h+='</section>';
+  BUILD.shown=shown;
   $('#app').innerHTML=h;
+  renderBuilderGrid();
 }
+// The grid is virtualized: only rows near the viewport are in the DOM, and each card's
+// element is built once and reused, so scrolling, +/- and filtering never rebuild,
+// re-fit or reload the art of the whole collection.
+const BUILD_ITEMS=new Map(),BUILD_GAP=12;
+let buildSize=null,buildFrame=0;
+function buildItem(d,tot){
+  let el=BUILD_ITEMS.get(d.id);
+  if(!el){
+    el=document.createElement('div');el.className='bitem';
+    el.innerHTML=`${cardHTML(d,'')}<div class="bc"></div>`;
+    BUILD_ITEMS.set(d.id,el);
+  }
+  const n=BUILD.counts[d.id]||0;
+  const bc=`<button data-act="bminus" data-v="${d.id}" aria-label="Remove ${esc(d.n)}" ${n?'':'disabled'}>−</button><span>${n}</span>
+      <button data-act="bplus" data-v="${d.id}" aria-label="Add ${esc(d.n)}" ${n<MAX_COPY&&tot<DECK_MAX?'':'disabled'}>+</button>`;
+  if(el._bc!==bc){el.lastElementChild.innerHTML=bc;el._bc=bc}
+  return el;
+}
+function renderBuilderGrid(){
+  const grid=$('#bgrid');if(!grid)return;
+  const shown=BUILD.shown||[],tot=total();
+  if(!shown.length){grid.replaceChildren();grid.style.height=grid.style.paddingTop='';return}
+  if(!buildSize){
+    const r=(grid.firstElementChild||grid.appendChild(buildItem(shown[0],tot))).getBoundingClientRect();
+    buildSize={w:r.width,h:r.height+BUILD_GAP};
+  }
+  const cols=Math.max(1,Math.floor((grid.clientWidth+BUILD_GAP)/(buildSize.w+BUILD_GAP))),rows=Math.ceil(shown.length/cols);
+  // Render one extra screen above and below so fast scrolling rarely shows a gap.
+  const top=grid.getBoundingClientRect().top;
+  const first=Math.min(rows,Math.max(0,Math.floor((-top-innerHeight)/buildSize.h)));
+  const last=Math.min(rows,Math.max(first,Math.ceil((2*innerHeight-top)/buildSize.h)));
+  grid.style.height=`${rows*buildSize.h-BUILD_GAP}px`;grid.style.paddingTop=`${first*buildSize.h}px`;
+  const els=shown.slice(first*cols,last*cols).map(d=>buildItem(d,tot)),keep=new Set(els);
+  [...grid.children].forEach(el=>keep.has(el)||el.remove());
+  let ref=grid.firstElementChild;
+  for(const el of els){if(el===ref)ref=ref.nextElementSibling;else grid.insertBefore(el,ref)}
+}
+const queueBuilderGrid=()=>{if(!buildFrame)buildFrame=requestAnimationFrame(()=>{buildFrame=0;renderBuilderGrid()})};
+addEventListener('scroll',queueBuilderGrid,{passive:true});
+addEventListener('resize',()=>{buildSize=null;queueBuilderGrid()});
 // Cost curve, civilizations, card types and the deck rules the new mechanics bring.
 function deckSummaryHTML(){
   const tot=total();

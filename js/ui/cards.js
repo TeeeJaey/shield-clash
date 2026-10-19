@@ -11,9 +11,13 @@ function cardRules(c){
 // depends on word lengths, reminders, the font, and the displayed card width.
 const pendingCardFits=new Set();
 const cardTextSizes=new Map();
-let cardFitFrame=0;
+let cardFitFrame=0,cardFitGen=0;
 function fitCardText(card){
   if(!card.isConnected||!card.clientWidth)return;
+  // A reused element (deck builder) that was already fitted at this width needs no work.
+  const done=`${cardFitGen}|${card.clientWidth}`;
+  if(card._fit===done)return;
+  card._fit=done;
   for(const selector of ['.txt']){
     const text=card.querySelector(selector);
     if(!text)continue;
@@ -55,7 +59,7 @@ new MutationObserver(records=>{
     record.addedNodes.forEach(node=>cardsIn(node).forEach(card=>{cardSizeObserver.observe(card);queueCardFit(card)}));
   }
 }).observe(document.body,{childList:true,subtree:true});
-document.fonts.ready.then(()=>{cardTextSizes.clear();document.querySelectorAll('.card').forEach(queueCardFit)});
+document.fonts.ready.then(()=>{cardTextSizes.clear();cardFitGen++;document.querySelectorAll('.card').forEach(queueCardFit)});
 function cardHTML(c,cls='',plain=false){
   const e=archiveCivilization(c),P=PAL[c.e]||PAL.unknown;
   const pw=c.t==='s'?'Spell':c.boost?String(power(c)):c.printedPower;
