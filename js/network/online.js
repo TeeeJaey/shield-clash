@@ -198,10 +198,10 @@ async function mpLeave(quiet){
   G=null;VIEW=0;showStart();
 }
 function deckOptions(){
-  const o=[`<option value="random">Random optimal deck</option>`];
-  PRESETS.forEach((p,i)=>o.push(`<option value="p${i}">${p.n} (${p.civ.map(e=>CIV[e].n).join(', ')})</option>`));
-  (MYDECKS||[]).filter(d=>legal(deckTotal(d.counts))).forEach(d=>o.push(`<option value="d${esc(d.id)}">${esc(d.name)} (your deck)</option>`));
-  return o.join('');
+  const o=[['random','Random optimal deck']];
+  PRESETS.forEach((p,i)=>o.push([`p${i}`,`${p.n} (${p.civ.map(e=>CIV[e].n).join(', ')})`]));
+  (MYDECKS||[]).filter(d=>legal(deckTotal(d.counts))).forEach(d=>o.push([`d${d.id}`,`${d.name} (your deck)`]));
+  return o;
 }
 function pickedDeck(v){
   if(v[0]==='p'){const pr=PRESETS[+v.slice(1)];return {n:pr.n,ids:presetIds(pr.civ)}}
@@ -211,12 +211,12 @@ function pickedDeck(v){
 async function showOnline(msg,deckVal){
   G=null;$('#app').innerHTML='';
   await loadDecks();
-  const nm=(window._mpName||'');
+  const nm=(window._mpName||''),decks=deckOptions(),want=deckVal||window._mpDeck;
   $('#layer').innerHTML=`<div class="overlay" id="online"><div class="dialog">
     <h2>Play with a friend</h2>
     <p class="rules">You and your friend both open this game on your own devices. One of you creates a room and shares the 4-letter code. The other joins with it.</p>
     <label class="fld"><span>Your name</span><input id="mpname" maxlength="16" value="${esc(nm)}" placeholder="e.g. TJ"></label>
-    <label class="fld"><span>Your deck</span><select id="mpdeck">${deckOptions()}</select></label>
+    <div class="fld"><span>Your deck</span>${ddHTML('mpdeck',decks,decks.some(([v])=>v===want)?want:'random',{id:'mpdeck',label:'Your deck'})}</div>
     <div class="opts"><button class="main" data-act="mphost" ${hasStore()?'':'disabled'}>Create a room</button></div>
     <div class="joinrow"><label class="fld"><span>Or join a room</span><input id="mpcode" maxlength="4" placeholder="CODE" autocapitalize="characters" autocomplete="off"></label><button data-act="mpjoin" ${hasStore()?'':'disabled'}>Join</button></div>
     ${msg?`<p class="err">${msg}</p>`:''}
@@ -224,8 +224,6 @@ async function showOnline(msg,deckVal){
       :'Moves are passed between your devices through a free public relay server. Anyone who knew your room code could watch the game, so keep names simple.'}</p>
     <div class="opts"><button data-act="back">Back</button></div>
   </div></div>`;
-  const sel=document.getElementById('mpdeck');
-  if(sel){const want=deckVal||window._mpDeck;if(want&&[...sel.options].some(o=>o.value===want))sel.value=want}
 }
 function joinError(e,code){
   const why=e&&e.why;
@@ -236,8 +234,8 @@ function joinError(e,code){
 }
 function readForm(){
   const name=(document.getElementById('mpname').value||'').trim().slice(0,16)||'Player';
-  window._mpName=name;window._mpDeck=document.getElementById('mpdeck').value;
-  return {name,deck:pickedDeck(document.getElementById('mpdeck').value)};
+  window._mpName=name;window._mpDeck=ddValue('mpdeck')||'random';
+  return {name,deck:pickedDeck(window._mpDeck)};
 }
 function lobbyScreen(title,body){
   $('#layer').innerHTML=`<div class="overlay" id="online"><div class="dialog"><h2>${title}</h2>${body}<div class="opts"><button data-act="mpcancel">Cancel</button></div></div></div>`;

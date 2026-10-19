@@ -43,11 +43,13 @@ function renderMyDecks(){
   el.innerHTML=`<p><b>Your decks</b></p><div class="decks">${[...MYDECKS].sort((a,b)=>(b.updated||0)-(a.updated||0)).map(d=>{
     const tot=deckTotal(d.counts),civs=[...new Set(Object.keys(d.counts).filter(k=>DEF[k]).flatMap(k=>civsOf(DEF[k])))];
     const ready=legal(tot);
-    const btns=PENDING_DEL===d.id
-      ?`<span class="hint">Delete this deck?</span><button data-act="ddelyes" data-v="${d.id}">Delete</button><button data-act="ddelno" data-v="${d.id}">Keep</button>`
-      :`${ready?`<button class="main" data-act="dplay" data-v="${d.id}">Play</button>`:''}<button data-act="dedit" data-v="${d.id}">Edit</button><button data-act="ddel" data-v="${d.id}" aria-label="Delete ${esc(d.name)}">Delete</button>`;
+    const btns=`${ready?`<button class="main" data-act="dplay" data-v="${d.id}">Play</button>`:''}<button data-act="dedit" data-v="${d.id}">Edit</button><button data-act="ddel" data-v="${d.id}" aria-label="Delete ${esc(d.name)}">Delete</button>`;
+    // Confirming a delete covers the tile instead of changing its buttons, so nothing moves.
+    const confirm=PENDING_DEL===d.id?`<div class="dconfirm" role="alertdialog" aria-label="Delete ${esc(d.name)}?"><b>Delete this deck?</b>
+      <div class="mdb"><button class="danger" data-act="ddelyes" data-v="${d.id}">Delete</button><button data-act="ddelno" data-v="${d.id}">Keep</button></div></div>`:'';
     return `<div class="mydeck" style="${frameVars(civs)}"><span class="dplate">${dotsHTML(civs)}<b>${esc(d.name)}</b></span><small>${ready?`${tot} cards, ready to play.`:`${tot} cards. Needs at least ${DECK_MIN} to play.`}${civs.length?` ${civs.map(e=>CIV[e].n).join(', ')}.`:''}</small>
-      <div class="mdb">${btns}</div></div>`}).join('')}</div>`;
+      <div class="mdb">${btns}</div>${confirm}</div>`}).join('')}</div>`;
+  if(PENDING_DEL)el.querySelector('[data-act=ddelno]')?.focus();
 }
 function showStart(){
   G=null;$('#app').innerHTML='';

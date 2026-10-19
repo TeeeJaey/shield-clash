@@ -36,12 +36,12 @@ function renderBuilder(){
   h+=`<nav class="tabs">${civs.map(e=>{const pool=e==='all'?DEFS:DEFS.filter(d=>civsOf(d).includes(e)),n=pool.reduce((t,d)=>t+(BUILD.counts[d.id]||0),0);
     return `<button data-act="bfilter" data-v="${e}" class="${BUILD.filter===e?'main':''} ${e==='all'?'all':''}" style="--el:${e==='all'?'currentColor':CIV[e].c};--tab:${e==='all'?'var(--ink)':CIV[e].c}"><span class="tdot"></span>${e==='all'?'All':CIV[e].n}${n?` (${n})`:''}</button>`}).join('')}</nav>`;
   const f=BUILD.find||(BUILD.find={q:'',mech:'all',type:'all',sort:'cost',mine:false});
-  const select=(key,label,options)=>`<label class="fld"><span>${label}</span><select data-build="${key}">${options.map(([v,t])=>`<option value="${esc(v)}" ${f[key]===v?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+  const select=(key,label,options)=>`<div class="fld"><span>${label}</span>${ddHTML(key,options,f[key],{label})}</div>`;
   h+=`<div class="collection-tools build-tools"><label class="fld"><span>Search</span><input id="build-search" type="search" placeholder="Name, race, or ability" value="${esc(f.q)}"></label>
     ${select('mech','Ability',[['all','Any ability'],...MECHANICS.filter(m=>DEFS.some(m.has)).map(m=>[m.key,m.label])])}
     ${select('type','Type',[['all','All types'],['c','Creatures'],['evo','Evolution creatures'],['s','Spells']])}
     ${select('sort','Sort by',[['cost','Cost'],['power','Power'],['name','Name']])}
-    <label class="check"><input type="checkbox" data-build="mine" ${f.mine?'checked':''}> In deck only</label></div>`;
+    <label class="check"><input type="checkbox" class="switch" role="switch" data-build="mine" ${f.mine?'checked':''}> In deck only</label></div>`;
   h+=deckSummaryHTML();
   const q=f.q.toLowerCase().trim(),mech=MECHANICS.find(m=>m.key===f.mech);
   const shown=DEFS.filter(d=>(BUILD.filter==='all'||civsOf(d).includes(BUILD.filter))&&(!q||[d.n,d.race,d.txt].some(t=>(t||'').toLowerCase().includes(q)))
@@ -65,12 +65,15 @@ function buildItem(d,tot){
   if(!el){
     el=document.createElement('div');el.className='bitem';
     el.innerHTML=`${cardHTML(d,'')}<div class="bc"></div>`;
+    el.querySelector('.art')?.insertAdjacentHTML('beforeend','<span class="qb" aria-hidden="true"></span>');
     BUILD_ITEMS.set(d.id,el);
   }
   const n=BUILD.counts[d.id]||0;
   const bc=`<button data-act="bminus" data-v="${d.id}" aria-label="Remove ${esc(d.n)}" ${n?'':'disabled'}>−</button><span>${n}</span>
       <button data-act="bplus" data-v="${d.id}" aria-label="Add ${esc(d.n)}" ${n<MAX_COPY&&tot<DECK_MAX?'':'disabled'}>+</button>`;
   if(el._bc!==bc){el.lastElementChild.innerHTML=bc;el._bc=bc}
+  // Cards already in the deck wear a ring and a copy badge.
+  el.classList.toggle('indeck',n>0);const qb=el.querySelector('.qb');if(qb)qb.textContent='×'+n;
   return el;
 }
 function renderBuilderGrid(){
@@ -125,6 +128,11 @@ document.addEventListener('input',e=>{
   if(e.target.id!=='build-search'||!BUILD.find)return;
   const at=e.target.selectionStart;BUILD.find.q=e.target.value;renderBuilder();
   const el=$('#build-search');el.focus();el.setSelectionRange(at,at);
+});
+document.addEventListener('ddchange',e=>{
+  if(!BUILD.find||!$('#bgrid')||!(e.detail.key in BUILD.find))return;
+  BUILD.find[e.detail.key]=e.detail.value;renderBuilder();
+  document.querySelector(`.dd[data-dd="${e.detail.key}"] .ddbtn`)?.focus();
 });
 document.addEventListener('change',e=>{
   const key=e.target.dataset&&e.target.dataset.build;

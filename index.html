@@ -29,6 +29,13 @@
   }
 }
 *{box-sizing:border-box}
+/* thin rounded scrollbars in the theme's colors (page, dropdowns, log, card viewers) */
+*{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
 body{margin:0;min-height:100vh;background:radial-gradient(1100px 520px at 50% -8%,var(--mat),transparent 70%) var(--bg) no-repeat;color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 h1,h2,h3{font-family:var(--font-display);font-optical-sizing:auto;font-weight:650;letter-spacing:-.01em}
 /* names and numbers use the condensed face, like a printed card's name bar and power box */
@@ -161,9 +168,14 @@ button.icon svg{width:19px;height:19px}
 .tabs button.main.all{color:var(--bg)}
 .tabs button.main .tdot{background:currentColor}
 .tdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--el);margin-right:6px}
-.bitem{display:grid;gap:5px;justify-items:center}
+.bitem{position:relative;display:grid;gap:5px;justify-items:center}
+/* cards in your deck: a ring, a copy badge on the corner, and a highlighted count */
+.bitem.indeck .card{box-shadow:0 0 0 3px var(--ink)}
+.qb{display:none;position:absolute;left:2.7cqw;top:1.8cqw;font:700 10cqw/1.25 var(--font-num);background:var(--ink);color:var(--bg);padding:0 4cqw;border-radius:2.7cqw;box-shadow:0 1px 4px rgba(0,0,0,.45)}
+.bitem.indeck .qb{display:block}
+.bitem.indeck .bc span{background:var(--ink);color:var(--bg);border-radius:999px;min-width:24px;font-family:var(--font-num);font-size:15px;line-height:22px}
 .build-tools{margin:12px 0 4px}
-.build-tools .check{display:flex;gap:6px;align-items:center;align-self:end;padding-bottom:9px;font-size:13px;color:var(--muted)}
+.build-tools .check{display:flex;gap:9px;align-items:center;align-self:end;padding-bottom:9px;font-size:13px;color:var(--ink);cursor:pointer}
 .deck-summary{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;background:var(--mat);border-radius:16px;padding:12px 16px;margin:10px 0;box-shadow:inset 0 0 0 1px var(--frame)}
 .curve{display:flex;gap:6px;height:76px}
 .curve div{width:22px;display:grid;grid-template-rows:auto 1fr auto;justify-items:center;font-size:11px}
@@ -271,7 +283,11 @@ button.icon svg{width:19px;height:19px}
 .dname:focus{outline:3px solid var(--hi);outline-offset:1px}
 .bsaved{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
 .mdb{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:2px 2px 1px}
-.mdb .hint{color:#fff;text-shadow:0 1px 2px #0008}
+.mydeck{position:relative}
+.dconfirm{position:absolute;inset:0;border-radius:inherit;background:var(--panel);box-shadow:inset 0 0 0 2px var(--danger);display:grid;place-content:center;justify-items:center;gap:10px;text-align:center;color:var(--ink);animation:k-fade .15s ease-out}
+button.danger{background:var(--danger);color:#fff;box-shadow:none}
+button.danger:hover{background:var(--danger);box-shadow:0 0 0 3px var(--frame)}
+@keyframes k-fade{from{opacity:0}}
 .mdb button{padding:4px 10px}
 #mydecks{display:grid;gap:8px}
 .seg{display:inline-flex;background:var(--face);border-radius:999px;padding:3px;box-shadow:inset 0 0 0 1.5px var(--line)}.seg button{padding:5px 15px;box-shadow:none;background:none}.seg button.main{background:var(--ink)}
@@ -279,6 +295,26 @@ button.icon svg{width:19px;height:19px}
 .fld span{font-size:13px;color:var(--muted)}
 .fld input,.fld select{font:inherit;padding:8px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--face);color:var(--ink)}
 .fld input:focus,.fld select:focus{outline:3px solid var(--hi);outline-offset:1px}
+/* custom dropdown: a pill like the inputs, with a floating list */
+.dd{position:relative}
+.ddbtn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font-weight:500;padding:10px 12px;border-radius:10px;background:var(--face);box-shadow:inset 0 0 0 1.5px var(--line)}
+.ddbtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ddbtn svg{width:12px;height:8px;flex:none;color:var(--muted);transition:transform .15s}
+.ddbtn[aria-expanded="true"]{box-shadow:inset 0 0 0 1.5px var(--hi)}
+.ddbtn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.ddlist{position:absolute;z-index:30;left:0;min-width:100%;width:max-content;max-width:min(360px,92vw);top:calc(100% + 6px);max-height:300px;overflow:auto;background:var(--panel);border-radius:12px;padding:5px;box-shadow:inset 0 0 0 1px var(--frame),var(--shadow);animation:k-drop .12s ease-out}
+.dd.up .ddlist{top:auto;bottom:calc(100% + 6px)}
+.ddopt{padding:7px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ddopt:hover,.ddopt:focus{background:var(--mat);outline:none}
+.ddopt[aria-selected="true"]{font-weight:700}
+.ddopt[aria-selected="true"]::after{content:"✓";float:right;margin-left:10px;color:var(--muted)}
+@keyframes k-drop{from{opacity:0;transform:translateY(-4px)}}
+/* a checkbox shown as a switch */
+input.switch{appearance:none;-webkit-appearance:none;margin:0;width:38px;height:22px;flex:none;border-radius:999px;background:var(--line);position:relative;cursor:pointer;transition:background .15s}
+input.switch::before{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .15s}
+input.switch:checked{background:var(--ok)}
+input.switch:checked::before{transform:translateX(16px)}
+input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 #mpcode{text-transform:uppercase;letter-spacing:4px;width:120px}
 .joinrow{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
 .code{font-size:52px;font-weight:700;letter-spacing:12px;margin:4px 0!important}
@@ -378,6 +414,7 @@ button.icon svg{width:19px;height:19px}
 <script src="js/ui/sound.js"></script>
 <script src="js/ui/input.js"></script>
 <script src="js/ui/zoom.js"></script>
+<script src="js/ui/dropdown.js"></script>
 <script src="js/ui/builder.js"></script>
 <script src="js/network/online.js"></script>
 <script src="js/ui/tutorial.js"></script>
