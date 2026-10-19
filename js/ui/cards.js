@@ -15,7 +15,11 @@ function warmArt(cards){
     img.src=c.artThumb||c.art;
   }
 }
-const artFor=(c,cls)=>c.art?`<img src="${esc(c.artThumb||c.art)}"${imageSources(c.art,c.artThumb,c.artWidth,c.artThumbWidth)} sizes="${imageSize(cls)}" alt="${esc(c.n)} artwork" loading="lazy" decoding="async">`:'<div class="missing-art">Artwork unavailable</div>';
+// A big card (hover preview, zoom) wants the full image, which can take a moment on a first
+// visit. Its thumbnail, usually cached already from the grid or board, sits behind it with
+// the same crop, so the art shows at once and sharpens in place when the full one arrives.
+const thumbBehind=(c,cls)=>cls.includes('big')&&c.artThumb&&c.artThumb!==c.art?` style="background:url('${esc(c.artThumb)}') center/cover" fetchpriority="high"`:'';
+const artFor=(c,cls)=>c.art?`<img src="${esc(c.artThumb||c.art)}"${imageSources(c.art,c.artThumb,c.artWidth,c.artThumbWidth)} sizes="${imageSize(cls)}" alt="${esc(c.n)} artwork" loading="lazy" decoding="async"${thumbBehind(c,cls)}>`:'<div class="missing-art">Artwork unavailable</div>';
 // The face shows operative text only; reminders and lore live in the detail panel,
 // even for a vanilla creature, so an empty box means "no abilities".
 function cardRules(c){

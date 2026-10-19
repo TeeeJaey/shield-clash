@@ -36,7 +36,7 @@ function frameVars(civs){
 }
 const dotsHTML=civs=>`<span class="dots">${civs.map(e=>`<span style="--el:${CIV[e].c}"></span>`).join('')}</span>`;
 // Starting with a deck either begins a duel against the computer or opens the room screen
-function playWith(deckVal,deck){if(PLAYMODE==='friend')showOnline(null,deckVal);else startGame(deck())}
+function playWith(deckVal,deck){if(PLAYMODE==='friend')showOnline(null,deckVal);else withLoader('Setting up the duel',()=>startGame(deck()))}
 function renderMyDecks(){
   const el=document.getElementById('mydecks');if(!el||!MYDECKS)return;
   if(!MYDECKS.length){el.innerHTML='';return}

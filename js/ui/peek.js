@@ -17,8 +17,12 @@ function showPeek(cardEl){
   const left=r.right+gap+PEEK_W<=innerWidth-gap?r.right+gap:Math.max(gap,r.left-gap-PEEK_W);
   const top=Math.min(Math.max(gap,r.top+r.height/2-H/2),Math.max(gap,innerHeight-H-gap));
   el.style.left=left+'px';el.style.top=top+'px';el.classList.add('show');
-  artfxRelease(PEEK.fx);
-  PEEK.fx=artfxAttach(el.querySelector('.art img'),c.e,c.e2);
+  artfxRelease(PEEK.fx);PEEK.fx=null;
+  // The full image may still be arriving (its thumbnail shows meanwhile); start the motion
+  // once it's here, if this preview is still up, so hiding can always stop it.
+  const img=el.querySelector('.art img');
+  const start=()=>{if(el.classList.contains('show')&&el.contains(img))PEEK.fx=artfxAttach(img,c.e,c.e2)};
+  if(img&&!(img.complete&&img.naturalWidth))img.addEventListener('load',start,{once:true});else start();
 }
 function hidePeek(){
   clearTimeout(PEEK.timer);PEEK.card=null;

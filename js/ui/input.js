@@ -22,8 +22,8 @@ function onAct(a,v){
   if(a==='sound'){toggleSound();return}
   if(a==='setmode'){PLAYMODE=v==='friend'?'friend':'cpu';renderModeSw();try{window.storage.set('shieldclash-mode',PLAYMODE,false)}catch(e){}return}
   if(a==='preset'){const pr=PRESETS[+v];playWith('p'+v,()=>({n:pr.n,ids:presetIds(pr.civ)}));return}
-  if(a==='builder'){showBuilder();return}
-  if(a==='dedit'){showBuilder(v);return}
+  if(a==='builder'){withLoader('Opening the deck builder',()=>showBuilder());return}
+  if(a==='dedit'){withLoader('Opening the deck builder',()=>showBuilder(v));return}
   if(a==='dplay'){const d=MYDECKS&&MYDECKS.find(x=>x.id===v);if(d&&legal(deckTotal(d.counts)))playWith('d'+d.id,()=>({n:d.name,ids:expand(d.counts)}));return}
   if(a==='ddel'){PENDING_DEL=v;renderMyDecks();return}
   if(a==='ddelno'){PENDING_DEL=null;renderMyDecks();return}
@@ -51,7 +51,7 @@ function onAct(a,v){
   if(a==='grestart'&&gameExitOpen()&&!G.mp){
     G.sel=null;
     ask('Restart this game?','You get a fresh game with the same two decks. Your current game will be lost.',
-      [{label:'Keep playing',val:null,main:1},{label:'Restart',val:'restart'}]).then(v=>{if(v==='restart')startGame(...G.decks)});
+      [{label:'Keep playing',val:null,main:1},{label:'Restart',val:'restart'}]).then(v=>{if(v==='restart')withLoader('Setting up the duel',()=>startGame(...G.decks))});
     return}
   if(a==='bplus'){if(DEF[v]?.playable&&DEF[v].duelId===v&&total()<DECK_MAX&&(BUILD.counts[v]||0)<MAX_COPY)BUILD.counts[v]=(BUILD.counts[v]||0)+1;BUILD.msg='';renderBuilder();autoSave();return}
   if(a==='bminus'){if(BUILD.counts[v])BUILD.counts[v]--;BUILD.msg='';renderBuilder();autoSave();return}
@@ -59,7 +59,7 @@ function onAct(a,v){
   if(a==='bclear'){BUILD.counts={};BUILD.msg='';renderBuilder();autoSave();return}
   if(a==='bfill'){fillDeck();renderBuilder();autoSave();return}
   if(a==='bsave'){saveDeck(true);return}
-  if(a==='bstart'&&legal(total())){const ids=expand(BUILD.counts),n=(BUILD.name||'').trim()||'Your deck';saveDeck().then(()=>{if(PLAYMODE==='friend'&&BUILD.id)showOnline(null,'d'+BUILD.id);else startGame({n,ids})});return}
+  if(a==='bstart'&&legal(total())){const ids=expand(BUILD.counts),n=(BUILD.name||'').trim()||'Your deck';saveDeck().then(()=>{if(PLAYMODE==='friend'&&BUILD.id)showOnline(null,'d'+BUILD.id);else withLoader('Setting up the duel',()=>startGame({n,ids}))});return}
   if(!G)return;
   // in game
   if(a==='pile'){const [z,side]=String(v).split(':'),p=G.p[+side];if(p&&(z==='gy'||z==='mana'))openPile(`${side==='0'?'Your':G.mp?p.name+"'s":"Opponent's"} ${z==='gy'?'graveyard':'mana zone'}`,p[z]);return}
