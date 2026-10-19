@@ -8,19 +8,20 @@ function onCard(uid){
     return;
   }
   const f=findCard(uid);if(!f)return;
-  if(G.turn!==0||G.busy){openZoom(f.c);return}
+  if(G.turn!==0||G.busy){openZoom(f.c,zoneNav(f));return}
   const me=G.p[0];
   G.notice='';
   if(f.p===me&&f.z==='hand')G.sel=G.sel?.uid===uid?null:{zone:'hand',uid};
   else if(f.p===me&&f.z==='bz'&&(canAttackAnything(f.c,me)||canTapAbility(f.c,me)))G.sel=G.sel?.uid===uid?null:{zone:'bz',uid};
   else if(f.p!==me&&f.z==='bz'&&G.sel?.zone==='bz'&&canAttackCreature(selCard(),me,f.c)){const a=selCard();act(()=>attack(me,a,f.c));return}
-  else{G.sel=null;openZoom(f.c)}
+  else{G.sel=null;openZoom(f.c,zoneNav(f))}
   render();
 }
 function onAct(a,v){
   // menus and deck builder
   if(a==='sound'){toggleSound();return}
   if(a==='fullscreen'){toggleFull();return}
+  if(a==='pmore'){PROMPT.open=!PROMPT.open;render();return}
   if(a==='setmode'){PLAYMODE=v==='friend'?'friend':'cpu';renderModeSw();try{window.storage.set('shieldclash-mode',PLAYMODE,false)}catch(e){}return}
   if(a==='setai'){AI_PLANS=v!=='classic';renderModeSw();try{window.storage.set('shieldclash-ai',AI_PLANS?'plan':'classic',false)}catch(e){}return}
   if(a==='preset'){const pr=PRESETS[+v];playWith('p'+v,()=>({n:pr.n,ids:presetIds(pr.civ)}));return}
@@ -74,7 +75,7 @@ function onAct(a,v){
   else if(a==='atkp'&&s&&canAttackPlayer(s,me))act(()=>attack(me,s,'player'));
   else if(a==='tapab'&&s&&canTapAbility(s,me))act(()=>useTapAbility(me,s,+v||0));
   else if(a==='cancel'){G.sel=null;render()}
-  else if(a==='view'&&s)openZoom(s);
+  else if(a==='view'&&s)openZoom(s,zoneNav(findCard(s.uid)));
   else if(a==='end'){
     // "Attacks each turn if able" must be honoured before the turn can end.
     const must=mustAttackers(me);

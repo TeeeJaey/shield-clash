@@ -55,3 +55,49 @@ document.addEventListener('pointermove',e=>{
 },{passive:true});
 document.addEventListener('pointerout',e=>{if(PEEK.card&&!PEEK.card.contains(e.relatedTarget))hidePeek()});
 ['pointerdown','keydown','scroll'].forEach(n=>addEventListener(n,hidePeek,{capture:true,passive:true}));
+
+/* ---------- touch peek ---------- */
+// On a touch screen, holding a card on the board shows it large with its rules, for as long
+// as the finger stays down. Sliding the finger along a row shows each card it passes, so a
+// whole battle zone can be read in one hold; lifting the finger closes it, and the tap that
+// ends the hold doesn't also select the card. A quick tap still selects, as before.
+const TPEEK={el:null,card:null,timer:0,id:null,x:0,y:0};
+const TPEEK_HOLD=260;
+const tpeekTarget=t=>t&&t.closest&&t.closest('.duel .card[data-uid],.duel .card[data-def],#layer .card[data-def]');
+function showTouchPeek(cardEl,y){
+  const c=peekOf(cardEl);if(!c)return;
+  if(!TPEEK.el){TPEEK.el=document.createElement('div');TPEEK.el.id='tpeek';TPEEK.el.setAttribute('aria-hidden','true');document.body.appendChild(TPEEK.el)}
+  const st=[];
+  // Only state worth knowing: untapped and printed power are the usual case.
+  if(c.uid&&G&&G.p.some(p=>p.bz.includes(c))){if(c.tapped)st.push('Tapped');if(c.sick)st.push("Can't attack yet");if(power(c)!==c.p)st.push(`${power(c)} power now`)}
+  // The card, as large as the screen allows; below it only what the card doesn't say itself:
+  // its state in play and what its keywords mean.
+  const notes=[...new Map(cardTextView(c).rules.flatMap(r=>r.reminders).map(m=>[m.term,m])).values()];
+  const info=st.length||notes.length?`<div class="tpinfo">${st.length?`<p class="zstate">${esc(st.join(' · '))}.</p>`:''}${notes.map(m=>`<p><b>${esc(m.term)}:</b> ${esc(m.text)}</p>`).join('')}</div>`:'';
+  TPEEK.el.innerHTML=`<div class="tpcard">${cardHTML({...c,uid:0,tapped:false},'big',true)}</div>${info}`;
+  // Keep clear of the finger: above it when it's low on the screen, below it when high.
+  TPEEK.el.classList.toggle('low',y<innerHeight*0.45);
+  TPEEK.el.classList.add('show');
+  if(TPEEK.card!==cardEl)navigator.vibrate?.(6);
+  TPEEK.card=cardEl;
+}
+function endTouchPeek(){
+  clearTimeout(TPEEK.timer);TPEEK.timer=0;
+  if(TPEEK.card){TPEEK.card=null;TPEEK.el.classList.remove('show');swallow=true;setTimeout(()=>{swallow=false},350)}
+  TPEEK.id=null;
+}
+document.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse'||ZOOM)return;
+  const card=tpeekTarget(e.target);if(!card)return;
+  TPEEK.id=e.pointerId;TPEEK.x=e.clientX;TPEEK.y=e.clientY;
+  clearTimeout(TPEEK.timer);TPEEK.timer=setTimeout(()=>{TPEEK.timer=0;showTouchPeek(card,TPEEK.y)},TPEEK_HOLD);
+},true);
+document.addEventListener('pointermove',e=>{
+  if(e.pointerId!==TPEEK.id)return;
+  if(TPEEK.card){const card=tpeekTarget(document.elementFromPoint(e.clientX,e.clientY));if(card&&card!==TPEEK.card)showTouchPeek(card,e.clientY);return}
+  // Moving before the hold ends is a swipe along the row, not a peek.
+  if(TPEEK.timer&&Math.hypot(e.clientX-TPEEK.x,e.clientY-TPEEK.y)>9){clearTimeout(TPEEK.timer);TPEEK.timer=0}
+},true);
+['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,e=>{if(e.pointerId===TPEEK.id)endTouchPeek()},true));
+// While peeking the finger slides from card to card, so the row mustn't scroll under it.
+document.addEventListener('touchmove',e=>{if(TPEEK.card)e.preventDefault()},{passive:false});

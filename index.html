@@ -251,6 +251,97 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
   .zone{min-height:150px;padding:6px;gap:6px}
   #start h1{font-size:34px}
 }
+/* phones held upright: the whole board fits the screen, so a game never needs scrolling.
+   Each row of cards is a single line you swipe sideways; cards size to the screen's height
+   and width (about four across); the log is a bar at the bottom that opens over the board. */
+.llast{display:none}
+.lchev{display:none}
+.acts{display:contents}
+.acttxt{display:none}
+@media (max-width:600px){
+  #app:has(>.duel){padding:4px 6px 0}
+  .duel{padding-bottom:42px}
+  /* --chrome: everything on the board that isn't a card row, the log bar included */
+  .duelmain{--chrome:334px;--bcw:clamp(58px,min(calc((100dvh - var(--chrome)) * .2146),calc((100vw - 64px) / 4)),96px)}
+  .duelmain .card{width:var(--bcw)}
+  /* the hand, read most, takes the height left over after both battle zones */
+  .duelmain{--hcw:clamp(var(--bcw),calc((100dvh - var(--chrome) - 2 * var(--bcw) * 1.5536) / 1.5536),132px)}
+  .duelmain .side:last-child>.zone:last-child .card{width:var(--hcw)}
+  .duelmain .side:last-child>.zone:last-child{min-height:calc(var(--hcw) * 1.5536 + 14px)}
+  .duelmain .card.sel{transform:translateY(-4px)}
+  .duelmain .side{padding:6px 8px;gap:4px;border-radius:14px}
+  .duelmain .zone{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;
+    min-height:calc(var(--bcw) * 1.5536 + 14px);padding:7px 6px;gap:6px;border-radius:10px}
+  .duelmain .zone::-webkit-scrollbar{display:none}
+  .duelmain .zone .empty{align-self:center}
+  .duelmain .info{flex-wrap:nowrap;gap:6px;font-size:11.5px;white-space:nowrap;min-width:0}
+  .duelmain .info>b{padding:3px 9px;font-size:12.5px}
+  .duelmain [data-act=fullscreen]{display:none}
+  .duelmain .info>span:first-of-type{display:none}
+  .duelmain .side>.lbl{display:none}
+  .duelmain .stack{gap:3px}
+  .duelmain .sys{gap:3px}
+  .duelmain button.icon,.duelmain button.sysbtn{width:28px;height:28px}
+  .duelmain .bar{padding:5px 0;gap:6px}
+  .duelmain .bar .prompt{flex:1 1 0;min-width:70px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+  /* a hint cut short shows a ▾; tapped, it opens below the bar in full */
+  .duelmain .bar>.prompt{cursor:pointer;position:relative}
+  .duelmain .bar>.prompt.clip{padding-right:15px}
+  .duelmain .bar>.prompt.clip::after{content:'▾';position:absolute;right:2px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--ink)}
+  .duelmain .bar>.prompt.open{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:5;white-space:normal;overflow:visible;
+    padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.4;color:var(--ink);
+    background:color-mix(in srgb,var(--panel) 96%,transparent);box-shadow:inset 0 0 0 1px var(--frame),var(--shadow);animation:k-drop .12s ease-out}
+  /* a selected card's prompt and actions float just below the bar, over the top of your battle zone */
+  .duelmain .bar{flex-wrap:nowrap}
+  .duelmain .bar .endturn{margin-left:auto;flex:none}
+  .duelmain .bar .acts{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    padding:8px;border-radius:12px;background:color-mix(in srgb,var(--panel) 94%,transparent);box-shadow:inset 0 0 0 1px var(--frame),var(--shadow);animation:k-drop .12s ease-out}
+  .duelmain .bar .acts .prompt{flex:1 1 100%;white-space:normal;overflow:visible;line-height:1.35}
+  .duelmain .bar .acts button{padding:6px 11px;font-size:13px}
+  .duelmain .bar .acts .acttxt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;flex:1 1 100%;order:-1;
+    font-size:12.5px;line-height:1.4;color:var(--ink);padding:0 2px 6px;border-bottom:1px solid var(--line);margin-bottom:2px}
+  /* rows you swipe settle on a card edge, and fade at the right when more cards are off-screen */
+  .duelmain .zone{scroll-snap-type:x proximity;scroll-padding-inline:6px}
+  .duelmain .zone>.card{scroll-snap-align:start}
+  .duelmain .zone.overflowing{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
+  .duel>.log{position:fixed;left:0;right:0;bottom:0;z-index:6;margin:0;border-radius:14px 14px 0 0;
+    padding:9px 14px calc(9px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.35),inset 0 0 0 1px var(--frame)}
+  .duel>.log summary{display:flex;gap:10px;align-items:baseline;width:auto;list-style:none;position:relative;padding-top:6px}
+  .duel>.log summary::-webkit-details-marker{display:none}
+  /* the header reads as a handle: a grab bar on top and a chevron, up to open, down to close */
+  .duel>.log summary::before{content:'';position:absolute;top:-3px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:var(--line)}
+  .duel>.log .lchev{margin-left:auto;align-self:center;width:8px;height:8px;border:solid var(--ink);border-width:0 2px 2px 0;transform:rotate(-135deg) translate(-2px,-2px);flex:none}
+  .duel>.log[open] .lchev{transform:rotate(45deg) translate(-2px,-2px)}
+  .duel>.log[open]{box-shadow:0 0 0 100vmax rgba(6,9,14,.45),0 -8px 24px rgba(0,0,0,.35),inset 0 0 0 1px var(--frame)}
+  .duel>.log .lchev{display:block}
+  .duel>.log .llast{display:block;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:400;color:var(--muted)}
+  .duel>.log[open] .llast{display:none}
+  .duel>.log>div{max-height:55dvh}
+}
+@media (max-width:370px){.duelmain .info{gap:4px;font-size:11px}.duelmain .info>b{padding:3px 7px}}
+/* on a touch phone the zoom view has a grab handle: swipe it down to close */
+/* on a phone the zoom view is a sheet: a top row with a grab handle and the close button
+   (swipe down to close), the card below it, which you drag sideways to the next card */
+@media (max-width:600px){
+  #zoom .zbox{padding-top:46px}
+  #zoom .zbox::before{content:'';position:absolute;top:19px;left:50%;width:40px;height:4px;margin-left:-20px;border-radius:2px;background:var(--line)}
+  #zoom .zclose{top:7px;right:8px}
+}
+@media (max-width:600px){
+  #zoom .zdup{display:none}
+  #zoom .zinfo header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  #zoom .zinfo header .zstats{display:block}
+  #zoom .zinfo header .zset{margin:0;text-align:right}
+}
+#zoom .zoomwrap>.card{touch-action:none}
+#zoom .zbox{touch-action:pan-y}
+#zoom .zbox.from-right{animation:k-zin-r .2s ease-out}
+#zoom .zbox.from-left{animation:k-zin-l .2s ease-out}
+@keyframes k-zin-r{from{transform:translateX(36px);opacity:.4}}
+@keyframes k-zin-l{from{transform:translateX(-36px);opacity:.4}}
+.zdots{display:flex;gap:6px;align-items:center;margin-right:auto}
+.zdots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background .15s,transform .15s}
+.zdots i.on{background:var(--ink);transform:scale(1.25)}
 /* phones held sideways: little height, so smaller cards and a tighter board */
 @media (orientation:landscape) and (max-height:500px){
   #app{--pad:4px}
@@ -301,6 +392,24 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 /* hover preview (computers): the card large with its full rules, beside the board */
 #peek{position:fixed;z-index:15;width:250px;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;visibility:hidden}
 #peek.show{opacity:1;transform:none;visibility:visible}
+/* touch peek: the held card, large, with its rules below; it keeps clear of the finger */
+#tpeek{position:fixed;left:50%;top:10px;z-index:25;width:min(400px,92vw);display:grid;justify-items:center;gap:8px;pointer-events:none;
+  opacity:0;visibility:hidden;transform:translate(-50%,6px) scale(.97);transition:opacity .12s,transform .12s,visibility .12s}
+#tpeek.low{top:auto;bottom:calc(52px + env(safe-area-inset-bottom))}
+#tpeek.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
+#tpeek .card.big{width:min(92vw,calc((100dvh - 170px) * .6437),400px);margin:0;box-shadow:0 18px 40px rgba(0,0,0,.55),0 4px 10px rgba(0,0,0,.35)}
+/* at this size the art scales with the card (the big card's art is a fixed height), so the picture gets the room */
+#tpeek .card.big .art{height:64cqw;border-radius:3.6cqw}
+/* its text scales with it too: comfortably readable, and long abilities still shrink to fit */
+#tpeek .card.big .txt{font-size:4.1cqw;line-height:1.38;padding:2.4cqw 3.2cqw}
+#tpeek .tpinfo{width:100%;background:var(--panel);border-radius:14px;padding:10px 14px;font-size:13px;line-height:1.45;max-height:22vh;overflow:hidden;
+  box-shadow:inset 0 0 0 1px var(--frame),var(--shadow)}
+#tpeek .tpinfo p{margin:0 0 4px;font-size:13px;color:var(--muted)}
+#tpeek .tpinfo p:last-child{margin-bottom:0}
+#tpeek .tpinfo b{color:var(--ink)}
+#tpeek .tpinfo .zstate{color:var(--ink);background:none;padding:0;border:0;box-shadow:none}
+/* game cards are held for the peek, so the phone's own long-press menu and text selection stay away */
+.duel .card,#layer .card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 /* the preview card looks printed: a darker rim, a thin light edge and layered shadow beneath */
 #peek .card.big{margin:0;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 0 14px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.35),0 1px 1px rgba(0,0,0,.35),0 4px 8px rgba(0,0,0,.3),0 18px 40px rgba(0,0,0,.45)}
 .peekinfo{width:100%;min-width:0;display:grid;gap:8px;font-size:13px;line-height:1.45}

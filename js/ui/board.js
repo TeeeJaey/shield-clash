@@ -74,6 +74,10 @@ const sysHTML=()=>{
 const btn=(a,l,main,v)=>`<button data-act="${a}"${v!=null?` data-v="${v}"`:''} class="${main?'main':''}">${l}</button>`;
 // The turn steps: charge, then summon and cast, then attack.
 const stepOf=p=>p.attacked?'Attack step':p.played||p.charged?'Main step':'Charge step';
+// A selected card's prompt and actions come grouped (.acts): inline in the bar on a wide
+// screen; on a phone they float just below the bar, so the board never changes height, and
+// carry the card's text too (actText), readable where the card itself is small.
+const actText=c=>{const t=cardTextView(c).face;return t.length?`<span class="acttxt">${t.map(esc).join(' ')}</span>`:''};
 function barHTML(){
   const me=G.p[0];
   const oppName=G.mp?esc(G.p[1].name):'Opponent',lost=G.winner!==G.p[0];
@@ -92,13 +96,14 @@ function barHTML(){
     else if(s.evo&&!bases(me,s).length)why=` Needs one of your ${s.evo}s in the battle zone.`;
     else if(s.needSpell&&!me.castSpell)why=' You can summon it only after casting a spell this turn.';
     if(!me.charged&&!canCharge)why+=' Mana is charged before you summon, cast or attack.';
-    h+=`<span class="prompt">${s.n} selected.${why}</span>`;
+    h+=`<span class="acts"><span class="prompt">${s.n} selected.${why}</span>${actText(s)}`;
     if(canCharge)h+=btn('charge','Charge as mana');
     if(canPlay(me,s))h+=btn('play',s.t==='s'?'Cast':s.evo?'Evolve':'Summon',1);
-    h+=btn('view','View card')+btn('cancel','Cancel');
+    h+=btn('view','View card')+btn('cancel','Cancel')+'</span>';
   }else if(s&&G.sel.zone==='bz'){
     const any=attackTargets(s,me).length>0,prey=T(s).hunts?'an enemy creature':'a tapped enemy creature';
     const tapAb=canTapAbility(s,me)?T(s).tapAb.map((fx,i)=>btn('tapab','Tap: '+esc(fxDesc(fx)),0,i)).join(''):'';
+    h+='<span class="acts">'+actText(s);
     if(!canAttackAnything(s,me))h+=`<span class="prompt">${s.n} can tap instead of attacking to use its ability.</span>`;
     else if(!canAttackPlayer(s,me))h+=`<span class="prompt">${s.n} can't attack players.${any?` Pick ${prey} to attack.`:' No creatures available to attack.'}</span>`;
     else{
@@ -106,7 +111,7 @@ function barHTML(){
       h+=btn('atkp',G.p[1].sh.length?'Attack shields':'Attack directly',1);
     }
     h+=tapAb;
-    h+=btn('view','View card')+btn('cancel','Cancel');
+    h+=btn('view','View card')+btn('cancel','Cancel')+'</span>';
   }else{
     h+=`<span class="prompt">${G.notice||(me.attacked?'Attack with ready creatures, or end your turn.':canCharge?'Pick a card to charge as mana, then summon and attack.':'Summon creatures or attack with ready ones.')}</span>`;
   }
@@ -170,7 +175,7 @@ function render(){
   warmArt([me.hand,me.bz,me.mana,me.sh,me.deck,me.gy,them.bz,them.mana,them.gy].flat());
   if(G.mp&&MP&&!MP.applying&&G.turn===0&&!G.over)mpPush();
   // The log comes first so a wide screen can give it the left column; narrow screens put it last.
-  $('#app').innerHTML=`<div class="duel"><details class="log" ${logOpen?'open':''}><summary>Game log</summary><div aria-live="polite">${logTurnsHTML()}</div></details>
+  $('#app').innerHTML=`<div class="duel"><details class="log" ${logOpen?'open':''}><summary>Game log<span class="llast">${G.log.length?esc(viewText(G.log[0])):''}</span><span class="lchev" aria-hidden="true"></span></summary><div aria-live="polite">${logTurnsHTML()}</div></details>
     <div class="duelmain">${sideHTML(G.p[1])}<div class="bar">${barHTML()}</div>${sideHTML(G.p[0])}</div></div>`;
   let layer='';
   if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${esc(G.modal.title)}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'big',true)}</div>`:''}<p>${esc(G.modal.text)}</p>
@@ -180,4 +185,31 @@ function render(){
     <div class="opts">${btn('new',G.mp?'Back to start page':'Play again',1)}</div></div></div>`;
   $('#layer').innerHTML=layer;
   playLogSounds();
+  document.querySelectorAll('.duelmain .zone').forEach(markOverflow);
+  fitPrompt();
 }
+// On a phone the bar's hint is one line; when it's cut off a ▾ shows, and tapping it opens the
+// whole text in a panel below the bar. It closes when tapped again or when the hint changes;
+// a warning (G.notice) opens by itself.
+const PROMPT={text:'',open:false};
+// On a phone the open log (a drawer over the board) and the opened hint close on a tap
+// anywhere outside them; that tap only closes them, it doesn't also reach the board.
+const PHONE=matchMedia('(max-width:600px)');
+document.addEventListener('click',e=>{
+  if(!PHONE.matches||!G)return;
+  const log=document.querySelector('.duel>details.log[open]');
+  if(log&&!log.contains(e.target)){log.open=false;logOpen=false;e.preventDefault();e.stopImmediatePropagation();return}
+  if(PROMPT.open&&!e.target.closest('.bar>.prompt')&&!e.target.closest('#layer,#zoom')){PROMPT.open=false;render();e.preventDefault();e.stopImmediatePropagation()}
+},true);
+function fitPrompt(){
+  const pr=document.querySelector('.duelmain .bar>.prompt');if(!pr)return;
+  const t=pr.textContent;
+  if(t!==PROMPT.text){PROMPT.text=t;PROMPT.open=!!(G&&G.notice)}
+  pr.dataset.act='pmore';
+  pr.classList.toggle('open',PROMPT.open);
+  pr.classList.toggle('clip',!PROMPT.open&&pr.scrollWidth>pr.clientWidth+1);
+}
+// A row of cards wider than the screen (phones swipe them) fades at the right edge while
+// more cards wait off-screen.
+function markOverflow(z){z.classList.toggle('overflowing',z.scrollWidth-z.clientWidth-z.scrollLeft>4)}
+document.addEventListener('scroll',e=>{if(e.target.classList?.contains('zone'))markOverflow(e.target)},{capture:true,passive:true});
