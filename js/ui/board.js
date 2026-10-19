@@ -48,12 +48,28 @@ function sideHTML(p){
 // (against the computer, on your own turn with nothing resolving).
 const ICON={
   back:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4.5L6.5 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  restart:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 10a5.5 5.5 0 1 1-1.8-4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M14.5 2.8v3.6h-3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  restart:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 10a5.5 5.5 0 1 1-1.8-4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M14.5 2.8v3.6h-3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  full:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 7.5v-4h4M12.5 3.5h4v4M16.5 12.5v4h-4M7.5 16.5h-4v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  unfull:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 3.5v4h-4M16.5 7.5h-4v-4M12.5 16.5v-4h4M3.5 12.5h4v4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
+// Full screen, on a computer (phones have their own browser chrome and gestures for it).
+const canFull=()=>!!document.fullscreenEnabled&&matchMedia('(hover: hover) and (pointer: fine)').matches;
+const fullBtn=icon=>{
+  if(!canFull())return '';
+  const on=!!document.fullscreenElement,label=on?'Exit full screen':'Full screen';
+  return icon?`<button class="icon" data-act="fullscreen" aria-pressed="${on}" aria-label="${label}" title="${label} (F)">${on?ICON.unfull:ICON.full}</button>`
+    :`<button data-act="fullscreen" aria-pressed="${on}" title="${label} (F)">${label}</button>`;
+};
+function toggleFull(){
+  if(document.fullscreenElement)document.exitFullscreen?.().catch(()=>{});
+  else document.documentElement.requestFullscreen?.().catch(()=>{});
+}
+document.addEventListener('keydown',e=>{if((e.key==='f'||e.key==='F')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&canFull()&&!e.target.matches('input,textarea,select'))toggleFull()});
+document.addEventListener('fullscreenchange',()=>{document.querySelectorAll('[data-act=fullscreen]').forEach(b=>{b.outerHTML=fullBtn(b.classList.contains('icon'))})});
 function gameExitOpen(){return !!G&&!G.over&&!G.modal&&!G.targeting&&(G.mp?true:G.turn===0&&!G.busy)}
 const sysHTML=()=>{
   const off=gameExitOpen()?'':' disabled';
-  return `<span class="sys"><button class="sysbtn" data-act="gback" title="Back to the start page"${off}>${ICON.back}<span>Back</span></button>${G.mp?'':`<button class="sysbtn" data-act="grestart" title="Restart with the same decks"${off}>${ICON.restart}<span>Restart</span></button>`}${soundBtn(true)}</span>`;
+  return `<span class="sys"><button class="sysbtn" data-act="gback" title="Back to the start page"${off}>${ICON.back}<span>Back</span></button>${G.mp?'':`<button class="sysbtn" data-act="grestart" title="Restart with the same decks"${off}>${ICON.restart}<span>Restart</span></button>`}${fullBtn(true)}${soundBtn(true)}</span>`;
 };
 const btn=(a,l,main,v)=>`<button data-act="${a}"${v!=null?` data-v="${v}"`:''} class="${main?'main':''}">${l}</button>`;
 // The turn steps: charge, then summon and cast, then attack.
@@ -126,6 +142,23 @@ function modalOpts(opts){
   return `<div class="pickcards">${cards.map(([o,i,c])=>`<button data-act="ans" data-v="${i}" aria-label="${esc(o.label)}">${cardHTML({...c,uid:0,tapped:false},'').replace(' tabindex="0"','')}</button>`).join('')}</div>
     <div class="opts">${opts.map((o,i)=>o.uid&&findCard(o.uid)?'':btn(o,i)).join('')}</div>`;
 }
+// The log, read by turn: each turn is a section headed by whose turn it was, newest turn on
+// top, its lines in the order they happened. A line's rail shows who did it: a line written
+// from a player's side starts with that player's seat marker (see V in state.js); the rest are
+// card events ("... is destroyed"), shown neutral.
+const TURN_LINE=/^\u0001(\d)\u0002[^\u0002]*\u0002[^\u0003]*\u0003 (\d+) begins\.$/;
+function logTurnsHTML(){
+  const turns=[{seat:-1,lines:[]}];
+  for(const raw of [...G.log].reverse()){
+    const m=TURN_LINE.exec(raw);
+    if(m){turns.push({seat:+m[1],head:viewText(raw).replace(/ begins\.$/,''),lines:[]});continue}
+    turns[turns.length-1].lines.push(raw);
+  }
+  const who=seat=>seat<0?'none':seat===VIEW?'me':'them';
+  return turns.filter(t=>t.lines.length||t.seat>=0).reverse().map((t,i)=>`<section class="lturn ${who(t.seat)} ${i?'':'now'}">
+    <h4>${t.seat<0?'Before the duel':esc(t.head)}</h4>
+    <ol>${t.lines.map(raw=>{const m=/^\u0001(\d)\u0002/.exec(raw);return `<li class="by-${m?who(+m[1]):'none'}">${logHTML(viewText(raw))}</li>`}).join('')}</ol></section>`).join('');
+}
 function render(){
   if(SIM)return;
   if(!G)return;
@@ -136,8 +169,9 @@ function render(){
   const [me,them]=G.p;
   warmArt([me.hand,me.bz,me.mana,me.sh,me.deck,me.gy,them.bz,them.mana,them.gy].flat());
   if(G.mp&&MP&&!MP.applying&&G.turn===0&&!G.over)mpPush();
-  $('#app').innerHTML=`${sideHTML(G.p[1])}<div class="bar">${barHTML()}</div>${sideHTML(G.p[0])}
-    <details class="log" ${logOpen?'open':''}><summary>Game log</summary><div aria-live="polite">${G.log.slice(0,30).map(l=>`<div>${logHTML(viewText(l))}</div>`).join('')}</div></details>`;
+  // The log comes first so a wide screen can give it the left column; narrow screens put it last.
+  $('#app').innerHTML=`<div class="duel"><details class="log" ${logOpen?'open':''}><summary>Game log</summary><div aria-live="polite">${logTurnsHTML()}</div></details>
+    <div class="duelmain">${sideHTML(G.p[1])}<div class="bar">${barHTML()}</div>${sideHTML(G.p[0])}</div></div>`;
   let layer='';
   if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${esc(G.modal.title)}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'big',true)}</div>`:''}<p>${esc(G.modal.text)}</p>
     ${modalOpts(G.modal.opts)}</div></div>`;

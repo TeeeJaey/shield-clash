@@ -135,10 +135,44 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 .step{font-size:14px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
 .prompt{color:var(--muted);flex:1;min-width:160px}
 .turn{font-weight:700;font-size:16px;letter-spacing:.02em;padding:3px 14px;border-radius:999px;background:var(--ink);color:var(--bg)}
+.duel{display:flex;flex-direction:column}
+.duel>.log{order:1}
+.duelmain{min-width:0}
+/* desktop: the log is a column on the left that stays in view, so the board alone fills the height */
+@media (min-width:1200px){
+  #app:has(>.duel){max-width:1420px}
+  .duel{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;align-items:start}
+  .duel>.log{order:0;position:sticky;top:var(--pad);margin-top:0}
+  .duel>.log[open]{min-height:calc(100vh - var(--pad) - 10px)}
+  .duel>.log>div{max-height:calc(100vh - var(--pad) - 66px)}
+  /* the board fits the window's height: cards scale down to 78px wide from 112px (their text scales with them) */
+  .duelmain{--bcw:clamp(84px,calc((100vh - 470px) * .2146),112px)}
+  .duelmain .card{width:var(--bcw)}
+  .duelmain .zone{min-height:calc(var(--bcw) * 1.5536 + 20px)}
+}
+/* shorter desktop windows (laptops) also tighten the spacing, so the cards can stay larger */
+@media (min-width:1200px) and (max-height:940px){
+  #app{--pad:6px}
+  .duelmain{--bcw:clamp(78px,calc((100vh - 388px) * .2146),112px)}
+  .duelmain .side{padding:8px 12px;gap:6px}
+  .duelmain .zone{padding:6px;gap:6px;min-height:calc(var(--bcw) * 1.5536 + 12px)}
+  .duelmain .bar{min-height:0;padding:5px 4px}
+}
 .log{margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.6;padding:8px 14px;background:var(--mat);border-radius:14px;box-shadow:inset 0 0 0 1px var(--frame)}
 .log summary{cursor:pointer;font-weight:700;color:var(--ink);width:max-content}
 .log>div{max-height:150px;overflow:auto;margin-top:4px}
-.log>div>div:first-child{color:var(--ink)}
+.lturn{padding:6px 0 8px;border-top:1px solid var(--line)}
+.lturn:first-child{border-top:0;padding-top:2px}
+.lturn h4{margin:0 0 4px;display:flex;align-items:center;gap:7px;font:600 11px/1.2 var(--font-num);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+/* the dot's centre sits on the line rails below it */
+.lturn h4::before{content:'';flex:none;width:8px;height:8px;border-radius:50%;background:var(--who,var(--line))}
+.lturn.me{--who:var(--hi)}.lturn.them{--who:var(--danger)}
+.lturn.now h4{color:var(--ink)}
+.lturn:not(.now){opacity:.72}
+.lturn ol{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.lturn li{margin-left:3px;padding:1px 0 1px 10px;border-left:2px solid var(--line);line-height:1.45}
+.lturn li.by-me{border-color:var(--hi)}.lturn li.by-them{border-color:var(--danger)}
+.lturn.now li{color:var(--ink)}
 .cref{color:var(--ink);text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
 .cref:focus-visible{outline:2px solid var(--hi);outline-offset:1px}
 .overlay{position:fixed;inset:0;background:rgba(10,14,20,.55);display:grid;place-items:center;padding:16px;z-index:10;overflow:auto}

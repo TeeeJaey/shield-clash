@@ -7,7 +7,7 @@ function aiCharge(p){
   const byCost=[...p.hand].sort((a,b)=>p.mana.length<4?b.cost-a.cost:a.cost-b.cost);
   const pick=(p.mana.length<4&&missing[0])||byCost[0];
   p.hand.splice(p.hand.indexOf(pick),1);toMana(p,[pick]);p.charged=true;
-  log(`Opponent charges ${pick.n} as mana.`);
+  log(`${V(p,"You charge","Opponent charges")} ${pick.n} as mana.`);
 }
 function fxUseful(p,f){
   if(f.startsWith('optional:'))f=f.slice(9);
