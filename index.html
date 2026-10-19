@@ -30,6 +30,8 @@
 }
 *{box-sizing:border-box}
 /* thin rounded scrollbars in the theme's colors (page, dropdowns, log, card viewers) */
+/* the page always keeps room for its scrollbar, so filtering to a short list doesn't shift everything sideways */
+html{scrollbar-gutter:stable}
 *{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
