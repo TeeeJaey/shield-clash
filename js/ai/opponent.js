@@ -1,6 +1,6 @@
 /* ---------- opponent AI ---------- */
 function aiCharge(p){
-  if(!p.hand.length)return;
+  if(!p.hand.length||p.charged)return;
   if(p.mana.length>=8&&p.hand.length<4)return;
   const have=new Set(p.mana.flatMap(civsOf));
   const missing=p.hand.filter(c=>civsOf(c).some(e=>!have.has(e))).sort((a,b)=>b.cost-a.cost);
@@ -54,23 +54,41 @@ function aiBlock(o,att,blockers,target,required){
   return null;
 }
 function aiUseTrig(o,s){return s.t==='c'||fxList(s.fx).some(f=>fxUseful(o,f))}
+// The computer's turn. The strategist plans it by simulation (planner.js); inside a
+// simulation, and as a fallback, both seats play the quick rule-based turn below.
 async function aiTurn(p){
+  if(AI_PLANS&&!SIM&&!p.rulesOnly&&typeof planTurn==='function'){
+    try{return await planTurn(p)}catch(e){if(e===PLAN_GONE)return;console.error('planner',e)}
+  }
+  await ruleTurn(p);
+}
+async function ruleTurn(p){
   await sleep(600);
   aiCharge(p);render();
+  await aiMain(p);
+  await aiTapAbilities(p);
+  await aiAttacks(p);
+  await sleep(500);
+}
+async function aiMain(p){
   for(let guard=0;guard<10&&!G.over;guard++){
     const opts=p.hand.filter(c=>canPlay(p,c)&&aiWants(p,c)).sort((a,b)=>(b.cost+(b.evo?1:0))-(a.cost+(a.evo?1:0)));
     if(!opts.length)break;
     await sleep(700);await playCard(p,opts[0]);
   }
-  const me=opp(p);
-  const strike=async(c,t)=>{await sleep(800);await attack(p,c,t)};
-  // Tap abilities are used by creatures that can't attack well.
+}
+// Tap abilities are used by creatures that can't attack well.
+async function aiTapAbilities(p){
   for(const c of [...p.bz]){
     if(G.over)return;
     if(!canTapAbility(c,p))continue;
     const fx=T(c).tapAb[0],weak=!canAttackAnything(c,p)||atkPow(c)<=3000||T(c).noP;
     if(fxList(fx).some(f=>fxUseful(p,f))&&(weak||Math.random()<0.3)){await sleep(700);await useTapAbility(p,c,0)}
   }
+}
+async function aiAttacks(p){
+  const me=opp(p);
+  const strike=async(c,t)=>{await sleep(800);await attack(p,c,t)};
   for(const c of [...p.bz]){
     if(G.over)return;
     if(!canAttackAnything(c,p))continue;
@@ -84,11 +102,13 @@ async function aiTurn(p){
     if(safe||me.sh.length===0||Math.random()<0.3){await strike(c,'player');continue}
     if(prey)await strike(c,prey);
   }
-  // Creatures that attack each turn if able attack even when the attack is poor.
+  await aiForcedAttacks(p);
+}
+// Creatures that attack each turn if able attack even when the attack is poor.
+async function aiForcedAttacks(p){
   for(const c of mustAttackers(p)){
     if(G.over)return;
     if(!mustAttackers(p).includes(c))continue;
-    await strike(c,canAttackPlayer(c,p)?'player':attackTargets(c,p).sort((a,b)=>power(a)-power(b))[0]);
+    await sleep(800);await attack(p,c,canAttackPlayer(c,p)?'player':attackTargets(c,p).sort((a,b)=>power(a)-power(b))[0]);
   }
-  await sleep(500);
 }

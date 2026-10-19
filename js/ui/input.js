@@ -21,6 +21,7 @@ function onAct(a,v){
   // menus and deck builder
   if(a==='sound'){toggleSound();return}
   if(a==='setmode'){PLAYMODE=v==='friend'?'friend':'cpu';renderModeSw();try{window.storage.set('shieldclash-mode',PLAYMODE,false)}catch(e){}return}
+  if(a==='setai'){AI_PLANS=v!=='classic';renderModeSw();try{window.storage.set('shieldclash-ai',AI_PLANS?'plan':'classic',false)}catch(e){}return}
   if(a==='preset'){const pr=PRESETS[+v];playWith('p'+v,()=>({n:pr.n,ids:presetIds(pr.civ)}));return}
   if(a==='builder'){withLoader('Opening the deck builder',()=>showBuilder());return}
   if(a==='dedit'){withLoader('Opening the deck builder',()=>showBuilder(v));return}

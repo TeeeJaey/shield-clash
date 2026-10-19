@@ -270,7 +270,7 @@ async function pickCard(p,cards,msg,{optional=false,hidden=false,aiPick}={}){
     if(p.remote)return cardBy(await remoteDecide(p,'target',{uids:cards.map(c=>c.uid),msg,required:!optional}));
     return pickTarget(cards,msg,optional?'Skip':null);
   }
-  const opts=cards.map((c,i)=>({label:hidden?`Shield ${c.shL||i+1}`:c.n,val:i}));
+  const opts=cards.map((c,i)=>({label:hidden?`Shield ${c.shL||i+1}`:c.n,val:i,...(hidden?{}:{uid:c.uid})}));
   if(optional)opts.push({label:'Skip',val:-1});
   const i=await chooseEffect(p,'Choose a card',msg,opts,0);
   if(Number.isInteger(i)&&i>=0&&i<cards.length)return cards[i];
@@ -788,8 +788,11 @@ async function startTurn(i){
   render();
   if(G.mp)mpPush(true);
   if(p.ai){
+    // Leaving or restarting while the computer plays replaces G; this turn then just stops.
+    const g=G;
     G.busy=true;render();
     await aiTurn(p);
+    if(G!==g)return;
     if(!G.over)await endTurn(p);
     G.busy=false;
     if(!G.over)startTurn(nextPlayer(p));

@@ -17,12 +17,16 @@ const LOGO=`<svg class="emblem" viewBox="0 0 100 110" aria-hidden="true">
 let MP=null;
 let PLAYMODE='cpu';
 (async()=>{try{const r=await window.storage.get('shieldclash-mode',false);if(r&&r.value==='friend'){PLAYMODE='friend';renderModeSw()}}catch(e){}})();
+(async()=>{try{const r=await window.storage.get('shieldclash-ai',false);if(r&&r.value==='classic'){AI_PLANS=false;renderModeSw()}}catch(e){}})();
 function renderModeSw(){
   const el=document.getElementById('modesw');if(!el)return;
   el.innerHTML=`<span><b>Play against</b></span><div class="seg" role="group" aria-label="Play against">
     <button data-act="setmode" data-v="cpu" class="${PLAYMODE==='cpu'?'main':''}" aria-pressed="${PLAYMODE==='cpu'}">Computer</button>
     <button data-act="setmode" data-v="friend" class="${PLAYMODE==='friend'?'main':''}" aria-pressed="${PLAYMODE==='friend'}">Friend</button></div>
-    <span class="hint">${PLAYMODE==='friend'?'Pick your deck below, then create a room or join one with a code.':'Pick a deck below to start a duel.'}</span>`;
+    ${PLAYMODE==='cpu'?`<div class="seg" role="group" aria-label="Computer">
+    <button data-act="setai" data-v="plan" class="${AI_PLANS?'main':''}" aria-pressed="${AI_PLANS}">Strategist</button>
+    <button data-act="setai" data-v="classic" class="${AI_PLANS?'':'main'}" aria-pressed="${!AI_PLANS}">Classic</button></div>`:''}
+    <span class="hint">${PLAYMODE==='friend'?'Pick your deck below, then create a room or join one with a code.':AI_PLANS?'The strategist plans each turn by playing it out in its head. Pick a deck below to start a duel.':'The classic computer plays by simple rules, a gentler opponent. Pick a deck below to start a duel.'}</span>`;
   const st=document.getElementById('start');if(st)st.classList.toggle('friendmode',PLAYMODE==='friend');
 }
 // Deck tiles wear a card frame: their civilizations' colors (blended like a multicolored

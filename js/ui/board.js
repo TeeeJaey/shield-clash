@@ -116,7 +116,18 @@ function logHTML(line){
   logCache.set(line,html);
   return html;
 }
+// A prompt's answers. Answers that are cards show the cards themselves, to pick by sight
+// (resting the mouse on one shows it large, as anywhere else); the rest (Skip, Yes, No)
+// stay buttons below them.
+function modalOpts(opts){
+  const btn=(o,i)=>`<button data-act="ans" data-v="${i}" class="${o.main?'main':''}">${esc(o.label)}</button>`;
+  const cards=opts.map((o,i)=>[o,i,o.uid&&findCard(o.uid)?.c]).filter(([,,c])=>c);
+  if(!cards.length)return `<div class="opts">${opts.map(btn).join('')}</div>`;
+  return `<div class="pickcards">${cards.map(([o,i,c])=>`<button data-act="ans" data-v="${i}" aria-label="${esc(o.label)}">${cardHTML({...c,uid:0,tapped:false},'').replace(' tabindex="0"','')}</button>`).join('')}</div>
+    <div class="opts">${opts.map((o,i)=>o.uid&&findCard(o.uid)?'':btn(o,i)).join('')}</div>`;
+}
 function render(){
+  if(SIM)return;
   if(!G)return;
   setPhase();
   labelShields();
@@ -129,7 +140,7 @@ function render(){
     <details class="log" ${logOpen?'open':''}><summary>Game log</summary><div aria-live="polite">${G.log.slice(0,30).map(l=>`<div>${logHTML(viewText(l))}</div>`).join('')}</div></details>`;
   let layer='';
   if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${esc(G.modal.title)}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'big',true)}</div>`:''}<p>${esc(G.modal.text)}</p>
-    <div class="opts">${G.modal.opts.map((o,i)=>`<button data-act="ans" data-v="${i}" class="${o.main?'main':''}">${esc(o.label)}</button>`).join('')}</div></div></div>`;
+    ${modalOpts(G.modal.opts)}</div></div>`;
   else if(G.over)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${G.winner!==G.p[0]?'Defeat':'Victory'}</h2>
     <p>${G.left!=null?`${esc(G.p[1].name)} left the game.`:G.why==='deck'?(G.winner!==G.p[0]?'Your deck ran out of cards, and a player with no deck loses.':`${G.mp?esc(G.p[1].name)+"'s":"The opponent's"} deck ran out of cards.`):G.winner!==G.p[0]?`Your last shield fell and ${G.mp?esc(G.p[1].name):'the opponent'} landed the final blow.`:'Every shield is gone and your creature struck the final blow.'}</p>
     <div class="opts">${btn('new',G.mp?'Back to start page':'Play again',1)}</div></div></div>`;
