@@ -60,8 +60,9 @@ document.addEventListener('pointerout',e=>{if(PEEK.card&&!PEEK.card.contains(e.r
 // On a touch screen, holding a card on the board shows it large with its rules, for as long
 // as the finger stays down. Sliding the finger along a row shows each card it passes, so a
 // whole battle zone can be read in one hold; lifting the finger closes it, and the tap that
-// ends the hold doesn't also select the card. A quick tap still selects, as before.
-const TPEEK={el:null,card:null,timer:0,id:null,x:0,y:0};
+// ends the hold doesn't also select the card. A quick tap still selects, as before, and a
+// swipe up on a card opens it in the zoom view.
+const TPEEK={el:null,card:null,timer:0,id:null,x:0,y:0,start:null};
 const TPEEK_HOLD=260;
 const tpeekTarget=t=>t&&t.closest&&t.closest('.duel .card[data-uid],.duel .card[data-def],#layer .card[data-def]');
 function showTouchPeek(cardEl,y){
@@ -82,21 +83,27 @@ function showTouchPeek(cardEl,y){
   TPEEK.card=cardEl;
 }
 function endTouchPeek(){
-  clearTimeout(TPEEK.timer);TPEEK.timer=0;
+  clearTimeout(TPEEK.timer);TPEEK.timer=0;TPEEK.start=null;
   if(TPEEK.card){TPEEK.card=null;TPEEK.el.classList.remove('show');swallow=true;setTimeout(()=>{swallow=false},350)}
   TPEEK.id=null;
 }
 document.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse'||ZOOM)return;
   const card=tpeekTarget(e.target);if(!card)return;
-  TPEEK.id=e.pointerId;TPEEK.x=e.clientX;TPEEK.y=e.clientY;
+  TPEEK.id=e.pointerId;TPEEK.x=e.clientX;TPEEK.y=e.clientY;TPEEK.start=card;
   clearTimeout(TPEEK.timer);TPEEK.timer=setTimeout(()=>{TPEEK.timer=0;showTouchPeek(card,TPEEK.y)},TPEEK_HOLD);
 },true);
 document.addEventListener('pointermove',e=>{
   if(e.pointerId!==TPEEK.id)return;
   if(TPEEK.card){const card=tpeekTarget(document.elementFromPoint(e.clientX,e.clientY));if(card&&card!==TPEEK.card)showTouchPeek(card,e.clientY);return}
-  // Moving before the hold ends is a swipe along the row, not a peek.
-  if(TPEEK.timer&&Math.hypot(e.clientX-TPEEK.x,e.clientY-TPEEK.y)>9){clearTimeout(TPEEK.timer);TPEEK.timer=0}
+  // Swiping a card upward opens it in the zoom view straight away.
+  const dx=e.clientX-TPEEK.x,dy=e.clientY-TPEEK.y;
+  if(TPEEK.start&&dy<-40&&Math.abs(dx)<Math.abs(dy)*0.7){
+    const card=TPEEK.start;clearTimeout(TPEEK.timer);TPEEK.timer=0;TPEEK.start=null;TPEEK.id=null;
+    swallow=true;setTimeout(()=>{swallow=false},400);zoomFrom(card);return;
+  }
+  // Moving sideways before the hold ends is a swipe along the row, not a peek.
+  if(TPEEK.timer&&Math.hypot(dx,dy)>9){clearTimeout(TPEEK.timer);TPEEK.timer=0}
 },true);
 ['pointerup','pointercancel'].forEach(n=>document.addEventListener(n,e=>{if(e.pointerId===TPEEK.id)endTouchPeek()},true));
 // While peeking the finger slides from card to card, so the row mustn't scroll under it.

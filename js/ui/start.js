@@ -56,11 +56,12 @@ function renderMyDecks(){
   if(PENDING_DEL)el.querySelector('[data-act=ddelno]')?.focus();
 }
 function showStart(){
+  navTo('start');
   G=null;$('#app').innerHTML='';
   $('#layer').innerHTML=`<div class="overlay" id="start"><div class="dialog">
-    <div class="logo">${LOGO}<h1>Shield Clash</h1></div>
+    <div class="shead"><div class="logo">${LOGO}<h1>Shield Clash</h1></div>
     <div class="howto"><button class="main" data-act="tut">How to play</button>${soundBtn()}${fullBtn()}<span class="hint">${DEFS.length} cards available for duels</span></div>
-    <div class="howto modesw" id="modesw"></div>
+    <div class="howto modesw" id="modesw"></div></div>
 
     <div id="mydecks"></div>
     <p><b class="pickh">Pick a deck</b></p>

@@ -44,6 +44,7 @@ function mkPlayer(name,ai,deck,shields=5,seat=0){
   return p;
 }
 function startGame(mine,theirs){
+  if(typeof navTo==='function')navTo('game');
   if(!theirs){const pre=PRESETS[Math.floor(Math.random()*PRESETS.length)];theirs={n:pre.n,ids:presetIds(pre.civ)}}
   $('#layer').innerHTML='';
   const sh=SHIELDS;

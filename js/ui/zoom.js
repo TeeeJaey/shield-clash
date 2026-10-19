@@ -10,8 +10,9 @@ let ZOOM=null,ZNAV=null;
 const TOUCHY=matchMedia('(pointer: coarse)');
 // nav: browse a list from the zoom view ({list}, a snapshot so it stays put), and for the
 // deck builder ({build:true}) change how many copies are in the deck without closing it.
-function openZoom(c,nav){if(!c)return;ZOOM=c;ZNAV=nav&&nav.list.includes(c)?{...nav,list:nav.list.slice()}:null;renderZoom()}
+function openZoom(c,nav){if(!c)return;if(!ZOOM)navOpen('zoom');ZOOM=c;ZNAV=nav&&nav.list.includes(c)?{...nav,list:nav.list.slice()}:null;renderZoom()}
 function closeZoom(){
+  if(ZOOM)navClose('zoom');
   const back=ZNAV&&ZNAV.build&&ZOOM&&ZOOM.id;
   ZOOM=null;ZNAV=null;renderZoom();
   if(back)revealBuilderCard(back);
@@ -36,8 +37,10 @@ function zoomCopies(to){
 function zoomNavHTML(){
   if(!ZNAV)return '';
   const i=ZNAV.list.indexOf(ZOOM),n=ZNAV.list.length;
-  // Touch screens swipe between cards, so dots show the place instead of arrow buttons.
-  let h=TOUCHY.matches&&n<=14?`<div class="zdots" aria-label="Card ${i+1} of ${n}">${ZNAV.list.map((_,k)=>`<i class="${k===i?'on':''}"></i>`).join('')}</div>`
+  // Touch screens swipe between cards, so the place shows without arrow buttons: dots for a
+  // short list (a zone), a count for a long one (the deck builder's cards).
+  let h=TOUCHY.matches?(n<=14?`<div class="zdots" aria-label="Card ${i+1} of ${n}">${ZNAV.list.map((_,k)=>`<i class="${k===i?'on':''}"></i>`).join('')}</div>`
+      :`<span class="zcount" aria-label="Card ${i+1} of ${n}"><b style="min-width:${String(n).length}ch">${i+1}</b> / ${n}</span>`)
     :`<div class="znav"><button class="icon" data-znav="-1" aria-label="Previous card" ${i>0?'':'disabled'}>‹</button><span class="zpos"><b style="min-width:${String(n).length}ch">${i+1}</b> of ${n}</span><button class="icon" data-znav="1" aria-label="Next card" ${i<n-1?'':'disabled'}>›</button></div>`;
   if(ZNAV.build){
     const c=BUILD.counts[ZOOM.id]||0,tot=total();
@@ -48,7 +51,7 @@ function zoomNavHTML(){
   return h;
 }
 // A face-up pile (graveyard or mana zone); tapping a card in it shows that card.
-function openPile(title,cards){ZOOM={pile:{title,cards:cards.slice().reverse()}};renderZoom()}
+function openPile(title,cards){if(!ZOOM)navOpen('zoom');ZOOM={pile:{title,cards:cards.slice().reverse()}};renderZoom()}
 function renderZoom(){
   const el=$('#zoom');
   if(!ZOOM){el.innerHTML='';return}
@@ -76,7 +79,7 @@ function renderZoom(){
   }
   el.innerHTML=`<div class="overlay" data-zbg="1"><div class="zstack"><div class="zbox zoomwrap ${ZSLIDE>0?'from-right':ZSLIDE<0?'from-left':''}" role="dialog" aria-label="${esc(c.n)}">
     <button class="zclose" data-zclose="1" aria-label="Close">×</button>
-    ${cardHTML({...c,uid:0,tapped:false},'big',true)}
+    ${zoomCardHTML(c)}
     <div class="zinfo"><header><h2 class="zdup">${esc(c.n)}</h2>${facts}</header>
       <div class="zbody">
         ${st.length?`<p class="zstate">${st.join(' ')}</p>`:''}
@@ -87,6 +90,14 @@ function renderZoom(){
   </div>${ZNAV?`<div class="zbar">${zoomNavHTML()}<p class="hint">${TOUCHY.matches?'Swipe sideways to browse · down to close':`${ZNAV.build?'← → browse · + − or 0–4 set copies':'← → browse'} · Esc closes`}</p></div>`:''}</div></div>`;
   // The zoomed card's art comes alive in its civilization's way.
   artfxAttach(el.querySelector('.card.big .art img'),c.e,c.e2);
+}
+// The zoomed card. On a touch screen with cards either side, slim chevrons beside it say it
+// can be swiped (and work as buttons too); at either end of the list that side's goes away.
+function zoomCardHTML(c){
+  const card=cardHTML({...c,uid:0,tapped:false},'big',true);
+  if(!ZNAV||!TOUCHY.matches)return card;
+  const i=ZNAV.list.indexOf(c),side=(d,ok,label)=>`<button class="zside" data-znav="${d}" aria-label="${label}" ${ok?'':'hidden'}><svg viewBox="0 0 12 24" aria-hidden="true"><path d="${d<0?'M9 3L3 12l6 9':'M3 3l6 9-6 9'}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+  return `<div class="zcardnav">${side(-1,i>0,'Previous card')}${card}${side(1,i<ZNAV.list.length-1,'Next card')}</div>`;
 }
 // Every way of opening a card (click, right-click, long-press, keyboard) shows the same view:
 // in the deck builder that's the browser with copy controls.
@@ -99,6 +110,8 @@ const zoneNav=f=>f&&f.c&&f.p[f.z]?{list:f.p[f.z]}:null;
 // Touch gestures on the zoom view: swipe sideways to browse, swipe down to close (unless the
 // text inside is scrolled, when a downward drag scrolls it back instead).
 let pressT=null,swallow=false,swipe=null;
+// `swallow` eats the click that ends a hold or a swipe; a new touch is a new gesture.
+document.addEventListener('pointerdown',()=>{swallow=false},true);
 document.addEventListener('pointerdown',e=>{
   const z=e.target.closest('#zoom');
   swipe=z&&e.pointerType!=='mouse'?{x:e.clientX,y:e.clientY,scrolled:(e.target.closest('.zbody,.pile')?.scrollTop||0)>0}:null;

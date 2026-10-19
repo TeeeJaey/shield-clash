@@ -135,6 +135,17 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 .step{font-size:14px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
 .prompt{color:var(--muted);flex:1;min-width:160px}
 .turn{font-weight:700;font-size:16px;letter-spacing:.02em;padding:3px 14px;border-radius:999px;background:var(--ink);color:var(--bg)}
+/* whose turn: an arrow chip pointing at that player's side, in their log color; it swings when the turn passes */
+.turn.tarrow{display:inline-grid;place-items:center;width:44px;height:32px;padding:0;color:#fff;background:var(--who);box-shadow:0 0 0 3px color-mix(in srgb,var(--who) 28%,transparent)}
+.turn.tarrow.me{--who:var(--hi)}.turn.tarrow.them{--who:var(--danger)}
+.turn.tarrow svg{width:22px;height:22px;transition:transform .2s}
+.turn.tarrow.them svg{transform:rotate(180deg)}
+.turn.tarrow.swing svg{animation:k-turn-me .55s cubic-bezier(.3,1.5,.5,1) var(--t,0s) both}
+.turn.tarrow.them.swing svg{animation-name:k-turn-them}
+.turn.tarrow.swing{animation:k-turn-pulse .7s ease-out var(--t,0s)}
+@keyframes k-turn-me{from{transform:rotate(180deg)}to{transform:rotate(360deg)}}
+@keyframes k-turn-them{from{transform:rotate(0deg)}to{transform:rotate(180deg)}}
+@keyframes k-turn-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--who) 70%,transparent)}100%{box-shadow:0 0 0 12px transparent,0 0 0 3px color-mix(in srgb,var(--who) 28%,transparent)}}
 .duel{display:flex;flex-direction:column}
 .duel>.log{order:1}
 .duelmain{min-width:0}
@@ -190,6 +201,19 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 /* the start screen wears the logo's frame: fire and water, like a multicolored card */
 #start .dialog{max-width:680px;border:4px solid transparent;background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,#A32D2D 45%,#185FA5 55%) border-box;box-shadow:var(--shadow)}
 #start h1{margin:0;font-size:46px;font-weight:750;letter-spacing:-.025em;line-height:1}
+#start .shead{display:contents}
+/* on a phone the start page is an app screen: its framed panel fills the screen and stays put,
+   the logo stays at its top, and what's inside scrolls within the frame */
+@media (max-width:600px){
+  #start.overlay{padding:8px;place-items:stretch;overflow:hidden}
+  #start .dialog{height:calc(100dvh - 16px);max-width:none;overflow-y:auto;overscroll-behavior:contain;align-content:start;border-radius:22px;scrollbar-width:none;padding:0 18px 22px}
+  #start .dialog::-webkit-scrollbar{display:none}
+  /* pinned at the top of the frame: the logo, How to play and Sound, and the play mode */
+  #start .shead{display:grid;gap:10px;position:sticky;top:0;z-index:2;background:var(--panel);margin:0 -18px;padding:16px 18px 12px;box-shadow:0 10px 12px -10px rgba(0,0,0,.45)}
+  #start .shead .logo h1{font-size:30px}
+  #start .shead .emblem{width:40px;height:44px}
+  #start .shead .howto>.hint,#start .shead .modesw .hint{display:none}
+}
 .decks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
 /* deck tiles are small card frames: their civilizations' colors, light plates with deep text */
 .deck,.mydeck{text-align:left;display:grid;align-content:start;gap:5px;padding:5px;border-radius:14px/12px;background:var(--fr);color:var(--dp);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s,box-shadow .15s}
@@ -230,6 +254,47 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 .bitem.indeck .qb{display:block}
 .bitem.indeck .bc span{background:var(--ink);color:var(--bg);border-radius:999px;min-width:24px;font-family:var(--font-num);font-size:15px;line-height:22px}
 .build-tools{margin:12px 0 4px}
+/* phone-only parts of the deck builder; on a wide screen they fold away and everything shows inline */
+.bfind,.bsheet,.bacts{display:contents}
+.bfiltbtn,.bsheet-head,.bscrim,.bh .bmore-btn{display:none}
+@media (max-width:600px){
+  /* header: Back, the deck's name and Start duel on one line; the rest under a "⋯" menu */
+  .bh{gap:6px;padding:8px 0}
+  .bh h2{display:none}
+  /* first row: the deck's name, and Back in the top-right corner, where the game keeps it too */
+  .bh .dname{order:0;flex:1 1 calc(100% - 50px);min-width:0;width:auto;font-size:16px;padding:8px 14px}
+  .bh .bback{order:1;flex:none}
+  /* second row: the count, then the "⋯" menu and Start duel */
+  .bh .cnt{order:5;flex:1 1 auto}
+  .bh .bmore-btn{display:inline-grid;order:6;font-size:20px;line-height:1}
+  .bh [data-act=bstart]{order:7}
+  .bh .bmsg{order:8}
+  .bh .bmsg:not(.note){display:none}
+  .bacts{display:none}
+  .bacts.open{display:grid;position:absolute;right:0;top:calc(100% + 4px);z-index:8;gap:6px;padding:8px;min-width:210px;border-radius:14px;
+    background:var(--panel);box-shadow:inset 0 0 0 1px var(--frame),var(--shadow);animation:k-drop .12s ease-out}
+  .bacts.open button{width:100%;text-align:left}
+  /* the search, a Filters button and the civilization tabs stay just below the header */
+  .bfind{display:flex;flex-direction:column;gap:8px;position:sticky;top:var(--bhh,56px);z-index:4;background:var(--bg);padding:8px 0;margin-bottom:6px;border-bottom:1px solid var(--frame)}
+  .bfind .build-tools{order:1;margin:0;flex-wrap:nowrap;align-items:center;gap:8px}
+  .bfind .build-tools .fld:first-child{flex:1 1 auto;min-width:0}
+  .bfind .build-tools .fld:first-child>span{display:none}
+  .bfind .build-tools .fld:first-child input{padding:8px 12px;width:100%}
+  .bfiltbtn{display:inline-flex;align-items:center;gap:6px;flex:none}
+  .bfiltbtn b{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--hi);color:#fff;font:700 12px/1 var(--font-num)}
+  .bfind .tabs{order:2;margin:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+  .bfind .tabs::-webkit-scrollbar{display:none}
+  .bfind .tabs button{flex:none}
+  /* the other filters: a sheet from the bottom */
+  .bsheet{display:none}
+  .bsheet.open{display:grid;gap:14px;position:fixed;left:0;right:0;bottom:0;z-index:30;padding:14px 16px calc(18px + env(safe-area-inset-bottom));
+    background:var(--panel);border-radius:18px 18px 0 0;box-shadow:inset 0 1px 0 var(--frame),0 -12px 36px rgba(0,0,0,.45);animation:k-sheet .18s ease-out}
+  .bsheet.open .fld{flex:none}
+  .bsheet.open .check{padding:4px 0}
+  .bsheet-head{display:flex;align-items:center;justify-content:space-between;font-size:17px}
+  .bscrim{display:block;position:fixed;inset:0;z-index:29;background:rgba(6,9,14,.5)}
+}
+@keyframes k-sheet{from{transform:translateY(24px);opacity:.5}}
 .build-tools .check{display:flex;gap:9px;align-items:center;align-self:end;padding-bottom:9px;font-size:13px;color:var(--ink);cursor:pointer}
 .deck-summary{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;background:var(--mat);border-radius:16px;padding:12px 16px;margin:10px 0;box-shadow:inset 0 0 0 1px var(--frame)}
 .curve{display:flex;gap:6px;height:76px}
@@ -257,7 +322,7 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 .llast{display:none}
 .lchev{display:none}
 .acts{display:contents}
-.acttxt{display:none}
+.acttxt,.actname{display:none}
 @media (max-width:600px){
   #app:has(>.duel){padding:4px 6px 0}
   .duel{padding-bottom:42px}
@@ -294,15 +359,23 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
   /* a selected card's prompt and actions float just below the bar, over the top of your battle zone */
   .duelmain .bar{flex-wrap:nowrap}
   .duelmain .bar .endturn{margin-left:auto;flex:none}
-  .duelmain .bar .acts{position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;
-    padding:8px;border-radius:12px;background:color-mix(in srgb,var(--panel) 94%,transparent);box-shadow:inset 0 0 0 1px var(--frame),var(--shadow);animation:k-drop .12s ease-out}
+  .duelmain .bar .acts{position:absolute;left:12px;right:12px;top:calc(100% + 4px);z-index:5;display:flex;flex-wrap:wrap;gap:7px;align-items:center;
+    padding:11px 12px 12px;border-radius:14px;border:3px solid transparent;
+    background:linear-gradient(180deg,color-mix(in srgb,var(--lt,var(--face)) 16%,var(--face)),var(--face) 72px) padding-box,var(--fr,var(--frame)) border-box;
+    box-shadow:0 14px 34px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.35);animation:k-drop .14s ease-out}
+  .duelmain .bar .acts .actname{display:flex;align-items:center;gap:8px;flex:1 1 100%;order:-2;font:700 16px/1.2 var(--font-num);letter-spacing:.01em;color:var(--ink)}
+  .duelmain .bar .acts .acost{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;font-style:normal;font-size:14px;
+    color:#fff;background:var(--fr);box-shadow:0 0 0 2px rgba(255,255,255,.18)}
+  .duelmain .bar .acts .psel{display:none}
+  .duelmain .bar .acts .prompt:not(:has(.pwhy)){display:none}
+  .duelmain .bar .acts .pwhy{color:var(--ink);opacity:.8}
   .duelmain .bar .acts .prompt{flex:1 1 100%;white-space:normal;overflow:visible;line-height:1.35}
   .duelmain .bar .acts button{padding:6px 11px;font-size:13px}
   .duelmain .bar .acts .acttxt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;flex:1 1 100%;order:-1;
     font-size:12.5px;line-height:1.4;color:var(--ink);padding:0 2px 6px;border-bottom:1px solid var(--line);margin-bottom:2px}
   /* rows you swipe settle on a card edge, and fade at the right when more cards are off-screen */
   .duelmain .zone{scroll-snap-type:x proximity;scroll-padding-inline:6px}
-  .duelmain .zone>.card{scroll-snap-align:start}
+  .duelmain .zone>.card{scroll-snap-align:start;touch-action:pan-x}
   .duelmain .zone.overflowing{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
   .duel>.log{position:fixed;left:0;right:0;bottom:0;z-index:6;margin:0;border-radius:14px 14px 0 0;
     padding:9px 14px calc(9px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.35),inset 0 0 0 1px var(--frame)}
@@ -333,13 +406,34 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
   #zoom .zinfo header .zstats{display:block}
   #zoom .zinfo header .zset{margin:0;text-align:right}
 }
-#zoom .zoomwrap>.card{touch-action:none}
+#zoom .zoomwrap .card.big{touch-action:none}
+/* swipe hint: chevrons in the space beside the zoomed card */
+.zcardnav{flex:1 1 100%;display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.zcardnav>.card{grid-column:2}
+.zside{width:34px;height:64px;padding:0;border:0;background:none;color:var(--muted);display:grid;place-items:center;border-radius:12px}
+.zside:first-child{justify-self:start}.zside:last-child{justify-self:end;grid-column:3}
+.zside[hidden]{display:grid;visibility:hidden}
+.zside svg{width:14px;height:28px}
+.zside:active{color:var(--ink);background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.zside:first-child svg{animation:k-nudge-l 1.6s ease-in-out 2}.zside:last-child svg{animation:k-nudge-r 1.6s ease-in-out 2}
+@keyframes k-nudge-l{50%{transform:translateX(-3px)}}
+@keyframes k-nudge-r{50%{transform:translateX(3px)}}
 #zoom .zbox{touch-action:pan-y}
 #zoom .zbox.from-right{animation:k-zin-r .2s ease-out}
 #zoom .zbox.from-left{animation:k-zin-l .2s ease-out}
 @keyframes k-zin-r{from{transform:translateX(36px);opacity:.4}}
 @keyframes k-zin-l{from{transform:translateX(-36px);opacity:.4}}
 .zdots{display:flex;gap:6px;align-items:center;margin-right:auto}
+.zcount{font:600 15px/1 var(--font-num);font-variant-numeric:tabular-nums;color:var(--muted);margin-right:auto}
+.zcount b{display:inline-block;text-align:right;color:var(--ink)}
+/* on a phone the zoom view's bar (copies in the deck, where you are in the list) stays at the
+   bottom of the screen while the card and its text scroll above it */
+@media (max-width:600px){
+  #zoom .zstack:has(.zbar){padding-bottom:84px}
+  #zoom .zbar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:21;
+    box-shadow:inset 0 0 0 1px var(--frame),0 -6px 24px rgba(0,0,0,.4),var(--shadow)}
+  #zoom .zbar:has(.zqty) .hint{display:none}
+}
 .zdots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background .15s,transform .15s}
 .zdots i.on{background:var(--ink);transform:scale(1.25)}
 /* phones held sideways: little height, so smaller cards and a tighter board */
@@ -604,7 +698,7 @@ input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 <div id="zoom"></div>
 <div id="busy" hidden></div>
 <!-- data-n is the number of script files below; dev/tests/loader.test.mjs keeps it honest -->
-<div id="boot" data-n="33"><div class="ldpanel" role="status" aria-live="polite"><b class="ldlabel">Downloading the cards</b><div class="ldbar"><i></i></div><span class="ldcount"><b>0</b> of <b>33</b></span></div></div>
+<div id="boot" data-n="34"><div class="ldpanel" role="status" aria-live="polite"><b class="ldlabel">Downloading the cards</b><div class="ldbar"><i></i></div><span class="ldcount"><b>0</b> of <b>34</b></span></div></div>
 <script>
 // First visit on a slow connection: count the game's files in as they arrive.
 (()=>{const b=document.getElementById('boot'),n=+b.dataset.n;let k=0;
@@ -646,6 +740,7 @@ input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 <script src="js/network/online.js"></script>
 <script src="js/ui/tutorial.js"></script>
 <script src="js/ui/start.js"></script>
+<script src="js/ui/history.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

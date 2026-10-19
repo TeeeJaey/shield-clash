@@ -59,6 +59,7 @@ const TPAGES=[
   x:`<p>Start with a preset deck or a random optimal deck. Once you know the cards, build your own in the deck builder.</p><div class="opts"><button class="main" data-act="random">Play a random deck</button><button data-act="tclose">Pick a deck</button></div>`},
 ];
 function showTutorial(i){
+  navTo('tut');
   TUT=Math.max(0,Math.min(TPAGES.length-1,i));setPhase();
   const pg=TPAGES[TUT],last=TUT===TPAGES.length-1;
   $('#layer').innerHTML=`<div class="overlay" id="tutorial"><div class="dialog tut" role="dialog" aria-label="How to play">

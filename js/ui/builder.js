@@ -18,6 +18,7 @@ function fillDeck(){
   BUILD.msg=total()<DECK_SIZE?`Not enough cards in these civilizations to reach ${DECK_SIZE}. Add another civilization.`:'';
 }
 async function showBuilder(id){
+  navTo('builder');
   G=null;$('#layer').innerHTML='';
   await loadDecks();
   const d=id&&MYDECKS.find(x=>x.id===id);
@@ -29,19 +30,27 @@ function renderBuilder(){
   setPhase();
   const tot=total();
   let h=`<header class="bh"><h2>Deck builder</h2><input id="dname" class="dname" aria-label="Deck name" maxlength="30" value="${esc(BUILD.name||'')}"><span class="cnt ${legal(tot)?'ok':''}">${tot} cards <small class="bsaved">${tot<DECK_MIN?`${DECK_MIN-tot} more to play`:tot===DECK_MAX?'Maximum reached':`Up to ${DECK_MAX}`}</small> <small id="bsaved" class="bsaved">${BUILD.saved||''}</small></span>
-    ${btn('brandom','Random optimal deck')}${btn('bfill',`Fill to ${DECK_SIZE}`)}${btn('bclear','Clear')}${btn('bsave','Save deck')}${btn('back','Back')}
+    <button class="bmore-btn icon" data-act="bmenu" aria-expanded="${!!BUILD.menu}" aria-label="More deck actions" title="More">⋯</button>
+    <span class="bacts ${BUILD.menu?'open':''}">${btn('brandom','Random optimal deck')}${btn('bfill',`Fill to ${DECK_SIZE}`)}${btn('bclear','Clear')}${btn('bsave','Save deck')}</span><button data-act="back" class="sysbtn bback" title="Back to the start page" aria-label="Back to the start page">${ICON.back}<span>Back</span></button>
     <button data-act="bstart" class="main" ${legal(tot)?'':'disabled'}>Start duel</button>
-    <span class="bmsg">${BUILD.msg||'Decks hold 50 to 60 cards, with up to 4 copies of each. Your deck saves automatically. Tap a card to zoom in. Two civilizations is the classic setup; more is risky for mana.'}</span></header>`;
+    <span class="bmsg ${BUILD.msg?'note':''}">${BUILD.msg||'Decks hold 50 to 60 cards, with up to 4 copies of each. Your deck saves automatically. Tap a card to zoom in. Two civilizations is the classic setup; more is risky for mana.'}</span></header>`;
+  // On a phone the search, a Filters button and the civilization tabs stay at the top while the
+  // cards scroll (.bfind); the other filters open in a sheet (.bsheet). A wide screen shows it
+  // all inline, as before.
   const civs=['all',...Object.keys(CIV)];
-  h+=`<nav class="tabs">${civs.map(e=>{const pool=e==='all'?DEFS:DEFS.filter(d=>civsOf(d).includes(e)),n=pool.reduce((t,d)=>t+(BUILD.counts[d.id]||0),0);
+  h+=`<div class="bfind"><nav class="tabs">${civs.map(e=>{const pool=e==='all'?DEFS:DEFS.filter(d=>civsOf(d).includes(e)),n=pool.reduce((t,d)=>t+(BUILD.counts[d.id]||0),0);
     return `<button data-act="bfilter" data-v="${e}" class="${BUILD.filter===e?'main':''} ${e==='all'?'all':''}" style="--el:${e==='all'?'currentColor':CIV[e].c};--tab:${e==='all'?'var(--ink)':CIV[e].c}"><span class="tdot"></span>${e==='all'?'All':CIV[e].n}${n?` (${n})`:''}</button>`}).join('')}</nav>`;
   const f=BUILD.find||(BUILD.find={q:'',mech:'all',type:'all',sort:'cost',mine:false});
+  const set=(f.mech!=='all')+(f.type!=='all')+(f.sort!=='cost')+(!!f.mine);
   const select=(key,label,options)=>`<div class="fld"><span>${label}</span>${ddHTML(key,options,f[key],{label})}</div>`;
   h+=`<div class="collection-tools build-tools"><label class="fld"><span>Search</span><input id="build-search" type="search" placeholder="Name, race, or ability" value="${esc(f.q)}"></label>
+    <button class="bfiltbtn" data-act="bsheet" aria-expanded="${!!BUILD.sheet}">Filters${set?` <b>${set}</b>`:''}</button>
+    ${BUILD.sheet?'<div class="bscrim" data-act="bsheet" aria-hidden="true"></div>':''}
+    <div class="bsheet ${BUILD.sheet?'open':''}" role="dialog" aria-label="Filters"><div class="bsheet-head"><b>Filters</b><button class="main" data-act="bsheet">Done</button></div>
     ${select('mech','Ability',[['all','Any ability'],...MECHANICS.filter(m=>DEFS.some(m.has)).map(m=>[m.key,m.label])])}
     ${select('type','Type',[['all','All types'],['c','Creatures'],['evo','Evolution creatures'],['s','Spells']])}
     ${select('sort','Sort by',[['cost','Cost'],['power','Power'],['name','Name']])}
-    <label class="check"><input type="checkbox" class="switch" role="switch" data-build="mine" ${f.mine?'checked':''}> In deck only</label></div>`;
+    <label class="check"><input type="checkbox" class="switch" role="switch" data-build="mine" ${f.mine?'checked':''}> In deck only</label></div></div></div>`;
   h+=deckSummaryHTML();
   const q=f.q.toLowerCase().trim(),mech=MECHANICS.find(m=>m.key===f.mech);
   const shown=DEFS.filter(d=>(BUILD.filter==='all'||civsOf(d).includes(BUILD.filter))&&(!q||[d.n,d.race,d.txt].some(t=>(t||'').toLowerCase().includes(q)))
@@ -53,6 +62,8 @@ function renderBuilder(){
   h+='</section>';
   BUILD.shown=shown;
   $('#app').innerHTML=h;
+  // The filter bar sticks just below the header, whatever height the header wraps to.
+  const bh=$('.bh');if(bh)document.documentElement.style.setProperty('--bhh',bh.offsetHeight+'px');
   renderBuilderGrid();
 }
 // The grid is virtualized: only rows near the viewport are in the DOM, and each card's
@@ -138,4 +149,15 @@ document.addEventListener('change',e=>{
   const key=e.target.dataset&&e.target.dataset.build;
   if(!key||!BUILD.find)return;
   BUILD.find[key]=key==='mine'?e.target.checked:e.target.value;renderBuilder();
+});
+// Phone menus: a tap outside the "⋯" menu closes it (and only closes it; on the window, so
+// it runs before the page's own click handlers); Esc closes the menu or the filters sheet.
+window.addEventListener('click',e=>{
+  if(!BUILD.menu||!$('.bh')||e.target.closest('.bacts,.bmore-btn'))return;
+  BUILD.menu=false;navClose('menu');renderBuilder();e.preventDefault();e.stopImmediatePropagation();
+},true);
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||!$('.bh')||!(BUILD.menu||BUILD.sheet))return;
+  if(BUILD.menu)navClose('menu');if(BUILD.sheet)navClose('sheet');
+  BUILD.menu=false;BUILD.sheet=false;renderBuilder();
 });

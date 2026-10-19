@@ -37,6 +37,9 @@ function onAct(a,v){
   if(a==='tgo'){showTutorial(+v);return}
   if(a==='tclose'){showStart();return}
   if(a==='random'){playWith('random',smartDeck);return}
+  if(a==='bmenu'){BUILD.menu=!BUILD.menu;BUILD.menu?navOpen('menu'):navClose('menu');renderBuilder();return}
+  if(a==='bsheet'){BUILD.sheet=!BUILD.sheet;BUILD.sheet?navOpen('sheet'):navClose('sheet');renderBuilder();return}
+  if(['brandom','bfill','bclear','bsave'].includes(a)&&BUILD.menu){BUILD.menu=false;navClose('menu')}
   if(a==='brandom'){const d=smartDeck();if(d.counts){BUILD.counts={...d.counts};BUILD.msg=`${d.n}: a fresh mixed deck. Tweak it or start the duel.`}renderBuilder();autoSave();return}
   if(a==='new'||a==='back'){if(MP)mpLeave(true);else showStart();return}
   if(a==='online'){showOnline();return}
@@ -61,7 +64,7 @@ function onAct(a,v){
   if(a==='bfilter'){BUILD.filter=v;renderBuilder();window.scrollTo(0,0);return}
   if(a==='bclear'){BUILD.counts={};BUILD.msg='';renderBuilder();autoSave();return}
   if(a==='bfill'){fillDeck();renderBuilder();autoSave();return}
-  if(a==='bsave'){saveDeck(true);return}
+  if(a==='bsave'){saveDeck(true);renderBuilder();return}
   if(a==='bstart'&&legal(total())){const ids=expand(BUILD.counts),n=(BUILD.name||'').trim()||'Your deck';saveDeck().then(()=>{if(PLAYMODE==='friend'&&BUILD.id)showOnline(null,'d'+BUILD.id);else withLoader('Setting up the duel',()=>startGame({n,ids}))});return}
   if(!G)return;
   // in game

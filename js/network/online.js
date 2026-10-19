@@ -209,6 +209,7 @@ function pickedDeck(v){
   const d=smartDeck();return {n:d.n,ids:d.ids};
 }
 async function showOnline(msg,deckVal){
+  if(typeof navTo==='function')navTo('online');
   G=null;$('#app').innerHTML='';
   await loadDecks();
   const nm=(window._mpName||''),decks=deckOptions(),want=deckVal||window._mpDeck;

@@ -74,10 +74,22 @@ const sysHTML=()=>{
 const btn=(a,l,main,v)=>`<button data-act="${a}"${v!=null?` data-v="${v}"`:''} class="${main?'main':''}">${l}</button>`;
 // The turn steps: charge, then summon and cast, then attack.
 const stepOf=p=>p.attacked?'Attack step':p.played||p.charged?'Main step':'Charge step';
+// Whose turn it is, as an arrow: down at you (your side of the board is below the bar), up
+// at the opponent. When the turn passes it swings round, once: the bar is redrawn often, so a
+// redraw mid-swing carries on from where the swing is (a negative animation delay).
+let turnSeen=null,swingAt=0;
+function turnArrow(mine,label){
+  if(turnSeen!==null&&turnSeen!==mine)swingAt=performance.now();
+  turnSeen=mine;
+  const t=performance.now()-swingAt,swing=swingAt&&t<700;
+  return `<span class="turn tarrow ${mine?'me':'them'} ${swing?'swing':''}" ${swing?`style="--t:-${Math.round(t)}ms"`:''} role="img" aria-label="${esc(label)}" title="${esc(label)}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5v12M4.8 10.3L10 15.5l5.2-5.2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+}
 // A selected card's prompt and actions come grouped (.acts): inline in the bar on a wide
 // screen; on a phone they float just below the bar, so the board never changes height, and
 // carry the card's text too (actText), readable where the card itself is small.
-const actText=c=>{const t=cardTextView(c).face;return t.length?`<span class="acttxt">${t.map(esc).join(' ')}</span>`:''};
+const actText=c=>{const t=cardTextView(c).face;return `<b class="actname"><i class="acost">${c.cost}</i>${esc(c.n)}</b>`+(t.length?`<span class="acttxt">${t.map(esc).join('<br>')}</span>`:'')};
+// The panel wears the selected card's frame colors, as the cards and deck tiles do.
+const actsOpen=c=>`<span class="acts" style="${frameVars(civsOf(c))}">`;
 function barHTML(){
   const me=G.p[0];
   const oppName=G.mp?esc(G.p[1].name):'Opponent',lost=G.winner!==G.p[0];
@@ -85,9 +97,9 @@ function barHTML(){
   if(G.over)return `<span class="prompt">${G.left!=null?`${oppName} left the game.`:G.why==='deck'?(lost?'Your deck ran out.':`${oppName}'s deck ran out.`):lost?`${oppName} broke through.`:'You broke through every shield.'}</span>${btn('new',G.mp?'Back to start page':'Play again',1)}`;
   if(G.req&&G.mp&&!G.targeting&&G.req.seat!==VIEW)return `<span class="turn">Waiting</span><span class="prompt">${oppName} is deciding what to do…</span>`;
   if(G.targeting)return `<span class="turn">Choose</span><span class="prompt">${esc(G.targeting.msg)}</span>${G.targeting.required?'':btn('skip',G.targeting.skip||'Skip')}`;
-  if(G.turn!==0)return `<span class="turn">${G.mp?oppName+"'s":"Opponent's"} turn</span><span class="prompt">${G.mp?'Their moves show up here as they play. ':''}Watch for blocks and shield triggers.</span>`;
-  if(G.busy)return `<span class="turn">Your turn</span><span class="prompt">Resolving…</span>`;
-  const s=selCard();let h=`<span class="turn">Your turn</span><span class="step">${stepOf(me)}</span>`;
+  if(G.turn!==0)return `${turnArrow(false,G.mp?oppName+"'s turn":"Opponent's turn")}<span class="prompt">${G.mp?'Their moves show up here as they play. ':''}Watch for blocks and shield triggers.</span>`;
+  if(G.busy)return `${turnArrow(true,'Your turn')}<span class="prompt">Resolving…</span>`;
+  const s=selCard();let h=`${turnArrow(true,'Your turn')}<span class="step">${stepOf(me)}</span>`;
   const canCharge=!me.charged&&!me.played&&!me.attacked;
   if(s&&G.sel.zone==='hand'){
     let why='';
@@ -96,14 +108,14 @@ function barHTML(){
     else if(s.evo&&!bases(me,s).length)why=` Needs one of your ${s.evo}s in the battle zone.`;
     else if(s.needSpell&&!me.castSpell)why=' You can summon it only after casting a spell this turn.';
     if(!me.charged&&!canCharge)why+=' Mana is charged before you summon, cast or attack.';
-    h+=`<span class="acts"><span class="prompt">${s.n} selected.${why}</span>${actText(s)}`;
+    h+=`${actsOpen(s)}${actText(s)}<span class="prompt"><span class="psel">${s.n} selected.</span>${why?`<span class="pwhy">${why}</span>`:''}</span>`;
     if(canCharge)h+=btn('charge','Charge as mana');
     if(canPlay(me,s))h+=btn('play',s.t==='s'?'Cast':s.evo?'Evolve':'Summon',1);
     h+=btn('view','View card')+btn('cancel','Cancel')+'</span>';
   }else if(s&&G.sel.zone==='bz'){
     const any=attackTargets(s,me).length>0,prey=T(s).hunts?'an enemy creature':'a tapped enemy creature';
     const tapAb=canTapAbility(s,me)?T(s).tapAb.map((fx,i)=>btn('tapab','Tap: '+esc(fxDesc(fx)),0,i)).join(''):'';
-    h+='<span class="acts">'+actText(s);
+    h+=actsOpen(s)+actText(s);
     if(!canAttackAnything(s,me))h+=`<span class="prompt">${s.n} can tap instead of attacking to use its ability.</span>`;
     else if(!canAttackPlayer(s,me))h+=`<span class="prompt">${s.n} can't attack players.${any?` Pick ${prey} to attack.`:' No creatures available to attack.'}</span>`;
     else{
