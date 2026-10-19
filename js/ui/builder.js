@@ -92,6 +92,17 @@ function renderBuilderGrid(){
   let ref=grid.firstElementChild;
   for(const el of els){if(el===ref)ref=ref.nextElementSibling;else grid.insertBefore(el,ref)}
 }
+// After browsing in the zoom view, scroll the grid to the last card viewed and mark it briefly.
+function revealBuilderCard(id){
+  const grid=$('#bgrid'),i=(BUILD.shown||[]).findIndex(d=>d.id===id);
+  if(!grid||i<0||!buildSize)return;
+  const cols=Math.max(1,Math.floor((grid.clientWidth+BUILD_GAP)/(buildSize.w+BUILD_GAP)));
+  const y=grid.getBoundingClientRect().top+scrollY+Math.floor(i/cols)*buildSize.h,head=($('.bh')||{offsetHeight:0}).offsetHeight;
+  if(y<scrollY+head||y+buildSize.h>scrollY+innerHeight)scrollTo({top:y-head-12});
+  renderBuilderGrid();
+  const card=BUILD_ITEMS.get(id)?.querySelector('.card');
+  if(card){card.classList.remove('flash');void card.offsetWidth;card.classList.add('flash')}
+}
 const queueBuilderGrid=()=>{if(!buildFrame)buildFrame=requestAnimationFrame(()=>{buildFrame=0;renderBuilderGrid()})};
 addEventListener('scroll',queueBuilderGrid,{passive:true});
 addEventListener('resize',()=>{buildSize=null;queueBuilderGrid()});
