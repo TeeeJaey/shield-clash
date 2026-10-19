@@ -68,7 +68,7 @@ const aiSkipsPick=(e,p,c)=>HARMFUL.has(e.a)?p.bz.includes(c):opp(p).bz.includes(
 async function pickFx(p,e,src,optional){
   const max=e.any?99:(e.per?countFor(e.per,src,p):e.n)+(e.plus?countFor(e.plus,src,p):0),chosen=[];
   for(let k=0;k<max;k++){
-    const cands=matching(e.q,p,src).filter(c=>!chosen.includes(c));
+    const cands=matching(e.q,p,src).filter(c=>!chosen.includes(c)&&(e.a!=='untap'||c.tapped));
     if(!cands.length)break;
     const mayStop=optional||e.any||e.upto||!!e.per||k>=(e.n||1);
     const c=await pickCard(p,cands,`${src.n}: ${e.x}`,{optional:mayStop,aiPick:aiPickFor(e,p)});
@@ -279,8 +279,9 @@ async function jsonFx(p,e,src,optional){
     return;
   }
   if(e.k==='powerPick'){
-    const values=[...new Set(G.p.flatMap(q=>q.bz).map(power).filter(v=>v<=6000))].sort((a,b)=>b-a);
-    if(!values.length){log(`${src.n}: no creature has 6000 power or less.`);return}
+    const inPlay=G.p.flatMap(q=>q.bz).map(power).filter(v=>v<=6000);
+    if(!inPlay.length){log(`${src.n}: no creature has 6000 power or less.`);return}
+    const values=[...new Set([...inPlay,1000,2000,3000,4000,5000,6000])].sort((a,b)=>b-a);
     const score=v=>o.bz.filter(c=>power(c)===v).length-p.bz.filter(c=>power(c)===v).length;
     const n=await chooseEffect(p,src.n,'Choose a number.',values.map(v=>({label:String(v),val:v})),values.slice().sort((a,b)=>score(b)-score(a))[0]);
     const v=values.includes(n)?n:values[0];log(`${V(p,'You choose','Opponent chooses')} ${v}.`);
@@ -378,7 +379,16 @@ async function jsonFx(p,e,src,optional){
     }
     return;
   }
-  if(e.k==='discardPer'){const n=countFor(e.per,src,p)+(e.plus||0);for(let i=0;i<n;i++)simpleFx(p,'discard',src);return}
+  if(e.k==='discardPer'){
+    // "for each ..., your opponent discards": every one. The Cloned form takes one first, and the
+    // rest are "you may choose another".
+    if(!e.plus){const n=countFor(e.per,src,p);for(let i=0;i<n;i++)simpleFx(p,'discard',src);return}
+    for(let i=0;i<e.plus;i++)simpleFx(p,'discard',src);
+    const max=Math.min(countFor(e.per,src,p),o.hand.length);
+    const n=max?await chooseEffect(p,src.n,'Discard how many more?',Array.from({length:max+1},(_,k)=>({label:k?`${k} more`:'No more',val:k,main:k===max})),max):0;
+    for(let i=0;i<(Number.isInteger(n)?Math.min(n,max):0);i++)simpleFx(p,'discard',src);
+    return;
+  }
   if(e.k==='oppDiscardsPer'){
     const n=countFor(e.per,src,p);
     for(let i=0;i<n&&o.hand.length;i++){const c=await pickCard(o,o.hand.slice(),`${src.n}: Discard a card.`,{aiPick:aiCheapest});discardCard(o,c);log(`${V(o,'You discard','Opponent discards')} ${c.n}.`)}

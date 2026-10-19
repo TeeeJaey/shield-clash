@@ -55,7 +55,7 @@ function countFor(per,src,p){
   if(per.civilizations)return new Set(cards.flatMap(civsOf)).size;
   return cards.filter(x=>(!per.other||x!==src)&&(!per.state||(per.state==='tapped')===!!x.tapped)
     &&(!per.civ||civsOf(x).includes(per.civ))&&(!per.civs||civsOf(x).some(e=>per.civs.includes(e)))
-    &&(!per.races||per.races.some(r=>hasRace(x,r)))&&(!per.dragon||dragonRace(x))&&(!per.type||per.type==='card'||x.t==='c')).length;
+    &&(!per.races||per.races.some(r=>hasRace(x,r)))&&(!per.dragon||dragonRace(x))&&(!per.type||per.type==='card'||x.t==='c')&&(!per.name||x.n===per.name)).length;
 }
 // Every static ability currently in play, with its controller.
 function* staticsInPlay(){
@@ -117,9 +117,10 @@ function breaks(c){
   return n;
 }
 // Cost after "cost 1 less" and "cost 2 more" abilities in play. Reductions stop at the
-// printed minimum ("can't cost less than 1"), or the card's own cost if lower.
+// printed minimum ("can't cost less than 1"), or the card's own cost if lower. Each mana card
+// pays for one civilization, so a multicolored card never costs less than its civilizations.
 function costOf(c,p){
-  let d=0,min=1;
+  let d=0,min=civsOf(c).length;
   for(const [st,,q] of staticsInPlay()){
     const k=st.cost;
     if(!k||st.who==='own'&&q!==p)continue;

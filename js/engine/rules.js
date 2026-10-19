@@ -136,6 +136,9 @@ async function flushFx(){
     G.queue.splice(G.queue.indexOf(t),1);
     await resolveFx(t.p,t.fx,t.src);
   }
+  // A creature with 0 power or less is destroyed. Its leaving can trigger more, so go again.
+  const zero=G.over?[]:G.p.flatMap(q=>q.bz.filter(c=>c.t==='c'&&power(c)<=0).map(c=>[q,c]));
+  if(zero.length){log(`${zero.map(([,c])=>c.n).join(', ')} ${zero.length>1?'have':'has'} 0 power.`);destroyAll(zero);return flushFx()}
   deckOut();
 }
 async function chooseOrder(pool){
@@ -184,7 +187,9 @@ function destroy(p,c){
     // Slash and Burn: whenever one of the caster's opponent's creatures is destroyed this turn.
     if(opp(p).turnFx&&opp(p).turnFx.slashBurn)queueFx(p,['manaToGy','shieldToGy'],{n:'Slash and Burn',caster:opp(p)});
     for(const [q,x,t] of G.lookBack||watchers())if(x!==c&&t.onAnyDie)queueFx(q,t.onAnyDie,x);
-    for(const [q,x,t] of G.lookBack||watchers())if(q===p&&x!==c)for(const w of t.onOwnDie||[])if((!w.races||w.races.some(r=>hasRace(c,r)))&&(!w.oppTurn||G.p[G.turn]!==p))queueFx(p,w.fx,x);
+    // "One of your creatures" counts the destroyed creature too: it sees itself go.
+    const seen=G.lookBack||watchers();
+    for(const [q,x,t] of seen.some(([,x])=>x===c)?seen:[...seen,[p,c,tc]])if(q===p)for(const w of t.onOwnDie||[])if((!w.races||w.races.some(r=>hasRace(c,r)))&&(!w.oppTurn||G.p[G.turn]!==p))queueFx(p,w.fx,x);
   }
 }
 const watchers=()=>G.p.flatMap(q=>q.bz.map(x=>[q,x,T(x)]));
@@ -399,7 +404,7 @@ async function resolveFx(p,fx,src){
       if(!t){log(`${src.n}: no creature to destroy.`);continue}
       anim(t,'die');render();await sleep(450);destroy(p,t);await flushFx();render();continue;
     }
-    const o=opp(p),tg=targetsFor(f,p)?.filter(c=>choosable(p,c));
+    const o=opp(p),tg=targetsFor(f,p)?.filter(c=>choosable(p,c)&&!(f==='tapone'&&T(c).noOppTap&&ownerOf(c)!==p));
     if(tg){
       if(!tg.length){log(`${src.n}: no target.`);continue}
       const msg=`${src.n}: ${fxText(f)}`;
@@ -467,10 +472,12 @@ async function chooseBase(p,c,cancel){
 }
 async function castSpell(p,c){
   p.castSpell=true;c.caster=p;
+  // "Whenever a player casts a spell" triggers on the cast, so a creature the spell then
+  // destroys still sees it, and resolves after the spell does.
+  const seen=[...G.p.flatMap(q=>q.bz.filter(x=>T(x).onAnySpell).map(x=>[q,T(x).onAnySpell,x])),
+    ...opp(p).bz.filter(x=>T(x).onOppSpell).map(x=>[opp(p),T(x).onOppSpell,x])];
   await resolveFx(p,c.fx,c);
-  // "Whenever a player casts a spell" resolves after the spell does.
-  for(const q of G.p)for(const x of q.bz)if(T(x).onAnySpell)queueFx(q,T(x).onAnySpell,x);
-  for(const x of opp(p).bz)if(T(x).onOppSpell)queueFx(opp(p),T(x).onOppSpell,x);
+  for(const [q,fx,x] of seen)queueFx(q,fx,x);
   await flushFx();
   if(c.charger){c.tapped=!!c.e2;p.mana.push(c);log(`${c.n} goes to ${whose(p)} mana zone (Charger).`)}
   else p.gy.push(c);
@@ -687,8 +694,9 @@ async function oppTriggered(o){
   if(G.attacking&&p.bz.includes(G.attacking)&&T(G.attacking).onOppTrigMine)queueFx(p,T(G.attacking).onOppTrigMine,G.attacking);
   await flushFx();
 }
-// "Instead of having this creature attack, you may tap it to use its ability."
-const canTapAbility=(c,p)=>!!T(c).tapAb&&p.bz.includes(c)&&!c.tapped&&(!c.sick||!!T(c).speed)&&!rulesInPlay('noTapAb').length;
+// "Instead of having this creature attack, you may tap it to use its ability." A creature
+// that attacks if able, and can, has to attack instead.
+const canTapAbility=(c,p)=>!!T(c).tapAb&&p.bz.includes(c)&&!c.tapped&&(!c.sick||!!T(c).speed)&&!rulesInPlay('noTapAb').length&&!mustAttackers(p).includes(c);
 async function useTapAbility(p,c,i=0){
   if(!canTapAbility(c,p))return;
   const fx=T(c).tapAb[i];
