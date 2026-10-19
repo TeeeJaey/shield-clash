@@ -17,6 +17,7 @@ function shieldsHTML(p){
   const attacked=G.attackTarget==='player'&&G.attacking&&!p.bz.includes(G.attacking);
   return `<div class="shields ${attacked?'attacked':''}"><span class="lbl">Shields ${p.sh.length}</span>${p.sh.map(s=>{
     const t=G.targeting?.uids.has(s.uid),br=G.breaking&&G.breaking.uids.has(s.uid);
+    if(s.faceUp)return `<div class="back shield faceup ${t?'target':''} ${br?'shatter':''}" data-shield="${s.uid}" ${t?'':`data-def="${s.duelId||s.id}"`} tabindex="0" style="--el:${(CIV[s.e]||{c:'#68717d'}).c}" aria-label="Shield ${s.shL}, face up: ${esc(s.n)}" title="${esc(s.n)}"><span>${s.shL}</span></div>`;
     return `<div class="back shield ${t?'target':''} ${br?'shatter':''}" data-shield="${s.uid}" ${t?'tabindex="0" role="button"':''} aria-label="Shield ${s.shL}"><span>${s.shL}</span></div>`;
   }).join('')}</div>`;
 }

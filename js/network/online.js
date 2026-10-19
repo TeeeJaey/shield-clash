@@ -114,10 +114,10 @@ async function sdel(k){
 
 const cardBy=uid=>uid==null?null:(findCard(uid)?.c||shieldBy(uid)||null);
 const ZONES=['deck','hand','mana','bz','sh','gy'];
-const packCard=c=>{const o={i:c.id,u:c.uid};if(c.tapped)o.t=1;if(c.sick)o.s=1;if(c.boost)o.b=c.boost;if(c.tmp)o.m=c.tmp;if(c.tmpNext){o.n=c.tmpNext;o.ns=c.tmpNextSeat}if(c.under&&c.under.length)o.d=c.under.map(packCard);if(c.shL)o.l=c.shL;return o};
-const unpackCard=o=>({...DEF[o.i],uid:o.u,tapped:!!o.t,sick:!!o.s,boost:o.b||0,...(o.m?{tmp:o.m}:{}),...(o.n?{tmpNext:o.n,tmpNextSeat:o.ns}:{}),under:(o.d||[]).map(unpackCard),...(o.l?{shL:o.l}:{})});
-function packPlayer(p){const q={seat:p.seat,name:p.name,deckName:p.deckName,charged:!!p.charged,played:!!p.played,attacked:!!p.attacked,shN:p.shN??-1,castSpell:!!p.castSpell,brokeBy:p.brokeBy||[],mustAtkNext:p.mustAtkNext||null};ZONES.forEach(z=>q[z]=p[z].map(packCard));return q}
-function unpackPlayer(q){const p={seat:q.seat,name:q.name,deckName:q.deckName,charged:!!q.charged,played:!!q.played,attacked:!!q.attacked,shN:q.shN??-1,castSpell:!!q.castSpell,brokeBy:q.brokeBy||[],...(q.mustAtkNext?{mustAtkNext:q.mustAtkNext}:{})};ZONES.forEach(z=>p[z]=(q[z]||[]).map(unpackCard));return p}
+const packCard=c=>{const o={i:c.id,u:c.uid};if(c.tapped)o.t=1;if(c.sick)o.s=1;if(c.boost)o.b=c.boost;if(c.tmp)o.m=c.tmp;if(c.tmpNext){o.n=c.tmpNext;o.ns=c.tmpNextSeat}if(c.under&&c.under.length)o.d=c.under.map(packCard);if(c.shL)o.l=c.shL;if(c.faceUp)o.f=1;if(c.chosenRace)o.r=c.chosenRace;if(c.attackedOn)o.a=c.attackedOn;return o};
+const unpackCard=o=>({...DEF[o.i],uid:o.u,tapped:!!o.t,sick:!!o.s,boost:o.b||0,...(o.m?{tmp:o.m}:{}),...(o.n?{tmpNext:o.n,tmpNextSeat:o.ns}:{}),under:(o.d||[]).map(unpackCard),...(o.l?{shL:o.l}:{}),...(o.f?{faceUp:true}:{}),...(o.r?{chosenRace:o.r}:{}),...(o.a?{attackedOn:o.a}:{})});
+function packPlayer(p){const q={seat:p.seat,name:p.name,deckName:p.deckName,charged:!!p.charged,played:!!p.played,attacked:!!p.attacked,shN:p.shN??-1,castSpell:!!p.castSpell,brokeBy:p.brokeBy||[],mustAtkNext:p.mustAtkNext||null,extraTurns:p.extraTurns||0,loseAtEndOf:p.loseAtEndOf||0,truce:p.truce||null,drawn:p.drawn||0,brokeShields:p.brokeShields||0};ZONES.forEach(z=>q[z]=p[z].map(packCard));return q}
+function unpackPlayer(q){const p={seat:q.seat,name:q.name,deckName:q.deckName,charged:!!q.charged,played:!!q.played,attacked:!!q.attacked,shN:q.shN??-1,castSpell:!!q.castSpell,brokeBy:q.brokeBy||[],...(q.mustAtkNext?{mustAtkNext:q.mustAtkNext}:{}),extraTurns:q.extraTurns||0,loseAtEndOf:q.loseAtEndOf||0,drawn:q.drawn||0,brokeShields:q.brokeShields||0,...(q.truce?{truce:q.truce}:{})};ZONES.forEach(z=>p[z]=(q[z]||[]).map(unpackCard));return p}
 function toWire(){
   const canon=G.p[0].seat===0?[G.p[0],G.p[1]]:[G.p[1],G.p[0]];
   return {seq:MP.seq,players:canon.map(packPlayer),turnSeat:G.p[G.turn].seat,turnNo:G.turnNo,

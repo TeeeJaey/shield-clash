@@ -71,9 +71,11 @@ function makeCardCatalog(rows){
     // Moving chosen cards between your own zones, e.g. "return a spell from your mana zone to your hand".
     if((m=/^(?:return|put|add) (a|an|1|2|3|up to (\d+)) (.+?) from (your graveyard|your mana zone|your hand) (?:to|into) (your hand|your mana zone|your shields face down)$/.exec(base))){
       const item=ITEM.exec(m[3]),from=ZONE[m[4]],to=DEST[m[5]];
-      if(!item||from===to||(from==='hand'&&to==='hand'))return null;
-      const count=m[2]||(/^\d$/.test(m[1])?m[1]:'1'),filter=[item[2],item[1]||'',item[3]||''].join('-');
-      return may+`move:${from}>${to}:${filter}:${count}${m[2]?'u':''}`;
+      // Races and names ("a Living Dead") are read by the gathering rule further on.
+      if(item&&from!==to&&!(from==='hand'&&to==='hand')){
+        const count=m[2]||(/^\d$/.test(m[1])?m[1]:'1'),filter=[item[2],item[1]||'',item[3]||''].join('-');
+        return may+`move:${from}>${to}:${filter}:${count}${m[2]?'u':''}`;
+      }
     }
     if((m=/^choose (a card|up to 2 cards) in your opponent's mana zone and put (?:it|them) into his graveyard$/.exec(base)))return m[1]==='a card'?'oppManaToGy':'oppManaToGy2u';
     if(/^your opponent chooses one of his creatures(?: in the battle zone)? and destroys it$/.test(base))return 'oppDestroysOwn';
@@ -338,7 +340,7 @@ function makeCardCatalog(rows){
     const traits={};
     while(rest){
       let m;
-      if((m=/^(?:and )?(?:gets |get )?\+(\d+) power(?: for each (.+?))?(?= and |,|$)/.exec(rest))){
+      if((m=/^(?:and )?(?:gets |get )?\+(\d+) power(?: for each (.+?)(?= and (?:has |gets |")|,|$)|(?= and |,|$))/.exec(rest))){
         power+=+m[1];
         if(m[2]){per=count(m[2]);if(!per)return null}
       }
@@ -461,7 +463,7 @@ function makeCardCatalog(rows){
     else if(rule==="this creature can't be blocked")t.unbl=1;
     else if(rule==='charger'&&raw&&raw.type==='Spell')t.charger=1;
     else if(rule==='at the end of each of your turns, you may untap this creature')t.endUntap=1;
-    else if(rule==='this creature attacks each turn if able')t.mustAtk=1;
+    else if(rule==='this creature attacks each turn if able'||rule==='this creature attacks if able')t.mustAtk=1;
     else if(rule==='each creature attacks each turn if able')t.allMustAtk=1;
     else if((m=/^when this creature would be destroyed, (put it into your mana zone|return it to your hand|put it into your hand|shuffle it into your deck|add it to your shields face down) instead$/.exec(rule)))
       t.destroyTo={'put it into your mana zone':'mana','return it to your hand':'hand','put it into your hand':'hand','shuffle it into your deck':'deck','add it to your shields face down':'shield'}[m[1]];
@@ -596,14 +598,14 @@ function makeCardCatalog(rows){
     else if((m=/^turbo rush (.+)$/.exec(rule))){const f={};if(!clauses(m[1],f,raw))return false;wrapped(t,f,{cond:{turbo:1}})}
     // "While ..., this creature has/gets ..."
     else if((m=/^(this creature (?:can't|can|has|gets) .+?) (while|if) (.+)$/.exec(rule))&&condition(m[3]))return clause(`while ${m[3]}, ${m[1]}`,t,raw);
+    else if((m=/^while battling (?:a (\w+) creature|a creature that has dragon in its race), this creature gets \+(\d+) power$/.exec(rule))&&(!m[1]||civs.includes(m[1])))
+      add(t,'statics',{who:'self',vs:m[1]?{civ:m[1]}:{dragon:1},power:+m[2]});
     else if((m=/^while (.+?), (?:this creature|it) (gets .+|has .+|can.+)$/.exec(rule))){
       const cond=condition(m[1]),g=cond&&grant(m[2].replace(/ during its attacks$/,''));
       if(!g||(cond.powerAtLeast&&g.power))return false;
       const attacking=/ during its attacks$/.test(m[2]);
       add(t,'statics',{who:'self',cond:attacking?{...cond,attacking:1}:cond,power:g.power,per:g.per,traits:g.traits});
     }
-    else if((m=/^while battling (?:a (\w+) creature|a creature that has dragon in its race), this creature gets \+(\d+) power$/.exec(rule))&&(!m[1]||civs.includes(m[1])))
-      add(t,'statics',{who:'self',vs:m[1]?{civ:m[1]}:{dragon:1},power:+m[2]});
     // "This creature gets +N power (for each ...)"
     else if((m=/^this creature gets (\+\d+ power.*)$/.exec(rule))){const g=grant(m[1]);if(!g)return false;add(t,'statics',{who:'self',power:g.power,per:g.per,traits:g.traits})}
     // "Each of your other fire creatures has ...", "Your cyber lords and hedrians can't be blocked"
@@ -615,6 +617,13 @@ function makeCardCatalog(rows){
     else return false;
     return true;
   }
+  // Per-card readings, for clauses whose printed wording the rules above don't follow.
+  // A string is the same ability in wording the adapter reads; a function records an ability
+  // implemented by name in js/engine/specials.js (or a flag the engine checks) on the card.
+  const spx=(f,x,extra)=>JSON.stringify({k:'x',f,...extra,x});
+  const on=(hook,f,extra)=>(t,x)=>add(t,hook,hook==='tapAb'||hook==='silent'?[[spx(f,x,extra)]]:spx(f,x,extra));
+  const flag=(k,v=1)=>t=>{t[k]=v};
+  const CARD_FIXES=cardFixes({spx,on,flag,add,JSONfx:o=>JSON.stringify(o)});
   const catalog=rows.map(raw=>{
     const c={id:'dm-'+raw.id,archiveId:raw.id,n:raw.name,e:raw.civilization.toLowerCase()||'unknown',e2:raw.civilization2.toLowerCase(),
       t:raw.type==='Spell'?'s':'c',cost:raw.mana===''?null:Number(raw.mana),p:parseInt(raw.power,10)||0,race:raw.race,
@@ -624,10 +633,14 @@ function makeCardCatalog(rows){
     if(!['light','water','darkness','fire','nature'].includes(c.e)||c.cost===null||!['Creature','Evolution Creature','Spell'].includes(raw.type)||(raw.power===''&&c.t==='c')||(!c.race&&c.t==='c'))c.issues.push('Some card details have not been verified.');
     if(c.e2&&!civs.includes(c.e2))c.issues.push('Some card details have not been verified.');
     for(const printed of c.rules.flatMap(keywordRun)){
-      const rule=clean(printed.replace(/\([^)]*\)/g,'').trim()).replace('when you put this creature is put into battle zone','when you put this creature into the battle zone').replace('to use its tap ability','to use its ability');
+      let rule=clean(printed.replace(/\([^)]*\)/g,'').trim()).replace('when you put this creature is put into battle zone','when you put this creature into the battle zone').replace('to use its tap ability','to use its ability')
+        .replace(/"\s*([^"]*?)\s*\.\s*"/g,'"$1".').replace(/\.$/,''); // " blocker." reads as "blocker".
       if(rule==='')continue; // a reminder such as "(This creature is put into your mana zone tapped.)"
       let known,m;
-      if(rule.startsWith('evolution')||rule.startsWith('vortex evolution')){
+      const fix=Object.entries(CARD_FIXES[c.n]||{}).find(([from])=>rule.startsWith(from));
+      if(fix&&typeof fix[1]==='function'){fix[1](c,sentence(clean(printed.replace(/\([^)]*\)/g,'').trim())));continue}
+      if(fix)rule=fix[1];
+      if(/^(?:vortex )?evolution ?—/.test(rule)){
         // "Put on one of your Chimeras or Armorloids", "... creatures that has Dragon in its race",
         // and vortex evolution: "Put on one of your Fire Birds and one of your Earth Dragons".
         const base=(rule.split('put on one of your ')[1]||'').trim(),vortex=/^vortex/.test(rule);
@@ -647,7 +660,8 @@ function makeCardCatalog(rows){
     if(c.t==='s'&&!c.fx)c.issues.push('This spell effect is not yet available in duels.');
     if(raw.type==='Evolution Creature'&&!c.evo)c.issues.push('The evolution requirement is not supported.');
     // A "+" power changes during play; it needs an ability that says how.
-    if(raw.power.includes('+')&&!c.pa&&!(c.statics||[]).some(s=>s.power||s.traits&&s.traits.pa))c.issues.push('This variable power is not yet available in duels.');
+    const selfBoost=/grantSelf|boost3000|"pa":|"power":[1-9]/.test(JSON.stringify([c.onAtk,c.onAtkC,c.onAnyEnter,c.onAnySpell,c.onBlocked,c.onOppPlay,c.tapAb,c.statics]).replace(/\\/g,''));
+    if(raw.power.includes('+')&&!c.pa&&!selfBoost)c.issues.push('This variable power is not yet available in duels.');
     c.playable=c.issues.length===0;
     return c;
   });
@@ -658,4 +672,82 @@ function makeCardCatalog(rows){
   }
   for(const c of catalog)c.duelId=firstPrint.get(c.n)||null;
   return catalog;
+}
+
+/* ---------- per-card readings ---------- */
+// Keys are the start of a printed clause as the adapter sees it (lower case, reminders
+// removed). Values are either the same ability in wording the adapter reads, or a function
+// that records an engine hook; "x" names effects implemented in js/engine/specials.js.
+function cardFixes({spx,on,flag,add}){
+  const may=(f,x)=>'optional:'+spx(f,x);
+  const turn=f=>(t,x)=>add(t,'fx',JSON.stringify({k:'turnFlag',f,x}));
+  return {
+    'Creeping Plague':{'whenever any of your creatures becomes blocked this turn':turn('blockedSlayer')},
+    'Gigastand':{'when this creature would be put into your graveyard from the battle zone, you may return it':t=>{t.destroyTo='hand';t.destroyCost='discard'}},
+    'Jack Viper, Shadow of Doom':{'whenever another of your darkness creatures would be put into your graveyard':t=>add(t,'statics',{who:'own',other:true,civs:['darkness'],traits:{destroyTo:'hand'}})},
+    'Armored Warrior Quelos':{'whenever this creature attacks, put a non- fire card':on('onAtk','quelos')},
+    'Flametropus':{'whenever this creature attacks, you may put a card from your mana zone':'whenever this creature attacks, you may put 1 card from your mana zone into your graveyard. if you do, this creature gets "power attacker +3000" and "double breaker" until the end of the turn'},
+    'Mega Detonator':{'discard any number of cards from your hand. then choose the same number':on('fx','megaDetonator')},
+    'Snork La, Shrine Guardian':{'whenever your opponent causes a card to be put into your graveyard from your mana zone':flag('manaSaver')},
+    'Miracle Quest':{'whenever any of your creatures finishes attacking this turn':turn('miracleQuest')},
+    'Kip Chippotto':{'when one of your armored dragons would be destroyed':flag('dragonSaver','Armored Dragon')},
+    'Brutal Charge':{'at the end of this turn, search your deck. for each':(t,x)=>add(t,'fx',JSON.stringify({k:'later',fx:[spx('brutalCharge',x)],x}))},
+    'Bazooka Mutant':{'this creature can attack only creatures that have "blocker"':flag('atkOnlyBlk')},
+    'Forbidding Totem':{"your opponent's attacking creatures attack mystery totems if able":flag('lureTotems')},
+    'Battleship Mutant':{'instead of having this creature attack, you may tap it to use its ability. until the end of the turn, each of your darkness':on('tapAb','battleship',{power:4000})},
+    'Spinning Totem':{'instead of having this creature attack, you may tap it to use its ability. this turn, whenever any of your nature':(t,x)=>add(t,'tapAb',[[JSON.stringify({k:'turnFlag',f:'natureBlockedBreak',x})]])},
+    'Rondobil, the Explorer':{'instead of having this creature attack, you may tap it to use its ability. add one of your creatures':"instead of having this creature attack, you may tap it to use its ability. choose one of your creatures in the battle zone and add it to its owner's shields face down"},
+    'Aqua Agent':{'when this creature would be destroyed, you may return it to your hand instead':flag('destroyTo','hand')},
+    'Trenchdive Shark':{'when you put this creature into the battle zone, you may add up to 2 cards from your hand':on('onSum','trenchdive')},
+    'Dream Pirate, Shadow of Theft':{'when this creature would be destroyed, you may return it to your hand instead':t=>{t.destroyTo='hand';t.destroyCost='discard'}},
+    'Kachua, Keeper of the Icegate':{'instead of having this creature attack, you may tap it to use its ability. search your deck':on('tapAb','kachua')},
+    'Lunar Charger':{'choose up to 2 of your creatures in the battle zone. at the end of the turn, you may untap them':(t,x)=>add(t,'fx',JSON.stringify({k:'pick',a:'grant',q:{side:'own'},n:2,upto:1,g:{power:0,traits:{lunarUntap:1}},x}))},
+    'Solar Grass':{'turbo rush whenever this creature is attacking your opponent and isn\'t blocked':(t,x)=>add(t,'statics',{who:'self',cond:{turbo:1},traits:{onUnblocked:[spx('untapExceptName',x)]}})},
+    'Furious Onslaught':{'until the end of the turn, each of your dragonoids':on('fx','onslaught')},
+    'Dracodance Totem':{'when this creature would be destroyed, if you have a creature that has dragon':flag('destroyTo','dracodance')},
+    'Petrova, Channeler of Suns':{'when you put this creature into the battle zone, choose a race other than mecha del sol':(t,x)=>{add(t,'onSum',spx('petrova',x));add(t,'statics',{who:'all',chosen:1,power:4000})}},
+    'Aqua Master':{"whenever this creature is attacking your opponent and isn't blocked, choose one of your opponent's shields and turn it face up":on('onUnblocked','faceUpOne')},
+    'Balesk Baj, the Timeburner':{"whenever this creature is attacking your opponent and isn't blocked, take an extra turn":on('onUnblocked','extraTurn')},
+    'Vreemah, Freaky Mojo Totem':{'whenever you put another creature into the battle zone, each beast folk':(t,x)=>add(t,'onOwnEnter',JSON.stringify({k:'all',a:'grant',q:{side:'any',races:['Beast Folk']},g:{power:2000,traits:{br:2}},x}))},
+    'Kalute, Vizier of Eternity':{'when this creature would be destroyed, if another kalute':flag('destroyTo','kalute')},
+    'Hokira':{'instead of having this creature attack, you may tap it to use its ability. choose a race':(t,x)=>add(t,'tapAb',[[JSON.stringify({k:'race',fx:[spx('hokira',x,{race:'$race'})],x})]])},
+    'Ice Vapor, Shadow of Anguish':{'whenever your opponent casts a spell, he chooses and discards':'whenever your opponent casts a spell, your opponent chooses and discards a card from his hand. then he chooses a card in his mana zone and puts it into his graveyard'},
+    'Slash Charger':{"search a player's deck":on('fx','slashCharger')},
+    'Zombie Carnival':{'choose a race. return up to 3 creatures of that race':(t,x)=>add(t,'fx',JSON.stringify({k:'race',fx:[JSON.stringify({k:'gather',n:3,upto:1,f:{t:'c',races:['$race']},from:['gy'],to:'hand',x})],x}))},
+    'Fists of Forever':{'choose one of your creatures in the battle zone. whenever that creature wins a battle this turn':(t,x)=>add(t,'fx',JSON.stringify({k:'pick',a:'grant',q:{side:'own'},n:1,g:{power:0,traits:{winUntap:1}},x}))},
+    "Gigio's Hammer":{'instead of having this creature attack, you may tap it to use its ability. choose a race':(t,x)=>add(t,'tapAb',[[JSON.stringify({k:'race',fx:[JSON.stringify({k:'all',a:'grant',q:{side:'any',races:['$race']},g:{power:0,traits:{pa:4000,mustAtk:1}},x})],x})]])},
+    'Storm Wrangler, the Furious':{"whenever this creature attacks, you may choose one of your opponent's untapped creatures":on('onAtk','stormLure')},
+    'Bodacious Giant':{"while this creature is tapped during your opponent's turn, if it hasn't been attacked":flag('taunt')},
+    'Bluum Erkis, Flare Guardian':{"whenever this creature would break one of your opponent's shields":flag('bluum')},
+    'Tanzanyte, the Awakener':{'instead of having this creature attack, you may tap it to use its ability. choose a creature in your graveyard':on('tapAb','tanzanyte')},
+    'Bombazar, Dragon of Destiny':{'when you put this creature into the battle zone, destroy all other creatures that have 6000 power':on('onSum','bombazar')},
+    'Ikaz, the Spydroid':{'whenever this creature blocks, choose one of your creatures in the battle zone. untap it':on('onBlock','ikaz')},
+    'Pinpoint Lunatron':{'silent skill choose a creature in the battle zone or a card in either':on('silent','pinpoint')},
+    'Transmogrify':{'you may destroy a creature. if you do, its owner reveals':(t,x)=>add(t,'fx',may('transmogrify',x))},
+    'Zaltan':{'whenever you put a cyber virus into the battle zone':(t,x)=>add(t,'enterWatch',{q:{races:['Cyber Virus']},fx:[spx('zaltan',x)]})},
+    'Gigandura':{"when you put this creature into the battle zone, look at your opponent's hand":on('onSum','gigandura')},
+    'Spinal Parasite':{"at the start of each of your opponent's turns, he chooses one of his creatures":on('onOppStart','spinal')},
+    'Bubble Scarab':{'whenever one of your creatures is attacked, you may discard a card':flag('bubbleScarab')},
+    'Soulswap':{'you may choose a creature in the battle zone and put it into its owner\'s mana zone':(t,x)=>add(t,'fx',may('soulswap',x))},
+    'Dolmarks, the Shadow Warrior':{'when you put this creature into the battle zone, destroy one of your creatures and put':'when you put this creature into the battle zone, destroy one of your creatures. then put 1 card from your mana zone into your graveyard. then your opponent chooses one of his creatures in the battle zone and destroys it. then your opponent chooses a card in his mana zone and puts it into his graveyard'},
+    'Klujadras':{'wave striker when you put this creature into the battle zone, each player draws':(t,x)=>{t.waveStriker=1;add(t,'statics',{who:'self',cond:{wave:1},traits:{onSum:[spx('klujadras',x)]}})}},
+    'Miraculous Plague':{"choose 2 of your opponent's creatures in the battle zone. your opponent chooses one of them":on('fx','miraculousPlague')},
+    'Miraculous Rebirth':{"destroy one of your opponent's creatures that has power 5000 or less. when your opponent puts":on('fx','miraculousRebirth')},
+    'Heavyweight Dragon':{"instead of having this creature attack, you may tap it to use its ability. choose up to 2 of your opponent's tapped":on('tapAb','heavyweight')},
+    'Miraculous Truce':{'choose a civilization. until the start of your next turn':on('fx','truce')},
+    'Warped Lunatron':{'when each player untaps his cards at the start of his turn':flag('warped')},
+    'Roulette of Ruin':{'choose a number. show your hand to your opponent':on('fx','roulette')},
+    'Lockdown Lizard':{"players can't use the ability of their creatures":t=>add(t,'statics',{who:'self',rule:{noTapAb:1}})},
+    'Live and Breathe':{'whenever you summon a creature this turn, search your deck':turn('liveBreathe')},
+    'Slash and Burn':{"whenever any of your opponent's creatures is destroyed this turn":turn('slashBurn')},
+    'Soul Phoenix, Avatar of Unity':{'when this creature would leave the battle zone, only the top card leaves':flag('soulPhoenix')},
+    'Ularus, Punishment Elemental':{'when you put this creature into the battle zone, for each creature you have in the battle zone, you may choose a shield':on('onSum','ularus')},
+    'Meloppe':{'whenever your opponent would choose one of your shields, you choose instead':flag('meloppe'),"whenever you would choose one of your opponent's shields, your opponent chooses instead":flag('meloppe')},
+    'Gigavrand':{'at the end of each turn, if your opponent drew 2 or more cards':flag('gigavrand')},
+    'Wingeye Moth':{'whenever you draw the card at the start of your turn, if one of your creatures':on('onStart','wingeye')},
+    'Gigarayze':{'when you put this creature into the battle zone, your may return':'when you put this creature into the battle zone, you may return a water or fire creature from your graveyard to your hand'},
+    'Q-tronic Omnistrain':{'each of your creatures in the battle zone is a survivor in addition':t=>add(t,'statics',{who:'own',addRace:'Survivor'})},
+    'Super Dragon Machine Dolzark':{'whenever one of your other creatures that has dragon in its race attacks':on('onOwnAtk','dolzark')},
+    'Neve, the Leveler':{'when you put this creature into the battle zone, if your opponent has more creatures':on('onSum','neve')},
+  };
 }

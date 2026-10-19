@@ -33,7 +33,7 @@ function zoomCopies(to){
 function zoomNavHTML(){
   if(!ZNAV)return '';
   const i=ZNAV.list.indexOf(ZOOM),n=ZNAV.list.length;
-  let h=`<div class="znav"><button class="icon" data-znav="-1" aria-label="Previous card" ${i>0?'':'disabled'}>‹</button><span>${i+1} of ${n}</span><button class="icon" data-znav="1" aria-label="Next card" ${i<n-1?'':'disabled'}>›</button></div>`;
+  let h=`<div class="znav"><button class="icon" data-znav="-1" aria-label="Previous card" ${i>0?'':'disabled'}>‹</button><span class="zpos"><b style="min-width:${String(n).length}ch">${i+1}</b> of ${n}</span><button class="icon" data-znav="1" aria-label="Next card" ${i<n-1?'':'disabled'}>›</button></div>`;
   if(ZNAV.build){
     const c=BUILD.counts[ZOOM.id]||0,tot=total();
     const can=ZOOM.playable&&ZOOM.duelId===ZOOM.id;
@@ -57,27 +57,36 @@ function renderZoom(){
     return;
   }
   const c=ZOOM,e=archiveCivilization(c);
-  const kind=[e.n,c.e2?CIV[c.e2].n:'',c.printedType,c.race].filter(Boolean).join(' · ');
-  const stats=`Cost ${c.cost??'unlisted'}${c.printedPower?', power '+c.printedPower:''}`;
+  // The card's facts as chips (civilizations, type, race) and two stat tiles (cost, power).
+  const civChips=[c.e,c.e2].filter(Boolean).map(k=>{const v=CIV[k]||e;return `<span class="zchip" style="--el:${v.c}"><span class="tdot"></span>${esc(v.n)}</span>`}).join('');
+  const facts=`<div class="zfacts">${civChips}<span class="zchip">${esc(c.printedType||(c.t==='s'?'Spell':'Creature'))}</span>${c.race?`<span class="zchip">${esc(c.race.split('/').join(' / '))}</span>`:''}</div>
+    <div class="zstats"><div><small>Cost</small><b>${c.cost??'–'}</b></div>${c.printedPower?`<div><small>Power</small><b>${esc(c.printedPower)}</b></div>`:''}
+      <p class="zset">${esc(c.set)} · ${esc(c.setNumber)}/${esc(c.setCount)}${c.rarity?`<br>${esc(c.rarity)}`:''}</p></div>`;
   const st=[];
   if(c.uid&&G){
     if(G.p.some(p=>p.bz.includes(c))){st.push(c.tapped?'Tapped.':'Untapped.');if(c.sick)st.push("Arrived this turn, so it can't attack yet.")}
     if(c.under&&c.under.length)st.push(`Evolved on top of ${c.under.map(u=>u.n).join(', ')}.`);
     if(c.boost)st.push(`+${c.boost} power until the end of the turn.`);
   }
-  el.innerHTML=`<div class="overlay" data-zbg="1"><div class="zbox zoomwrap" role="dialog" aria-label="${c.n}">
+  el.innerHTML=`<div class="overlay" data-zbg="1"><div class="zstack"><div class="zbox zoomwrap" role="dialog" aria-label="${esc(c.n)}">
     <button class="zclose" data-zclose="1" aria-label="Close">×</button>
     ${cardHTML({...c,uid:0,tapped:false},'big',true)}
-    <div class="zinfo"><h2>${esc(c.n)}</h2><p class="zmeta">${esc(kind)}. ${stats}.</p>
-      <p class="zmeta">${esc(c.set)} · ${esc(c.setNumber)}/${esc(c.setCount)}${c.rarity?' · '+esc(c.rarity):''}</p>
-      ${st.length?`<p>${st.join(' ')}</p>`:''}
-      ${detailRules(c)}
-      ${c.playable?'':`<p class="collection-note">${esc(c.issues[0]||'This card is not yet available for duels.')}</p>`}
-      ${zoomNavHTML()}
-      <p class="hint">${ZNAV?(ZNAV.build?'Arrow keys or swipe to browse, + and − (or 0 to 4) to change the count. ':'Arrow keys or swipe to browse. '):''}Tap outside or press Esc to close.</p></div>
-  </div></div>`;
+    <div class="zinfo"><header><h2>${esc(c.n)}</h2>${facts}</header>
+      <div class="zbody">
+        ${st.length?`<p class="zstate">${st.join(' ')}</p>`:''}
+        ${detailRules(c)}
+        ${c.playable?'':`<p class="collection-note">${esc(c.issues[0]||'This card is not yet available for duels.')}</p>`}
+      </div>
+      ${ZNAV?'':'<p class="hint">Tap outside or press Esc to close.</p>'}</div>
+  </div>${ZNAV?`<div class="zbar">${zoomNavHTML()}<p class="hint">${ZNAV.build?'← → browse · + − or 0–4 set copies':'← → browse'} · Esc closes</p></div>`:''}</div></div>`;
   // The zoomed card's art comes alive in its civilization's way.
-  artfxAttach(el.querySelector('.card.big .art img'),c.e);
+  artfxAttach(el.querySelector('.card.big .art img'),c.e,c.e2);
+}
+// Every way of opening a card (click, right-click, long-press, keyboard) shows the same view:
+// in the deck builder that's the browser with copy controls.
+function zoomFrom(el){
+  const c=el.dataset.uid?findCard(+el.dataset.uid)?.c:DEF[el.dataset.def];
+  if(c)openZoom(c,el.closest('#bgrid')?{list:BUILD.shown||[],build:true}:null);
 }
 let pressT=null,swallow=false,swipeX=null;
 document.addEventListener('pointerdown',e=>{swipeX=ZNAV&&e.target.closest('#zoom')&&e.pointerType!=='mouse'?e.clientX:null},true);
@@ -90,14 +99,14 @@ document.addEventListener('input',e=>{if(e.target.id==='dname'){BUILD.name=e.tar
 document.addEventListener('pointerdown',e=>{
   const t=e.target.closest('[data-uid],[data-def]');if(!t||e.target.closest('#zoom'))return;
   clearTimeout(pressT);
-  pressT=setTimeout(()=>{swallow=true;const c=t.dataset.uid?findCard(+t.dataset.uid)?.c:DEF[t.dataset.def];if(c)openZoom(c)},450);
+  pressT=setTimeout(()=>{swallow=true;zoomFrom(t)},450);
 });
 ['pointerup','pointercancel','pointerleave'].forEach(n=>document.addEventListener(n,()=>clearTimeout(pressT),true));
 document.addEventListener('pointermove',e=>{if(Math.abs(e.movementX)+Math.abs(e.movementY)>6)clearTimeout(pressT)});
 document.addEventListener('contextmenu',e=>{
   const t=e.target.closest('[data-uid],[data-def]');if(!t)return;
   e.preventDefault();clearTimeout(pressT);
-  const c=t.dataset.uid?findCard(+t.dataset.uid)?.c:DEF[t.dataset.def];if(c)openZoom(c);
+  zoomFrom(t);
 });
 document.addEventListener('click',e=>{
   if(swallow){swallow=false;e.stopImmediatePropagation();e.preventDefault();return}
@@ -110,7 +119,7 @@ document.addEventListener('click',e=>{
     e.stopImmediatePropagation();return;
   }
   const d=e.target.closest('[data-def]');
-  if(d&&!e.target.closest('[data-act]')){const c=DEF[d.dataset.def];openZoom(c,d.closest('#bgrid')?{list:BUILD.shown||[],build:true}:null);e.stopImmediatePropagation()}
+  if(d&&!e.target.closest('[data-act]')){zoomFrom(d);e.stopImmediatePropagation()}
 },true);
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ZOOM){closeZoom();return}

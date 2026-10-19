@@ -186,6 +186,7 @@ async function shieldsFx(p,e,src){
 }
 async function jsonFx(p,e,src,optional){
   const o=opp(p);
+  if(e.k==='x'){const fn=SPECIALS[e.f];if(fn)return fn(p,e,src,optional);log(`${src.n}: this ability isn't available.`);return}
   if(e.k==='pick')return pickFx(p,e,src,optional);
   if(e.k==='all')return allFx(p,e,src);
   if(e.k==='search')return searchFx(p,e,src);
@@ -260,7 +261,8 @@ async function jsonFx(p,e,src,optional){
     const c=await pickCard(o,cands,`${src.n}: ${e.x}`,{hidden:e.z==='sh'&&!o.bz.length,aiPick:cs=>aiCheapest(cs.filter(x=>!o.bz.includes(x)).length?cs.filter(x=>!o.bz.includes(x)):cs)});
     if(!c)return;
     if(o.bz.includes(c)){anim(c,'die');destroy(o,c);return}
-    const z=o.mana.includes(c)?'mana':'sh';o[z].splice(o[z].indexOf(c),1);c.tapped=false;o.gy.push(c);
+    if(o.mana.includes(c)){manaToGy(o,c,p);return}
+    const z='sh';o[z].splice(o[z].indexOf(c),1);c.tapped=false;o.gy.push(c);
     log(`${z==='sh'?'A shield':c.n} goes to ${whose(o)} graveyard.`);return;
   }
   if(e.k==='peekAny'){
@@ -371,7 +373,7 @@ async function jsonFx(p,e,src,optional){
     for(let k=0;k<max&&o.mana.length;k++){
       const c=await pickCard(p,o.mana.slice(),`${src.n}: ${e.x}`,{optional:!!e.upto||optional,aiPick:aiDearest});
       if(!c)break;
-      o.mana.splice(o.mana.indexOf(c),1);c.tapped=false;(e.a==='hand'?o.hand:o.gy).push(c);
+      if(e.a==='hand'){o.mana.splice(o.mana.indexOf(c),1);c.tapped=false;o.hand.push(c)}else{manaToGy(o,c,p);render();continue}
       log(`${c.n} goes from ${whose(o)} mana zone to ${e.a==='hand'?'hand':'the graveyard'}.`);render();
     }
     return;
@@ -420,6 +422,7 @@ async function jsonFx(p,e,src,optional){
 // Whether resolving an effect would help its controller right now (used by the AI).
 function jsonUseful(p,e,src){
   const o=opp(p);
+  if(e.k==='x')return SPECIAL_USEFUL[e.f]?SPECIAL_USEFUL[e.f](p,e,src):true;
   if(e.k==='pick'||e.k==='all'){
     const hit=matching(e.q,p,src);
     if(e.k==='pick')return HARMFUL.has(e.a)?hit.some(c=>o.bz.includes(c)):hit.some(c=>p.bz.includes(c));

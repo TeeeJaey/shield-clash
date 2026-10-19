@@ -78,7 +78,7 @@ function onAct(a,v){
     const must=mustAttackers(me);
     if(must.length){G.notice=`${must.map(c=>c.n).join(', ')} must attack this turn if able.`;G.sel={zone:'bz',uid:must[0].uid};render();return}
     G.sel=null;G.notice='';G.busy=true;render();
-    endTurn(me).then(()=>{G.busy=false;if(!G.over)startTurn(1);else render()});
+    endTurn(me).then(()=>{G.busy=false;if(!G.over)startTurn(nextPlayer(me));else render()});
   }
 }
 document.addEventListener('click',e=>{
@@ -87,5 +87,5 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{
   if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-uid],[data-shield]')){e.preventDefault();onCard(+(e.target.dataset.uid||e.target.dataset.shield))}
-  else if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-def]')){e.preventDefault();openZoom(DEF[e.target.dataset.def])}
+  else if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-def]')){e.preventDefault();zoomFrom(e.target)}
 });

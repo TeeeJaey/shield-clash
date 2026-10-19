@@ -65,6 +65,7 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 .shields.attacked{box-shadow:0 0 0 3px var(--danger);padding:2px 4px}
 .back{width:30px;height:42px;border-radius:4px;background:repeating-linear-gradient(45deg,var(--back) 0 6px,var(--back2) 6px 12px);border:1.5px solid var(--ink)}
 .back.shield{display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;text-shadow:0 1px 2px #000c;transition:transform .12s}
+.back.shield.faceup{background:linear-gradient(160deg,var(--el),color-mix(in srgb,var(--el) 55%,#000));cursor:pointer;box-shadow:0 0 0 2px #fff6,0 0 10px var(--el)}
 .back.shield.target{box-shadow:0 0 0 3px var(--danger);cursor:pointer;transform:translateY(-3px)}
 .lbl{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
 .manas{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
@@ -168,7 +169,12 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 .bmsg{color:var(--muted);font-size:13px;width:100%}
 .civ h3{margin:18px 0 8px;font-size:20px;color:var(--el)}
 /* rows are swapped in and out while scrolling; the browser must not nudge the scroll position for that */
-.bgrid{display:flex;flex-wrap:wrap;align-content:flex-start;gap:12px;overflow-anchor:none}
+/* columns share the full width, so the cards scale to fill the row instead of leaving a gap */
+.bgrid{--cw:112px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--cw),1fr));align-content:start;gap:12px;overflow-anchor:none}
+.bgrid .bitem{justify-items:stretch}
+.bgrid .bitem .card{width:100%}
+.bgrid .bitem .bc{justify-self:center}
+@media (max-width:600px){.bgrid{--cw:86px}}
 .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 /* the selected civilization tab is filled with its frame color */
 .tabs button.main{background:var(--tab);color:#fff}
@@ -220,7 +226,8 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 /* zoomed card view */
 #zoom .overlay{z-index:20}
 /* browsing cards and changing copies from the zoom view */
-.znav{display:flex;align-items:center;gap:10px;font-family:var(--font-num);font-size:16px;color:var(--muted)}
+.znav{display:flex;align-items:center;gap:10px;font-family:var(--font-num);font-size:16px;color:var(--muted);font-variant-numeric:tabular-nums}
+.zpos b{display:inline-block;text-align:right;font-weight:600;color:var(--ink)}
 .znav button.icon{font-size:24px;line-height:1}
 .zqty{display:flex;align-items:center;gap:10px;background:var(--mat);border-radius:999px;padding:5px 14px 5px 6px;box-shadow:inset 0 0 0 1px var(--frame);width:max-content}
 .zqty button{width:36px;height:36px;padding:0;font-size:20px;line-height:1}
@@ -238,7 +245,36 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 .pitem{display:grid;gap:3px;justify-items:center;cursor:pointer}
 .pitem small{color:var(--muted);font-size:11.5px}
 .zbox{background:var(--panel);box-shadow:inset 0 0 0 1px var(--frame),var(--shadow);border-radius:20px;padding:18px;max-width:640px;width:100%;display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start;position:relative}
-.zinfo{flex:1;min-width:220px;display:grid;gap:10px}
+.zinfo{flex:1;min-width:220px;display:flex;flex-direction:column;gap:12px}
+/* beside the card, the panel matches the card's height: facts on top, rules scroll, controls stay at the bottom */
+@media (min-width:601px){.zinfo{height:388px}}
+.zinfo header{display:grid;gap:10px}
+.zbody{flex:1;min-height:0;overflow:auto;display:grid;align-content:start;gap:10px;padding-right:4px}
+.zstack{display:grid;gap:10px;max-width:640px;width:100%}
+.zstack .zbox{max-width:none}
+/* browse and copy controls, in their own bar under the dialog */
+.zbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;background:var(--panel);border-radius:16px;padding:10px 16px;box-shadow:inset 0 0 0 1px var(--frame),var(--shadow)}
+.zbar .zqty{margin-right:auto}
+.zbar .hint{margin:0}
+/* hover preview (computers): the card large with its full rules, beside the board */
+#peek{position:fixed;z-index:15;width:250px;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;visibility:hidden}
+#peek.show{opacity:1;transform:none;visibility:visible}
+/* the preview card looks printed: a darker rim, a thin light edge and layered shadow beneath */
+#peek .card.big{margin:0;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 0 14px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.35),0 1px 1px rgba(0,0,0,.35),0 4px 8px rgba(0,0,0,.3),0 18px 40px rgba(0,0,0,.45)}
+.peekinfo{width:100%;min-width:0;display:grid;gap:8px;font-size:13px;line-height:1.45}
+.peekinfo h3{margin:0;font-size:18px;line-height:1.15}
+.peekinfo .printed-rules{gap:6px;padding-left:16px}
+.peekinfo .reminder{font-size:12px}
+.peekinfo .flavor{font-size:12.5px}
+.zfacts{display:flex;flex-wrap:wrap;gap:6px}
+.zchip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:var(--mat);box-shadow:inset 0 0 0 1px var(--frame);font-size:12.5px;font-weight:600}
+.zchip .tdot{margin-right:6px}
+.zstats{display:flex;gap:8px;align-items:stretch}
+.zstats div{display:grid;justify-items:center;align-content:center;min-width:64px;padding:4px 12px;border-radius:12px;background:var(--mat);box-shadow:inset 0 0 0 1px var(--frame)}
+.zstats small{font:600 11px var(--font-num);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.zstats b{font:700 22px/1.1 var(--font-num)}
+.zset{margin:0 0 0 auto!important;align-self:center;text-align:right;font:500 13px/1.35 var(--font-num);color:var(--muted);letter-spacing:.02em}
+.zstate{padding:8px 12px;border-radius:10px;background:var(--mat)}
 .zinfo h2{margin:0;font-size:24px;line-height:1.15;padding-right:36px}
 .zinfo p{margin:0;line-height:1.5}
 .zmeta{color:var(--muted)}
@@ -414,6 +450,7 @@ input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 <script src="js/engine/abilities.js"></script>
 <script src="js/engine/rules.js"></script>
 <script src="js/engine/effects.js"></script>
+<script src="js/engine/specials.js"></script>
 <script src="js/ai/opponent.js"></script>
 <script src="js/storage/decks.js"></script>
 <script src="js/ui/prompts.js"></script>
@@ -423,6 +460,7 @@ input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 <script src="js/ui/artfx.js"></script>
 <script src="js/ui/input.js"></script>
 <script src="js/ui/zoom.js"></script>
+<script src="js/ui/peek.js"></script>
 <script src="js/ui/dropdown.js"></script>
 <script src="js/ui/builder.js"></script>
 <script src="js/network/online.js"></script>

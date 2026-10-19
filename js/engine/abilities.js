@@ -4,10 +4,21 @@
 // "while you have no shields ...") plus "until the end of the turn" grants (c.tmp).
 // Rules code reads abilities through T(c) and power through power(c); the printed
 // card fields are never modified.
-const hasRace=(c,r)=>(c.race||'').split('/').map(s=>s.trim()).includes(r);
-const dragonRace=c=>(c.race||'').split('/').some(r=>/\bDragon\b/.test(r));
+// Printed races plus any a card gains in play: "is an Armored Dragon in addition to its other
+// races" until the end of the turn, or "each of your creatures is a Survivor".
+function racesAll(c){
+  const out=(c.race||'').split('/').map(s=>s.trim()).filter(Boolean);
+  if(c.tmp&&c.tmp.addRaces)out.push(...c.tmp.addRaces);
+  const p=G&&ownerOf(c);
+  if(p)for(const [st,src,q] of staticsInPlay())if(st.addRace&&inScope(st,src,q,c,p))out.push(st.addRace);
+  return out;
+}
+const hasRace=(c,r)=>racesAll(c).includes(r);
+const dragonRace=c=>racesAll(c).some(r=>/\bDragon\b/.test(r));
 function inScope(st,src,srcOwner,c,owner){
   if(st.who==='self')return c===src;
+  // Petrova: "each creature of that race" - the race chosen when it entered.
+  if(st.chosen&&!(src.chosenRace&&hasRace(c,src.chosenRace)))return false;
   if(st.who==='own'&&owner!==srcOwner)return false;
   if(st.other&&c===src)return false;
   if(st.civs&&!civsOf(c).some(e=>st.civs.includes(e)))return false;

@@ -21,7 +21,7 @@ const shieldLetter=n=>(n>=26?shieldLetter(Math.floor(n/26)-1):'')+String.fromCha
 function labelShields(){
   if(!G)return;
   for(const p of G.p){
-    for(const z of ['deck','hand','mana','bz','gy'])for(const c of p[z])if(c.shL)delete c.shL;
+    for(const z of ['deck','hand','mana','bz','gy'])for(const c of p[z]){if(c.shL)delete c.shL;if(c.faceUp)delete c.faceUp}
     for(const s of p.sh)if(!s.shL)s.shL=shieldLetter(p.shN=(p.shN??-1)+1);
   }
 }
