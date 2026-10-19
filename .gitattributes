@@ -1,0 +1,6 @@
+# Generated files are compared byte for byte by the --check scripts; keep LF everywhere.
+* text=auto eol=lf
+*.webp binary
+*.png binary
+*.jpg binary
+*.csv -text -whitespace

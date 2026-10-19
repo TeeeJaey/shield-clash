@@ -1,13 +1,13 @@
 {
   "cards": 1141,
-  "artwork": 921,
+  "artwork": 1056,
   "scans": 921,
   "optimized_images": 2763,
   "source_image_bytes": 348834958,
   "optimized_image_bytes": 88036726,
-  "metadata_bytes": 640886,
-  "missing_art": 220,
-  "rules_text": 977,
+  "metadata_bytes": 1040971,
+  "missing_art": 85,
+  "rules_text": 1109,
   "ocr_only": 0,
-  "no_rules_or_ocr": 164
+  "no_rules_or_ocr": 32
 }
