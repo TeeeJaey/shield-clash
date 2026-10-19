@@ -76,6 +76,8 @@ function renderZoom(){
       ${zoomNavHTML()}
       <p class="hint">${ZNAV?(ZNAV.build?'Arrow keys or swipe to browse, + and − (or 0 to 4) to change the count. ':'Arrow keys or swipe to browse. '):''}Tap outside or press Esc to close.</p></div>
   </div></div>`;
+  // The zoomed card's art comes alive in its civilization's way.
+  artfxAttach(el.querySelector('.card.big .art img'),c.e);
 }
 let pressT=null,swallow=false,swipeX=null;
 document.addEventListener('pointerdown',e=>{swipeX=ZNAV&&e.target.closest('#zoom')&&e.pointerType!=='mouse'?e.clientX:null},true);

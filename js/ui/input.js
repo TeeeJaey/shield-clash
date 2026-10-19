@@ -40,15 +40,18 @@ function onAct(a,v){
   if(a==='mphost'){mpHost();return}
   if(a==='mpjoin'){mpJoin();return}
   if(a==='mpcancel'){mpLeave(true);if(!IN_CLAUDE)netClose();return}
-  if(a==='menu'&&G&&G.mp&&!G.over&&!G.modal&&!G.targeting){
-    ask('Game menu',`Leaving ends the game for both of you, and ${G.p[1].name} wins.`,
-      [{label:'Keep playing',val:null,main:1},{label:'Leave game',val:'leave'}]).then(v=>{if(v==='leave')mpLeave()});
-    return}
-  if(a==='menu'&&G&&!G.over&&G.turn===0&&!G.busy&&!G.modal&&!G.targeting){
+  // Back and Restart, from the board's corner. Both confirm first, since the game is lost.
+  if(a==='gback'&&gameExitOpen()){
     G.sel=null;
-    ask('Game menu','Restarting deals a fresh game with the same two decks. Your current game will be lost.',
-      [{label:'Keep playing',val:null,main:1},{label:'Restart this game',val:'restart'},{label:'Back to start page',val:'start'}])
-    .then(v=>{if(v==='restart')startGame(...G.decks);else if(v==='start')showStart()});
+    if(G.mp)ask('Leave the game?',`Leaving ends the game for both of you, and ${G.p[1].name} wins.`,
+      [{label:'Keep playing',val:null,main:1},{label:'Leave game',val:'leave'}]).then(v=>{if(v==='leave')mpLeave()});
+    else ask('Back to the start page?','Your current game will be lost.',
+      [{label:'Keep playing',val:null,main:1},{label:'Back to start page',val:'start'}]).then(v=>{if(v==='start')showStart()});
+    return}
+  if(a==='grestart'&&gameExitOpen()&&!G.mp){
+    G.sel=null;
+    ask('Restart this game?','You get a fresh game with the same two decks. Your current game will be lost.',
+      [{label:'Keep playing',val:null,main:1},{label:'Restart',val:'restart'}]).then(v=>{if(v==='restart')startGame(...G.decks)});
     return}
   if(a==='bplus'){if(DEF[v]?.playable&&DEF[v].duelId===v&&total()<DECK_MAX&&(BUILD.counts[v]||0)<MAX_COPY)BUILD.counts[v]=(BUILD.counts[v]||0)+1;BUILD.msg='';renderBuilder();autoSave();return}
   if(a==='bminus'){if(BUILD.counts[v])BUILD.counts[v]--;BUILD.msg='';renderBuilder();autoSave();return}

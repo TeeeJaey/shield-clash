@@ -42,13 +42,18 @@ function sideHTML(p){
   const hand=p.hand.length?p.hand.map(c=>cardHTML(c,cls(c,p,'hand'))).join(''):'<div class="empty">Your hand is empty</div>';
   return `<section class="side"><div class="zone bzone">${bz}</div>${top}<div class="lbl">Hand</div><div class="zone">${hand}</div></section>`;
 }
-// The game menu and sound switch sit in the board's top corner, out of the action bar, whose
-// buttons change with every step. The menu works when the game can be paused for it.
+// Back, Restart and the sound switch sit in the board's top corner, out of the action bar,
+// whose buttons change with every step. Back and Restart work when the game can stop for them
+// (against the computer, on your own turn with nothing resolving).
 const ICON={
-  menu:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+  back:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4.5L6.5 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  restart:'<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 10a5.5 5.5 0 1 1-1.8-4.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M14.5 2.8v3.6h-3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
-function menuOpen(){return !!G&&!G.over&&!G.modal&&!G.targeting&&(G.mp?true:G.turn===0&&!G.busy)}
-const sysHTML=()=>`<span class="sys"><button class="icon" data-act="menu" aria-label="Game menu" title="Game menu"${menuOpen()?'':' disabled'}>${ICON.menu}</button>${soundBtn(true)}</span>`;
+function gameExitOpen(){return !!G&&!G.over&&!G.modal&&!G.targeting&&(G.mp?true:G.turn===0&&!G.busy)}
+const sysHTML=()=>{
+  const off=gameExitOpen()?'':' disabled';
+  return `<span class="sys"><button class="sysbtn" data-act="gback" title="Back to the start page"${off}>${ICON.back}<span>Back</span></button>${G.mp?'':`<button class="sysbtn" data-act="grestart" title="Restart with the same decks"${off}>${ICON.restart}<span>Restart</span></button>`}${soundBtn(true)}</span>`;
+};
 const btn=(a,l,main,v)=>`<button data-act="${a}"${v!=null?` data-v="${v}"`:''} class="${main?'main':''}">${l}</button>`;
 // The turn steps: charge, then summon and cast, then attack.
 const stepOf=p=>p.attacked?'Attack step':p.played||p.charged?'Main step':'Charge step';
