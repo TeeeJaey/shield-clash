@@ -186,6 +186,8 @@ function render(){
   const [me,them]=G.p;
   warmArt([me.hand,me.bz,me.mana,me.sh,me.deck,me.gy,them.bz,them.mana,them.gy].flat());
   if(G.mp&&MP&&!MP.applying&&G.turn===0&&!G.over)mpPush();
+  // Rows swiped sideways (phones) keep their place: redrawing the board would reset them to the start.
+  const rowScroll=[...document.querySelectorAll('.duelmain .zone')].map(z=>z.scrollLeft);
   // The log comes first so a wide screen can give it the left column; narrow screens put it last.
   $('#app').innerHTML=`<div class="duel"><details class="log" ${logOpen?'open':''}><summary>Game log<span class="llast">${G.log.length?esc(viewText(G.log[0])):''}</span><span class="lchev" aria-hidden="true"></span></summary><div aria-live="polite">${logTurnsHTML()}</div></details>
     <div class="duelmain">${sideHTML(G.p[1])}<div class="bar">${barHTML()}</div>${sideHTML(G.p[0])}</div></div>`;
@@ -197,7 +199,7 @@ function render(){
     <div class="opts">${btn('new',G.mp?'Back to start page':'Play again',1)}</div></div></div>`;
   $('#layer').innerHTML=layer;
   playLogSounds();
-  document.querySelectorAll('.duelmain .zone').forEach(markOverflow);
+  document.querySelectorAll('.duelmain .zone').forEach((z,i)=>{if(rowScroll[i])z.scrollLeft=rowScroll[i];markOverflow(z)});
   fitPrompt();
 }
 // On a phone the bar's hint is one line; when it's cut off a ▾ shows, and tapping it opens the
