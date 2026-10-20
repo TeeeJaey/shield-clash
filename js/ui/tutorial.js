@@ -6,7 +6,7 @@ const tutorialCard=id=>({ragna:DEF['dm-7'],harrier:DEF['dm-152'],drakeling:DEF['
   reef:DEF['dm-41'],flare:DEF['dm-98'],chief:DEF['dm-121'],evoBase:DEF['dm-19'],alpha:DEF['dm-10'],seraph:DEF['dm-1'],titan:DEF['dm-10'],devourer:DEF['dm-5']}[id]||DEF[id]||DEFS[0]);
 const mini=(id,extra={})=>cardHTML({...tutorialCard(id),...extra},'',true);
 const backs=(n,gone=0)=>`<div class="tshields">${Array.from({length:n},(_,i)=>`<div class="back ${i>=n-gone?'gone':''}"></div>`).join('')}</div>`;
-const chip=(e,used)=>`<span class="mana ${used?'used':''}" style="--el:${CIV[e].c}">${CIV[e].n[0]}</span>`;
+const chip=(e,used)=>`<span class="mana ${used?'used':''}" style="--el:${CIV[e].c};--elt:${CIV[e].t||'#fff'}">${CIV[e].n[0]}</span>`;
 const TPAGES=[
  {t:'The goal',
   v:()=>`<div class="tcol">${backs(8)}<span class="tcap">Your opponent's 8 shields</span></div><span class="arrow">→</span><div class="tcol">${mini('ragna')}<span class="tcap">One more hit wins</span></div>`,

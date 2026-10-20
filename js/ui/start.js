@@ -36,7 +36,7 @@ function frameVars(civs){
   const fr=!cs.length?PAL.unknown.frame:cs.length===1?PAL[cs[0]].frame
     :cs.length===2?`linear-gradient(135deg,${PAL[cs[0]].frame} 45%,${PAL[cs[1]].frame} 55%)`
     :`linear-gradient(135deg,${cs.map((e,i)=>`${PAL[e].frame} ${Math.round(i/cs.length*100)}% ${Math.round((i+1)/cs.length*100)}%`).join(',')})`;
-  return `--fr:${fr};--lt:${P.light};--dp:${P.deep}`;
+  return `--fr:${fr};--lt:${P.light};--dp:${P.deep};--of:${P.onFrame||P.light}`;
 }
 const dotsHTML=civs=>`<span class="dots">${civs.map(e=>`<span style="--el:${CIV[e].c}"></span>`).join('')}</span>`;
 // Starting with a deck either begins a duel against the computer or opens the room screen

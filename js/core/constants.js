@@ -1,14 +1,15 @@
 const CIV={
   fire:{n:'Fire',c:'#A32D2D'},water:{n:'Water',c:'#185FA5'},nature:{n:'Nature',c:'#3B6D11'},
-  light:{n:'Light',c:'#854F0B'},darkness:{n:'Dark',c:'#3C3489'}
+  light:{n:'Light',c:'#E3B30F',t:'#3B2D00'},darkness:{n:'Dark',c:'#24242C'}
 };
 /* ---------- card palette and civilization emblems ---------- */
 const PAL={
   fire:{frame:'#A32D2D',light:'#FCEBEB',mid:'#F09595',deep:'#501313',soft:'#F7C1C1'},
   water:{frame:'#185FA5',light:'#E6F1FB',mid:'#85B7EB',deep:'#042C53',soft:'#B5D4F4'},
   nature:{frame:'#3B6D11',light:'#EAF3DE',mid:'#97C459',deep:'#173404',soft:'#C0DD97'},
-  light:{frame:'#854F0B',light:'#FAEEDA',mid:'#FAC775',deep:'#412402',soft:'#FCE3B4'},
-  darkness:{frame:'#3C3489',light:'#EEEDFE',mid:'#AFA9EC',deep:'#26215C',soft:'#CECBF6'},
+  // Light is yellow, so the text on its frame is dark; Darkness is black, so its pills get a faint ring.
+  light:{frame:'#E8B714',light:'#FFF6D5',mid:'#F6D86A',deep:'#3B2D00',soft:'#FBE7A1',onFrame:'#3B2D00'},
+  darkness:{frame:'#18181D',light:'#ECECF1',mid:'#5A5A66',deep:'#2B2B33',soft:'#C9C9D3',ring:'rgba(255,255,255,.28)'},
   unknown:{frame:'#68717d',light:'#edf0f3',mid:'#bbc3cc',deep:'#29323d',soft:'#d5dbe1'}
 };
 const EMB={

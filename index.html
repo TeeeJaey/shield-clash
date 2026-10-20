@@ -94,13 +94,13 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 @media (max-width:600px){.mgroup .mana~.mana{display:none}.manas{gap:6px 12px}}
 button.link{border:none;background:none;box-shadow:none;padding:0;font-weight:inherit;color:var(--muted);text-decoration:underline dotted;text-underline-offset:3px;border-radius:3px}
 button.link:hover{background:none;box-shadow:none;color:var(--ink)}
-.mana{width:22px;height:22px;border-radius:50%;background:var(--el);color:#fff;font-size:13px;font-weight:700;display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28),0 0 0 1px rgba(0,0,0,.3)}
+.mana{width:22px;height:22px;border-radius:50%;background:var(--el);color:var(--elt,#fff);text-shadow:0 0 2px rgba(0,0,0,.25);font-size:13px;font-weight:700;display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28),0 0 0 1px rgba(0,0,0,.3)}
 .mana.used{opacity:.3}
 /* Card layout from the 112px design, in container units so every display size keeps its proportions. */
 .card{position:relative;container-type:inline-size;width:112px;aspect-ratio:112/174;flex:none;border-radius:8%/5.2%;background:var(--fr);cursor:pointer;transition:transform .15s}
 .cbody{height:100%;box-sizing:border-box;padding:3.6cqw;display:flex;flex-direction:column;gap:2.7cqw}
 .nbar{display:flex;gap:3.6cqw;align-items:center;background:var(--lt);border-radius:4.5cqw;padding:1.8cqw 3.6cqw;min-height:23cqw;flex:none}
-.cost{flex:none;width:17cqw;height:17cqw;border-radius:50%;background:var(--dp);color:var(--lt);font-weight:700;font-size:11.8cqw;display:grid;place-items:center}
+.cost{flex:none;width:17cqw;height:17cqw;border-radius:50%;background:var(--dp);color:var(--lt);box-shadow:inset 0 0 0 .9cqw var(--pr,transparent);font-weight:700;font-size:11.8cqw;display:grid;place-items:center}
 .nm{min-width:0;font-weight:700;font-size:10.6cqw;line-height:1.02;letter-spacing:.01em;color:var(--dp);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .art{position:relative;height:50cqw;flex:none;border-radius:4.5cqw;overflow:hidden;background:var(--md)}
 .art svg{display:block;width:100%;height:100%}
@@ -112,10 +112,13 @@ button.link:hover{background:none;box-shadow:none;color:var(--ink)}
 .txt p{margin:0 0 .2em}
 .txt p:last-child{margin-bottom:0}
 .bot{display:flex;justify-content:space-between;align-items:center;gap:3.6cqw;flex:none}
-.rc{font-size:8.6cqw;font-weight:600;letter-spacing:.02em;color:var(--lt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding-left:1.8cqw}
-.pw{flex:none;background:var(--dp);color:var(--lt);font-weight:700;font-size:11.2cqw;padding:0 6.2cqw;border-radius:3.6cqw;line-height:1.5}
+.rc{font-size:8.6cqw;font-weight:600;letter-spacing:.02em;color:var(--of,var(--lt));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;padding-left:1.8cqw}
+.pw{flex:none;background:var(--dp);color:var(--lt);box-shadow:inset 0 0 0 .9cqw var(--pr,transparent);font-weight:700;font-size:11.2cqw;padding:0 6.2cqw;border-radius:3.6cqw;line-height:1.5}
 .card.multicolor{background:linear-gradient(135deg,var(--fr) 45%,var(--second) 55%)}
-.card.multicolor .cost,.card.multicolor .pw{background:linear-gradient(135deg,var(--fr) 50%,var(--second) 50%);color:#fff;box-shadow:inset 0 0 0 1px #0004}
+.card.multicolor .cost,.card.multicolor .pw{background:linear-gradient(135deg,var(--fr) 50%,var(--second) 50%);color:#fff;box-shadow:inset 0 0 0 1px #0004;text-shadow:0 1px 2px rgba(0,0,0,.75),0 0 1px rgba(0,0,0,.9)}
+/* a black card on the dark theme, or a yellow one on the light theme, keeps a visible edge */
+.card[data-e="darkness"]:not(:focus-visible){outline:1px solid rgba(255,255,255,.22);outline-offset:-1px}
+.card[data-e="light"]:not(:focus-visible){outline:1px solid rgba(0,0,0,.22);outline-offset:-1px}
 .card.scan-only{padding:0;overflow:hidden}
 .card.scan-only>img{display:block;width:100%;height:100%;object-fit:fill;border-radius:inherit}
 .scan-card{display:block;width:250px;max-width:100%;height:auto;flex:none;margin:0 auto;border-radius:10px}
@@ -311,7 +314,7 @@ button.link.bump{animation:k-bump .5s ease-out}
 .deck small,.mydeck small{background:var(--lt);color:var(--dp);border-radius:9px;padding:6px 9px;line-height:1.38;font-weight:500;opacity:.94}
 .deck.blank{--fr:var(--frame);--lt:var(--face);--dp:var(--ink)}
 .dots{display:flex;gap:3px;flex:none}
-.dots span{width:15px;height:15px;border-radius:50%;background:var(--el);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3)}
+.dots span{width:15px;height:15px;border-radius:50%;background:var(--el);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3),0 0 0 1px rgba(0,0,0,.25)}
 .dots:has(span:nth-child(4)) span{width:11px;height:11px}
 .rules{color:var(--muted);line-height:1.55;font-size:13.5px;margin:0}
 /* The builder header is a full-width band on its own layer, so cards scrolling under it never show at its edges.
@@ -322,7 +325,8 @@ button.link.bump{animation:k-bump .5s ease-out}
 .cnt{font-weight:700;margin-right:auto;font-size:20px}
 .cnt.ok{color:var(--ok)}
 .bmsg{color:var(--muted);font-size:13px;width:100%}
-.civ h3{margin:18px 0 8px;font-size:20px;color:var(--el)}
+.civ h3{margin:18px 0 8px;font-size:20px;color:var(--ink)}
+.civ h3::before{content:"";display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:8px;vertical-align:1px;background:var(--el);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3),0 0 0 1px rgba(0,0,0,.25)}
 /* rows are swapped in and out while scrolling; the browser must not nudge the scroll position for that */
 /* columns share the full width, so the cards scale to fill the row instead of leaving a gap */
 .bgrid{--cw:112px;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--cw),1fr));align-content:start;gap:12px;overflow-anchor:none}
@@ -335,7 +339,7 @@ button.link.bump{animation:k-bump .5s ease-out}
 .tabs button.main{background:var(--tab);color:#fff}
 .tabs button.main.all{color:var(--bg)}
 .tabs button.main .tdot{background:currentColor}
-.tdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--el);margin-right:6px}
+.tdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--el);margin-right:6px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3),0 0 0 1px rgba(0,0,0,.25)}
 .bitem{position:relative;display:grid;gap:5px;justify-items:center}
 /* cards in your deck: a ring, a copy badge on the corner, and a highlighted count */
 .bitem.indeck .card{box-shadow:0 0 0 3px var(--ink)}
@@ -455,7 +459,7 @@ button.link.bump{animation:k-bump .5s ease-out}
     box-shadow:0 14px 34px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.35);animation:k-drop .14s ease-out}
   .duelmain .bar .acts .actname{display:flex;align-items:center;gap:8px;flex:1 1 100%;order:-2;font:700 16px/1.2 var(--font-num);letter-spacing:.01em;color:var(--ink)}
   .duelmain .bar .acts .acost{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;font-style:normal;font-size:14px;
-    color:#fff;background:var(--fr);box-shadow:0 0 0 2px rgba(255,255,255,.18)}
+    color:var(--of,#fff);background:var(--fr);box-shadow:0 0 0 2px rgba(255,255,255,.18)}
   .duelmain .bar .acts .psel{display:none}
   .duelmain .bar .acts .prompt:not(:has(.pwhy)){display:none}
   .duelmain .bar .acts .pwhy{color:var(--ink);opacity:.8}

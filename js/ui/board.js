@@ -1,6 +1,6 @@
 function setPhase(){const el=document.documentElement;if(el&&el.style)el.style.setProperty('--ph',`-${now()%8000}ms`)}
 // A mana chip shows the civilizations it can pay for; multicolored mana is split.
-const manaChip=m=>{const cs=civsOf(m);return `<span class="mana ${m.tapped?'used':''}" style="--el:${CIV[m.e].c}${m.e2?`;background:linear-gradient(135deg,${CIV[m.e].c} 50%,${CIV[m.e2].c} 50%)`:''}" title="${esc(m.n)}">${cs.map(e=>CIV[e].n[0]).join('')}</span>`};
+const manaChip=m=>{const cs=civsOf(m);return `<span class="mana ${m.tapped?'used':''}" style="--el:${CIV[m.e].c};--elt:${!m.e2&&CIV[m.e].t||'#fff'}${m.e2?`;background:linear-gradient(135deg,${CIV[m.e].c} 50%,${CIV[m.e2].c} 50%)`:''}" title="${esc(m.n)}">${cs.map(e=>CIV[e].n[0]).join('')}</span>`};
 const civRank=k=>Object.keys(CIV).indexOf(k.split('/')[0]);
 // Mana is grouped by what it pays for, each group with its untapped and total count.
 function manaHTML(p,side){
