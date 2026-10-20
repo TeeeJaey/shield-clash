@@ -137,7 +137,8 @@ async function flushFx(){
     await resolveFx(t.p,t.fx,t.src);
   }
   // A creature with 0 power or less is destroyed. Its leaving can trigger more, so go again.
-  const zero=G.over?[]:G.p.flatMap(q=>q.bz.filter(c=>c.t==='c'&&power(c)<=0).map(c=>[q,c]));
+  // One that can't be destroyed (Mihail) stays, so it's left out or this would never end.
+  const zero=G.over?[]:G.p.flatMap(q=>q.bz.filter(c=>c.t==='c'&&power(c)<=0&&!T(c).noDestroy).map(c=>[q,c]));
   if(zero.length){log(`${zero.map(([,c])=>c.n).join(', ')} ${zero.length>1?'have':'has'} 0 power.`);destroyAll(zero);return flushFx()}
   deckOut();
 }
