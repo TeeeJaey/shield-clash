@@ -65,12 +65,11 @@ function renderZoom(){
     return;
   }
   const c=ZOOM,e=archiveCivilization(c);
-  // The card's facts as chips (civilizations, type, race) and two stat tiles (cost, power).
+  // The card's civilizations as chips, and where it was printed. What the card itself already
+  // shows (type, race, cost, power) isn't repeated.
   const civChips=[c.e,c.e2].filter(Boolean).map(k=>{const v=CIV[k]||e;return `<span class="zchip" style="--el:${v.c}"><span class="tdot"></span>${esc(v.n)}</span>`}).join('');
-  // On a phone the card itself is right above, so what it already prints (.zdup) is left out.
-  const facts=`<div class="zfacts">${civChips}<span class="zchip zdup">${esc(c.printedType||(c.t==='s'?'Spell':'Creature'))}</span>${c.race?`<span class="zchip zdup">${esc(c.race.split('/').join(' / '))}</span>`:''}</div>
-    <div class="zstats"><div class="zdup"><small>Cost</small><b>${c.cost??'–'}</b></div>${c.printedPower?`<div class="zdup"><small>Power</small><b>${esc(c.printedPower)}</b></div>`:''}
-      <p class="zset">${esc(c.set)} · ${esc(c.setNumber)}/${esc(c.setCount)}${c.rarity?`<br>${esc(c.rarity)}`:''}</p></div>`;
+  const facts=`<div class="zfacts">${civChips}</div>
+    <p class="zset">${esc(c.set)} · ${esc(c.setNumber)}/${esc(c.setCount)}${c.rarity?`<br>${esc(c.rarity)}`:''}</p>`;
   const st=[];
   if(c.uid&&G){
     if(G.p.some(p=>p.bz.includes(c))){st.push(c.tapped?'Tapped.':'Untapped.');if(c.sick)st.push("Arrived this turn, so it can't attack yet.")}
