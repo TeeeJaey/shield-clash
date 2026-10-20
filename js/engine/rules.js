@@ -783,7 +783,9 @@ async function startTurn(i){
   if(G.over)return;
   if(G.p[i].remote){G.turn=i;G.needStart=true;G.sel=null;render();await mpPush(true);return}
   const p=G.p[i];
-  await beginTurn(p);
+  // The game isn't saved halfway through the start of a turn (see saveGame).
+  const g0=G;g0.starting=true;
+  try{await beginTurn(p)}finally{delete g0.starting}
   if(G.over)return;
   render();
   if(G.mp)mpPush(true);

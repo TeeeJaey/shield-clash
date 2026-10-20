@@ -186,6 +186,7 @@ function render(){
   const [me,them]=G.p;
   warmArt([me.hand,me.bz,me.mana,me.sh,me.deck,me.gy,them.bz,them.mana,them.gy].flat());
   if(G.mp&&MP&&!MP.applying&&G.turn===0&&!G.over)mpPush();
+  saveGame();
   // Rows swiped sideways (phones) keep their place: redrawing the board would reset them to the start.
   const rowScroll=[...document.querySelectorAll('.duelmain .zone')].map(z=>z.scrollLeft);
   // The log comes first so a wide screen can give it the left column; narrow screens put it last.

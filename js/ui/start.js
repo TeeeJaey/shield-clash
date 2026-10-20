@@ -57,6 +57,7 @@ function renderMyDecks(){
 }
 function showStart(){
   navTo('start');
+  if(G)clearGame();
   G=null;$('#app').innerHTML='';
   $('#layer').innerHTML=`<div class="overlay" id="start"><div class="dialog">
     <div class="shead"><div class="logo">${LOGO}<h1>Shield Clash</h1></div>
