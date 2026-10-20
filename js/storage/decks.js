@@ -15,9 +15,9 @@ async function loadDecks(){
 }
 function setSaved(t){BUILD.saved=t;const el=document.getElementById('bsaved');if(el)el.textContent=t}
 function autoSave(){clearTimeout(saveT);setSaved('Saving…');saveT=setTimeout(()=>saveDeck(),400)}
-async function saveDeck(manual){
+async function saveDeck(){
   clearTimeout(saveT);
-  if(!total()){setSaved(BUILD.id?'Empty decks are not saved':'');if(manual){BUILD.msg='Add some cards before saving.';renderBuilder()}return}
+  if(!total()){setSaved(BUILD.id?'Empty decks are not saved':'');return}
   await loadDecks();
   const counts={};for(const k in BUILD.counts)if(BUILD.counts[k]>0)counts[k]=BUILD.counts[k];
   let d=BUILD.id&&MYDECKS.find(x=>x.id===BUILD.id);
@@ -25,5 +25,4 @@ async function saveDeck(manual){
   d.name=(BUILD.name||'').trim().slice(0,30)||'My deck';d.counts=counts;d.updated=Date.now();
   const ok=await storeDecks();
   setSaved(ok?'Saved':'Saving is not available here');
-  if(manual){BUILD.msg=ok?'Deck saved. It shows on the start page.':'Saving is not available here.';renderBuilder()}
 }
