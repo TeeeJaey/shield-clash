@@ -160,7 +160,8 @@ document.addEventListener('click',e=>{
     if(pi&&ZOOM&&ZOOM.pile){const cards=ZOOM.pile.cards;openZoom(cards[+pi.dataset.pile],{list:cards})}
     else if(nv)stepZoom(+nv.dataset.znav);
     else if(q&&ZOOM)zoomCopies((BUILD.counts[ZOOM.id]||0)+(+q.dataset.zq));
-    else if(e.target.closest('[data-zclose]')||e.target.matches('[data-zbg]'))closeZoom();
+    // Outside the box closes it: the backdrop, or the bare space around the box and the bar below it.
+    else if(e.target.closest('[data-zclose]')||e.target.matches('[data-zbg],.zstack'))closeZoom();
     e.stopImmediatePropagation();return;
   }
   const d=e.target.closest('[data-def]');

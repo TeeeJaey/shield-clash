@@ -71,3 +71,5 @@ function showTutorial(i){
       ${last?`<button class="main" data-act="tclose">Done</button>`:`<button class="main" data-act="tnext">Next</button>`}</div>
   </div></div>`;
 }
+// A tap outside the guide closes it, as × does.
+document.addEventListener('click',e=>{if(e.target.id==='tutorial')onAct('tclose')});
