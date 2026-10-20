@@ -147,7 +147,7 @@ async function chooseOrder(pool){
   const label=t=>`${t.src.n}: ${fxDesc(t.fx)}`;
   if(new Set(pool.map(label)).size===1)return pool[0];
   const i=await chooseEffect(pool[0].p,'Choose the order','These abilities trigger at the same time. Choose the one that resolves first; the others follow.',
-    pool.map((t,i)=>({label:label(t),val:i,main:i===0})),0);
+    pool.map((t,i)=>({label:label(t),val:i,main:i===0,uid:t.src.uid,note:fxDesc(t.fx),btn:'First'})),0);
   return pool[Number.isInteger(i)&&pool[i]?i:0];
 }
 const toMana=(p,cards)=>cards.forEach(c=>{c.tapped=!!c.e2;p.mana.push(c)});
@@ -472,8 +472,18 @@ async function chooseBase(p,c,cancel){
   if(b.length<=1)return b[0]||null;
   return p.ai?b.sort((x,y)=>(y.sick-x.sick)||(x.p-y.p))[0]:pickCard(p,b,`Choose which ${c.evo} becomes ${c.n}.`,{optional:cancel});
 }
+// A spell whose text lasts "this turn" or "until the start of your next turn" shows as in effect
+// on its caster's side until then (G.lasting; endTurn and beginTurn clear it).
+function spellLasts(c){
+  const t=c.txt||DEF[c.id]?.txt||'';
+  return /until the start of your next turn/i.test(t)?'next':/until the end of (the|this) turn|\bthis turn\b/i.test(t)?'end':null;
+}
 async function castSpell(p,c){
   p.castSpell=true;c.caster=p;
+  // While it resolves the spell is shown being cast (G.casting); afterwards the board shows it
+  // landing in the graveyard or, for a charger, the mana zone (G.landed).
+  const seat=G.p.indexOf(p);
+  G.casting={c,seat};render();await sleep(p===G.p[0]?450:900);
   // "Whenever a player casts a spell" triggers on the cast, so a creature the spell then
   // destroys still sees it, and resolves after the spell does.
   const seen=[...G.p.flatMap(q=>q.bz.filter(x=>T(x).onAnySpell).map(x=>[q,T(x).onAnySpell,x])),
@@ -483,6 +493,9 @@ async function castSpell(p,c){
   await flushFx();
   if(c.charger){c.tapped=!!c.e2;p.mana.push(c);log(`${c.n} goes to ${whose(p)} mana zone (Charger).`)}
   else p.gy.push(c);
+  const until=spellLasts(c);
+  if(until)(G.lasting||(G.lasting=[])).push({id:c.duelId||c.id,n:c.n,seat,until});
+  G.casting=null;G.landed={uid:c.uid,seat,to:c.charger?'mana':'gy'};render();
 }
 async function playCard(p,c){
   if(!canPlay(p,c))return;
@@ -647,19 +660,15 @@ async function breakShields(o,list,{toGy=false,by=null}={}){
   if(!toGy)await useTriggers(o,list);
   render();
 }
-// Online, the defender always confirms a break, so waiting for them never reveals whether a
-// shield held a trigger.
+// The defender is asked only when a broken shield has a trigger to use: the shatter on the
+// board already shows the break, so a break with nothing to decide doesn't stop the game.
 async function useTriggers(o,broken){
-  const confirm=!!(G.mp&&o.remote);
-  for(let first=true;!G.over;first=false){
+  while(!G.over){
     const left=broken.filter(s=>o.hand.includes(s)),usable=left.filter(s=>canTrigger(o,s));
-    if(!usable.length){
-      if(confirm&&first)await chooseEffect(o,'Shields broken',`From your shields: ${left.map(s=>s.n).join(', ')}. No shield triggers to use.`,[{label:'OK',val:true,main:1}],true);
-      return;
-    }
+    if(!usable.length)return;
     if(usable.length===1){await shieldTrigger(o,usable[0]);return}
     const i=await chooseEffect(o,'Shield triggers',`From your shields: ${left.map(s=>s.n).join(', ')}. Choose a shield trigger to use next.`,
-      [...usable.map((s,i)=>({label:`Use ${s.n}`,val:i,main:i===0})),{label:'Use no more',val:-1}],usable.findIndex(s=>aiUseTrig(o,s)));
+      [...usable.map((s,i)=>({label:`Use ${s.n}`,val:i,main:i===0,uid:s.uid,btn:'Use it'})),{label:'Use no more',val:-1}],usable.findIndex(s=>aiUseTrig(o,s)));
     if(!Number.isInteger(i)||!usable[i])return;
     await shieldTrigger(o,usable[i],true);
   }
@@ -714,6 +723,7 @@ async function beginTurn(p){
   G.turn=G.p.indexOf(p);
   p.charged=false;p.played=false;p.attacked=false;p.castSpell=false;p.brokeBy=[];p.brokeShields=0;
   delete p.truce;for(const q of G.p)q.drawn=0;
+  if(G.lasting)G.lasting=G.lasting.filter(x=>!(x.until==='next'&&x.seat===G.turn));
   if(p.mustAtkNext)p.mustAtkNext='now';
   // Silent skill: a tapped creature may stay tapped to use its ability.
   const silent=[];
@@ -772,6 +782,7 @@ async function endTurn(p){
   for(const q of G.p)if(q.bz.some(x=>T(x).gigavrand)&&(opp(q).drawn||0)>=2&&opp(q).hand.length){const o=opp(q);log(`${V(o,'You drew','The opponent drew')} ${o.drawn} cards this turn and discards the hand.`);o.hand.slice().forEach(c=>discardCard(o,c));await flushFx()}
   if(p.loseAtEndOf===G.turnNo&&!G.over){log(`${V(p,'Your','The opponent\'s')} extra turn ends.`);win(opp(p));return}
   for(const q of G.p){q.bz.forEach(c=>{c.boost=0;delete c.tmp});delete q.turnFx}
+  if(G.lasting)G.lasting=G.lasting.filter(x=>x.until!=='end');
   if(p.mustAtkNext==='now')delete p.mustAtkNext;
   p.brokeBy=[];
   render();

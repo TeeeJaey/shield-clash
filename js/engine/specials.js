@@ -141,7 +141,7 @@ const SPECIALS={
     if(!opts.length)return;
     const label=([c,q,z])=>`${c.n} (${q===p?'your':"opponent's"} ${z==='bz'?'battle zone':'mana zone'})`;
     const ai=opts.findIndex(([c,q,z])=>q===o&&z==='bz'&&c===strongest(o.bz))>=0?opts.findIndex(([c,q,z])=>q===o&&z==='bz'&&c===strongest(o.bz)):opts.findIndex(([,q])=>q===o);
-    const i=await chooseEffect(p,src.n,'Choose a creature in the battle zone or a card in a mana zone to return to its owner\'s hand.',opts.map((x,i)=>({label:label(x),val:i})),Math.max(0,ai));
+    const i=await chooseEffect(p,src.n,'Choose a creature in the battle zone or a card in a mana zone to return to its owner\'s hand.',opts.map(([c,q,z],i)=>({label:label([c,q,z]),val:i,uid:c.uid,note:`${q===p?'Your':"Opponent's"} ${z==='bz'?'battle zone':'mana zone'}`})),Math.max(0,ai));
     const [c,q,z]=opts[Number.isInteger(i)&&opts[i]?i:0];
     if(z==='bz')bounce(q,c);else{q.mana.splice(q.mana.indexOf(c),1);c.tapped=false;q.hand.push(c);log(`${c.n} returns from ${whose(q)} mana zone to hand.`)}
   },
@@ -175,10 +175,22 @@ const SPECIALS={
   async gigandura(p,e,src){
     const o=opp(p);
     if(!o.hand.length){log(`${src.n}: your opponent's hand is empty.`);return}
-    const c=await pickCard(p,o.hand.slice(),`${src.n}: You see your opponent's hand. You may choose a card to put into his mana zone.`,{optional:true,aiPick:aiDearest});
-    if(!c)return;
+    // A player at this screen picks both cards in one swap view; the computer and a remote player
+    // pick in turn. The card just put into the mana zone isn't offered back, as that undoes the swap,
+    // unless it's the only card there.
+    let c,m;
+    if(!p.ai&&!p.remote){
+      const r=await askSwap({title:src.n,text:"You see your opponent's hand. You may swap one card from it with one card from their mana zone.",
+        from:{label:'From their hand, to their mana zone',dest:'their mana zone',cards:o.hand.slice()},
+        to:{label:'From their mana zone, to their hand',dest:'their hand',cards:o.mana.slice(),empty:'Their mana zone is empty, so the card you put there comes straight back.'},card:src});
+      if(!r||!o.hand.includes(r[0]))return;
+      [c,m]=r;
+    }else{
+      c=await pickCard(p,o.hand.slice(),`${src.n}: You see your opponent's hand. You may choose a card to put into his mana zone.`,{optional:true,aiPick:aiDearest});
+      if(!c)return;
+    }
     o.hand.splice(o.hand.indexOf(c),1);toMana(o,[c]);log(`${c.n} goes from ${whose(o)} hand to the mana zone.`);
-    const m=await pickCard(p,o.mana.slice(),`${src.n}: Choose a card in his mana zone to put into his hand.`,{aiPick:aiCheapest});
+    if(!m||!o.mana.includes(m)){const others=o.mana.filter(x=>x!==c);m=p.ai||p.remote?await pickCard(p,others.length?others:[c],`${src.n}: Choose a card in his mana zone to put into his hand.`,{aiPick:aiCheapest}):c}
     if(m){o.mana.splice(o.mana.indexOf(m),1);m.tapped=false;o.hand.push(m);log(`${m.n} returns from ${whose(o)} mana zone to hand.`)}
   },
   // Spinal Parasite: at the start of the opponent's turn, he chooses a creature that attacks if able.

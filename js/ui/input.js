@@ -8,13 +8,17 @@ function onCard(uid){
     return;
   }
   const f=findCard(uid);if(!f)return;
-  if(G.turn!==0||G.busy){openZoom(f.c,zoneNav(f));return}
+  // Every card answers a tap the same way: it's selected, and the bar shows what it can do,
+  // always including View card. A card with nothing to do now is selected just to look at.
+  // (Holding a card shows it large; a swipe up opens it, peek.js.)
+  const look=()=>{G.sel=G.sel?.uid===uid?null:{zone:'look',uid};render()};
+  if(G.turn!==0||G.busy){look();return}
   const me=G.p[0];
   G.notice='';
   if(f.p===me&&f.z==='hand')G.sel=G.sel?.uid===uid?null:{zone:'hand',uid};
   else if(f.p===me&&f.z==='bz'&&(canAttackAnything(f.c,me)||canTapAbility(f.c,me)))G.sel=G.sel?.uid===uid?null:{zone:'bz',uid};
   else if(f.p!==me&&f.z==='bz'&&G.sel?.zone==='bz'&&canAttackCreature(selCard(),me,f.c)){const a=selCard();act(()=>attack(me,a,f.c));return}
-  else{G.sel=null;openZoom(f.c,zoneNav(f))}
+  else{look();return}
   render();
 }
 function onAct(a,v){
@@ -73,8 +77,18 @@ function onAct(a,v){
   if(!G)return;
   // in game
   if(a==='pile'){const [z,side]=String(v).split(':'),p=G.p[+side];if(p&&(z==='gy'||z==='mana'))openPile(`${side==='0'?'Your':G.mp?p.name+"'s":"Opponent's"} ${z==='gy'?'graveyard':'mana zone'}`,p[z]);return}
+  // The swap view: a pick in each row, then Swap (or Don't swap).
+  if(G.modal?.swap&&(a==='swpick'||a==='swdo'||a==='swskip')){
+    const m=G.modal,s=m.swap;
+    if(a==='swpick'){const [k,i]=String(v).split(':').map(Number);s.sel[k]=s.sel[k]===i?null:i;render();return}
+    const from=s.from.cards[s.sel[0]],to=s.to.cards[s.sel[1]];
+    if(a==='swdo'&&!(from&&(to||!s.to.cards.length)))return;
+    G.modal=null;render();m.resolve(a==='swdo'?[from,to||from]:null);return;
+  }
   if(a==='ans'&&G.modal){const m=G.modal;G.modal=null;render();m.resolve(m.opts[+v].val);return}
   if(a==='skip'&&G.targeting&&!G.targeting.required){const r=G.targeting.resolve;G.targeting=null;r(null);return}
+  // A card selected just to look at can be opened or put down at any time, even mid-turn.
+  if(G.sel?.zone==='look'&&(a==='view'||a==='cancel')){const c=a==='view'&&selCard();if(c)openZoom(c,zoneNav(findCard(c.uid)));else{G.sel=null;render()}return}
   if(G.turn!==0||G.busy||G.over)return;
   const me=G.p[0],s=selCard();
   if(a==='charge'&&s&&!me.charged&&!me.played&&!me.attacked){me.hand.splice(me.hand.indexOf(s),1);toMana(me,[s]);me.charged=true;G.sel=null;log(`${V(me,'You charge','Opponent charges')} ${s.n} as mana.`);render()}

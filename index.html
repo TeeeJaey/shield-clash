@@ -23,6 +23,9 @@
   color-scheme:light;
 }
 @supports (height:100dvh){:root{--vh:100dvh}}
+/* Card sizes on a phone use the small viewport height (the address bar shown), which doesn't
+   change while scrolling, so the cards never resize as the browser's bars slide in and out. */
+@supports (height:100svh){:root{--svh:100svh}}
 @media (prefers-color-scheme:dark){
   :root{
     --bg:#12161c;--mat:#1a2029;--panel:#1e252f;--ink:#e6ebf0;--muted:#94a0ad;--line:#36414e;
@@ -61,22 +64,34 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--hi);outline-off
 /* the player's name plate, like a card's name bar */
 .info b{color:var(--ink);font-size:15px;background:var(--face);padding:3px 13px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--frame)}
 .row{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
-.stack{display:grid;gap:6px;justify-items:start}
+.stack{display:grid;gap:6px;justify-items:start;grid-template-columns:minmax(0,1fr)}
+.stack>*{max-width:100%}
 .stack .lbl{min-width:64px}
 /* zones are recessed windows, like the card's art window */
 .zone{display:flex;flex-wrap:wrap;gap:8px;min-height:190px;align-items:flex-start;background:var(--inset);border-radius:14px;padding:10px;box-shadow:inset 0 2px 6px rgba(0,0,0,.16)}
 .empty{color:var(--muted);font-style:italic;padding:8px 0}
+.zone>.zempty{flex:1 1 100%;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:0;font-style:normal;font-size:14px}
+.eslot{width:44px;height:64px;border-radius:6px;border:1.5px dashed color-mix(in srgb,var(--muted) 55%,transparent);background:color-mix(in srgb,var(--muted) 6%,transparent)}
 .shields{display:flex;flex-wrap:wrap;gap:4px;align-items:center;border-radius:8px}
-/* the ring around shields under attack sits outside the row, so nothing moves when it shows */
-.shields.attacked{outline:3px solid var(--danger);outline-offset:3px}
+/* shields under attack: the label turns red and each shield gets a red edge; borders and glows
+   stay inside the gaps, so neighbouring shields never merge into one block and nothing moves */
+.shields.attacked>.lbl{color:var(--danger)}
+.shields.attacked .back.shield:not(.gone):not(.breaking){border-color:var(--danger);box-shadow:0 0 6px #c8321f66}
 .back{width:30px;height:42px;border-radius:4px;background:repeating-linear-gradient(45deg,var(--back) 0 6px,var(--back2) 6px 12px);border:1.5px solid var(--ink)}
-.back.shield{display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;text-shadow:0 1px 2px #000c;transition:transform .12s}
-.back.shield.faceup{background:linear-gradient(160deg,var(--el),color-mix(in srgb,var(--el) 55%,#000));cursor:pointer;box-shadow:0 0 0 2px #fff6,0 0 10px var(--el)}
-.back.shield.target{box-shadow:0 0 0 3px var(--danger);cursor:pointer;transform:translateY(-3px)}
+.back.shield{display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;text-shadow:0 1px 2px #000c;transition:transform .12s;--shbg:repeating-linear-gradient(45deg,var(--back) 0 6px,var(--back2) 6px 12px)}
+/* a broken shield's slot: a grey gap with its letter, faintly, so the row keeps its shape */
+.back.shield.gone,.back.shield.breaking{background:none;border:1.5px dashed color-mix(in srgb,var(--muted) 55%,transparent);box-shadow:none;color:var(--muted);text-shadow:none}
+.back.shield.gone>span{opacity:.5}
+.back.shield.faceup{--shbg:linear-gradient(160deg,var(--el),color-mix(in srgb,var(--el) 55%,#000));background:var(--shbg);cursor:pointer;box-shadow:0 0 0 2px #fff6,0 0 10px var(--el)}
+.back.shield.target{border-color:var(--danger);box-shadow:0 0 8px #c8321f99;cursor:pointer;transform:translateY(-3px);animation:k-shpick 1.6s ease-in-out infinite}
+.back.shield.target:hover,.back.shield.target:focus-visible{transform:translateY(-6px) scale(1.06);box-shadow:0 0 14px #ff6b57cc;animation:none;outline:none}
 .lbl{color:var(--muted);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-right:4px}
 .manas{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
 .mgroup{display:inline-flex;flex-wrap:wrap;gap:3px;align-items:center}
 .mgroup small{color:var(--muted);font-size:14px;font-weight:600;margin-left:2px}
+/* on a phone each color is one chip and its count (3/4 untapped), so any amount of mana fits;
+   the chip shown is an untapped one while any is left */
+@media (max-width:600px){.mgroup .mana~.mana{display:none}.manas{gap:6px 12px}}
 button.link{border:none;background:none;box-shadow:none;padding:0;font-weight:inherit;color:var(--muted);text-decoration:underline dotted;text-underline-offset:3px;border-radius:3px}
 button.link:hover{background:none;box-shadow:none;color:var(--ink)}
 .mana{width:22px;height:22px;border-radius:50%;background:var(--el);color:#fff;font-size:13px;font-weight:700;display:grid;place-items:center;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.28),0 0 0 1px rgba(0,0,0,.3)}
@@ -118,9 +133,12 @@ button.link:hover{background:none;box-shadow:none;color:var(--ink)}
 .tag.under{left:auto;right:2.7cqw;background:var(--dp);color:var(--lt)}
 .card.can{box-shadow:0 0 0 3px var(--hi)}
 .card.sel{transform:translateY(-8px);box-shadow:0 0 0 3px var(--hi)}
+.card.tapped.sel{transform:rotate(9deg) translateY(-8px)}
 .card.target{box-shadow:0 0 0 3px var(--danger)}
 /* the attack in progress: attacker, what it attacks, and the blocker */
 .card.attacking{box-shadow:0 0 0 3px #EF9F27,0 0 14px #EF9F27aa}
+/* attacking taps a creature, but while it attacks it stays fully visible */
+.card.tapped.attacking{opacity:1}
 .card.attacked{box-shadow:0 0 0 3px var(--danger),0 0 14px #c8321f88}
 .card.blocking{box-shadow:0 0 0 3px var(--hi),0 0 14px #1e6fd988}
 /* the action bar stays on screen while you scroll the board (sticky to whichever edge it would leave) */
@@ -197,18 +215,71 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 .cref{color:var(--ink);text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
 .cref:focus-visible{outline:2px solid var(--hi);outline-offset:1px}
 /* scrolls only up and down: a card sliding in or dragged sideways mustn't bring up a sideways scrollbar */
-.overlay{position:fixed;inset:0;background:rgba(10,14,20,.55);display:grid;place-items:center;padding:16px;z-index:10;overflow:hidden auto}
+.overlay{position:fixed;inset:0;background:rgba(10,14,20,.55);display:grid;place-items:center;padding:16px;z-index:10;overflow:hidden auto;overscroll-behavior:contain}
 .dialog{background:var(--panel);border-radius:20px;padding:24px;max-width:520px;width:100%;display:grid;gap:12px;box-shadow:inset 0 0 0 1px var(--frame),var(--shadow)}
 .dialog h2{margin:0;font-size:25px}
 .dialog p{margin:0;line-height:1.5}
 .opts{display:flex;flex-wrap:wrap;gap:8px}
 .opts:empty{display:none}
 /* a prompt that asks for a card shows the cards: each one is the button */
-.pickcards::after,.pile::after{content:"";flex-basis:100%;height:2px}
-.pickcards{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-height:min(60vh,520px);overflow:auto;padding:4px}
-.pickcards button{padding:0;border:0;background:none;border-radius:12px;cursor:pointer;transition:transform .12s}
-.pickcards button .card{margin:0}
-.pickcards button:hover,.pickcards button:focus-visible{transform:translateY(-3px)}
+.pile::after{content:"";flex-basis:100%;height:2px}
+.pickwrap{display:flex;align-items:center;gap:4px;min-width:0}
+.pickrow{display:flex;gap:12px;flex:1;min-width:0;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 4px;padding:6px 4px 10px;scrollbar-width:thin}
+.pickwrap:not(.scrolls) .pickrow{justify-content:center}
+.pick{flex:none;width:136px;display:grid;gap:6px;align-content:start;scroll-snap-align:start}
+.pick .card{width:100%;margin:0;cursor:zoom-in}
+.pick small{color:var(--muted);font-size:13px;line-height:1.3;text-align:center}
+.pick button{width:100%;padding-inline:8px}
+.pkstep{flex:none;font-size:24px;line-height:1}
+.pkstep:disabled{visibility:hidden}
+.pickwrap:not(.scrolls) .pkstep{display:none}
+@media (pointer:coarse),(max-width:600px){.pickwrap .pkstep{display:none}}
+@media (max-width:600px){.pick{width:min(38vw,140px)}.pickrow{margin-inline:-8px;padding-inline:8px;scroll-padding:0 8px}}
+/* a spell being cast, over the board and under any prompt it brings up */
+#cast{position:fixed;left:50%;top:50%;z-index:9;display:grid;justify-items:center;gap:8px;pointer-events:none;opacity:0;visibility:hidden;
+  transform:translate(-50%,-50%) scale(.85);transition:opacity .18s,transform .18s,visibility 0s .18s}
+#cast.show{opacity:1;visibility:visible;transform:translate(-50%,-50%) scale(1);transition:opacity .18s,transform .18s}
+#cast .card{width:170px;margin:0;box-shadow:0 0 0 3px var(--hi),0 18px 40px rgba(0,0,0,.55)}
+#cast.theirs .card{box-shadow:0 0 0 3px var(--danger),0 18px 40px rgba(0,0,0,.55)}
+.castlbl{font:600 14px/1 var(--font-num);letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:var(--panel);color:var(--ink);box-shadow:inset 0 0 0 1px var(--frame),var(--shadow)}
+@media (max-width:600px){#cast .card{width:min(42vw,160px)}}
+/* a pile a card just landed in */
+button.link.bump{animation:k-bump .5s ease-out}
+@keyframes k-bump{30%{transform:scale(1.25);color:var(--hi)}}
+/* spells in effect, on their caster's side */
+.lastrow{display:flex;flex-wrap:wrap;gap:6px}
+.lasting{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink);
+  background:color-mix(in srgb,var(--hi) 14%,var(--face));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--hi) 45%,transparent)}
+.lasting>span{color:var(--hi)}
+.lasting small{color:var(--muted);font-weight:500}
+.lasting:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+/* the swap view: a row for each side, a pick in each */
+.dialog.swap{max-width:600px}
+.swrow{display:grid;gap:6px;min-width:0}
+.swrow h3{display:flex;align-items:center;gap:8px;margin:4px 0 0;font-size:16px}
+.swn{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--bg);font:700 14px/1 var(--font-num)}
+.swrow .pick{width:118px}
+.pick.on .card{box-shadow:0 0 0 3px var(--hi)}
+.swempty{color:var(--muted);font-size:14px;padding:10px 12px;border-radius:12px;border:1.5px dashed var(--line)}
+.swsum{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:10px 12px;border-radius:12px;background:var(--mat);box-shadow:inset 0 0 0 1px var(--frame)}
+.swarrow{font-size:20px;color:var(--hi);line-height:1}
+/* on a phone the whole swap fits the screen: the cards take the height that's left */
+@media (max-width:600px){
+  .overlay:has(.dialog.swap){padding:8px}
+  .dialog.swap{padding:14px 14px 16px;gap:8px;border-radius:16px}
+  .dialog.swap h2{font-size:21px}
+  .dialog.swap>p{font-size:14px;line-height:1.4}
+  .swrow h3{font-size:14px;gap:6px}
+  .swn{width:20px;height:20px;font-size:12px}
+  .swrow .pickrow{padding-block:4px 6px;gap:8px}
+  .swrow .pick{width:clamp(76px,calc((var(--svh,var(--vh)) - 400px) / 3.1),118px);gap:4px}
+  .swrow .pick button{padding:5px 6px;font-size:14px}
+  .swsum{font-size:14px;padding:8px 10px}
+}
+/* choosing from the zoom view */
+.zpick{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-left:auto}
+.zpick small{color:var(--muted);font-size:14px}
+.zpick button{min-width:170px}
 .pickcards button:focus-visible{outline:3px solid var(--hi);outline-offset:3px}
 /* the start screen wears the logo's frame: fire and water, like a multicolored card */
 #start .dialog{max-width:680px;border:4px solid transparent;background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,#A32D2D 45%,#185FA5 55%) border-box;box-shadow:var(--shadow)}
@@ -345,13 +416,14 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
   #app:has(>.duel){padding:4px 6px 0}
   .duel{padding-bottom:42px}
   /* --chrome: everything on the board that isn't a card row, the log bar included */
-  .duelmain{--chrome:334px;--bcw:clamp(58px,min(calc((var(--vh) - var(--chrome)) * .2146),calc((100vw - 64px) / 4)),96px)}
+  .duelmain{--chrome:334px;--bcw:clamp(58px,min(calc((var(--svh,var(--vh)) - var(--chrome)) * .2146),calc((100vw - 64px) / 4)),96px)}
   .duelmain .card{width:var(--bcw)}
   /* the hand, read most, takes the height left over after both battle zones */
-  .duelmain{--hcw:clamp(var(--bcw),calc((var(--vh) - var(--chrome) - 2 * var(--bcw) * 1.5536) / 1.5536),132px)}
+  .duelmain{--hcw:clamp(var(--bcw),calc((var(--svh,var(--vh)) - var(--chrome) - 2 * var(--bcw) * 1.5536) / 1.5536),132px)}
   .duelmain .side:last-child>.zone:last-child .card{width:var(--hcw)}
   .duelmain .side:last-child>.zone:last-child{min-height:calc(var(--hcw) * 1.5536 + 14px)}
   .duelmain .card.sel{transform:translateY(-4px)}
+  .duelmain .card.tapped.sel{transform:rotate(9deg) translateY(-4px)}
   .duelmain .side{padding:6px 8px;gap:4px;border-radius:14px}
   .duelmain .zone{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;
     min-height:calc(var(--bcw) * 1.5536 + 14px);padding:7px 6px;gap:6px;border-radius:10px}
@@ -568,7 +640,10 @@ button.sysbtn svg{width:17px;height:17px;flex:none}
 .card.big.legend::after{border-width:3px}
 .card.big.isevo::before{border-radius:14px;inset:3px;border-width:2px}
 .zoomwrap .art *,.dialog .art *{animation-play-state:running}
+/* the card a prompt is about (the attacker, the shield trigger): tap it to read it */
 .dcard{display:flex;justify-content:center}
+.dcard .card{width:180px;margin:0}
+@media (max-width:600px){.dcard .card{width:min(40vw,150px)}}
 .hint{color:var(--muted);font-size:12.5px}
 .tut{max-width:820px!important}
 .thead{display:flex;align-items:center;gap:10px}
@@ -693,13 +768,34 @@ input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .card.fx-down{animation:k-down .45s ease-in-out both;animation-delay:var(--fxd);z-index:3}
 .card.fx-hit{animation:k-hit .35s ease-in-out both;animation-delay:var(--fxd)}
 .card.fx-die{animation:k-die .45s ease-in both;animation-delay:var(--fxd)}
-.back.shatter{animation:k-shatter .45s ease-in both}
+/* a breaking shield: six shards fly apart from a flash, over the gap it leaves */
+.back.shield.breaking,.back.shield.breaking.faceup{position:relative;z-index:3;background:none;box-shadow:none}
+.back.shield.breaking .shard{position:absolute;inset:-1.5px;border-radius:4px;background:var(--shbg);border:1.5px solid var(--ink);animation:k-shard .45s cubic-bezier(.2,.7,.3,1) both}
+.shard:nth-child(1){clip-path:polygon(0 0,50% 0,55% 45%,0 30%);--x:-12px;--y:-16px;--r:-28deg}
+.shard:nth-child(2){clip-path:polygon(50% 0,100% 0,100% 35%,55% 45%);--x:13px;--y:-17px;--r:24deg}
+.shard:nth-child(3){clip-path:polygon(100% 35%,100% 75%,55% 45%);--x:18px;--y:-2px;--r:40deg}
+.shard:nth-child(4){clip-path:polygon(100% 75%,100% 100%,60% 100%,55% 45%);--x:12px;--y:16px;--r:-22deg}
+.shard:nth-child(5){clip-path:polygon(60% 100%,15% 100%,55% 45%);--x:-3px;--y:20px;--r:30deg}
+.shard:nth-child(6){clip-path:polygon(15% 100%,0 100%,0 30%,55% 45%);--x:-17px;--y:8px;--r:-36deg}
+.back.shield.breaking .flash{position:absolute;left:55%;top:45%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:radial-gradient(circle,#fffbe8 0,#ffd9a0b3 30%,#ff6b5540 55%,transparent 72%);animation:k-flash .35s ease-out both;pointer-events:none}
 @keyframes k-enter{0%{transform:scale(.4) translateY(30px);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
 @keyframes k-up{40%{transform:translateY(-34px) scale(1.08)}}
 @keyframes k-down{40%{transform:translateY(34px) scale(1.08)}}
 @keyframes k-hit{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
 @keyframes k-die{to{transform:scale(.6) rotate(-10deg);opacity:0;filter:grayscale(1)}}
-@keyframes k-shatter{50%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(.2) rotate(-25deg);opacity:0}}
+/* nothing left to do: a ring fills around End turn and the turn ends when it closes */
+@property --aep{syntax:'<number>';inherits:false;initial-value:0}
+.endturn.autoend{position:relative}
+.endturn.autoend::after{content:"";position:absolute;inset:-4px;border-radius:999px;padding:3px;pointer-events:none;
+  background:conic-gradient(var(--hi) calc(var(--aep) * 1turn),color-mix(in srgb,var(--hi) 18%,transparent) 0);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  animation:k-autoend var(--ae) linear both;animation-delay:var(--aed,0ms)}
+.aesec{display:inline-grid;place-items:center;min-width:1.5em;height:1.5em;margin-left:4px;border-radius:999px;background:var(--hi);color:#fff;font:700 13px/1 var(--font-num)}
+@keyframes k-autoend{to{--aep:1}}
+@media (prefers-reduced-motion:reduce){.endturn.autoend::after{--aep:1}}
+@keyframes k-shpick{50%{box-shadow:0 0 14px #c8321fcc}}
+@keyframes k-shard{20%{transform:translate(calc(var(--x)*.15),calc(var(--y)*.15)) rotate(calc(var(--r)*.1));opacity:1}100%{transform:translate(var(--x),var(--y)) rotate(var(--r)) scale(.7);opacity:0}}
+@keyframes k-flash{0%{transform:scale(.3);opacity:0}25%{transform:scale(1);opacity:.9}100%{transform:scale(1.7);opacity:0}}
 /* loading panel: the first visit's files, then the card art an opened screen waits for */
 #boot,#busy{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:16px}
 #boot{background:var(--bg)}

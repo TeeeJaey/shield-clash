@@ -15,12 +15,22 @@ function manaHTML(p,side){
 // Shields show their letter. They are picked on the board when breaking or choosing one.
 function shieldsHTML(p){
   const attacked=G.attackTarget==='player'&&G.attacking&&!p.bz.includes(G.attacking);
-  return `<div class="shields ${attacked?'attacked':''}"><span class="lbl">Shields ${p.sh.length}</span>${p.sh.map(s=>{
+  // Every shield keeps its slot: a broken one leaves a grey gap, so the letters never shift.
+  const byL=new Map(p.sh.map(s=>[s.shL,s])),slots=[];
+  for(let n=0;n<=(p.shN??-1);n++){const L=shieldLetter(n);slots.push(byL.get(L)||L)}
+  for(const s of p.sh)if(!slots.includes(s))slots.push(s);
+  // A breaking shield flies apart in shards over the gap it leaves.
+  const shards='<i class="shard"></i>'.repeat(6)+'<i class="flash"></i>';
+  return `<div class="shields ${attacked?'attacked':''}"><span class="lbl">Shields ${p.sh.length}</span>${slots.map(s=>{
+    if(typeof s==='string')return `<div class="back shield gone" aria-hidden="true"><span>${s}</span></div>`;
     const t=G.targeting?.uids.has(s.uid),br=G.breaking&&G.breaking.uids.has(s.uid);
-    if(s.faceUp)return `<div class="back shield faceup ${t?'target':''} ${br?'shatter':''}" data-shield="${s.uid}" ${t?'':`data-def="${s.duelId||s.id}"`} tabindex="0" style="--el:${(CIV[s.e]||{c:'#68717d'}).c}" aria-label="Shield ${s.shL}, face up: ${esc(s.n)}" title="${esc(s.n)}"><span>${s.shL}</span></div>`;
-    return `<div class="back shield ${t?'target':''} ${br?'shatter':''}" data-shield="${s.uid}" ${t?'tabindex="0" role="button"':''} aria-label="Shield ${s.shL}"><span>${s.shL}</span></div>`;
+    if(br)return `<div class="back shield breaking ${s.faceUp?'faceup':''}" ${s.faceUp?`style="--el:${(CIV[s.e]||{c:'#68717d'}).c}"`:''} aria-label="Shield ${s.shL} breaks">${shards}</div>`;
+    if(s.faceUp)return `<div class="back shield faceup ${t?'target':''}" data-shield="${s.uid}" ${t?'':`data-def="${s.duelId||s.id}"`} tabindex="0" style="--el:${(CIV[s.e]||{c:'#68717d'}).c}" aria-label="Shield ${s.shL}, face up: ${esc(s.n)}" title="${esc(s.n)}"><span>${s.shL}</span></div>`;
+    return `<div class="back shield ${t?'target':''}" data-shield="${s.uid}" ${t?'tabindex="0" role="button"':''} aria-label="Shield ${s.shL}"><span>${s.shL}</span></div>`;
   }).join('')}</div>`;
 }
+// An empty zone: a dashed card-shaped slot with a line under it, in the middle of the zone.
+const emptyZone=t=>`<div class="empty zempty"><span class="eslot" aria-hidden="true"></span><span>${t}</span></div>`;
 function cls(c,p,z){
   const k=[],mine=p===G.p[0],free=G.turn===0&&!G.busy&&!G.targeting&&!G.modal&&!G.over;
   if(G.targeting?.uids.has(c.uid))k.push('target');
@@ -36,11 +46,11 @@ function cls(c,p,z){
 }
 function sideHTML(p){
   const side=p===G.p[0]?0:1;
-  const bz=p.bz.length?p.bz.map(c=>cardHTML(c,cls(c,p,'bz'))).join(''):'<div class="empty">No creatures in the battle zone</div>';
+  const bz=p.bz.length?p.bz.map(c=>cardHTML(c,cls(c,p,'bz'))).join(''):emptyZone('No creatures in the battle zone');
   const top=`<div class="info"><b>${side===0?'You':(G.mp?esc(p.name):'Opponent')}</b><span>${esc(p.deckName)}</span><span>Deck ${p.deck.length}</span><button class="link" data-act="pile" data-v="gy:${side}">Graveyard ${p.gy.length}</button>${side?`<span>Hand ${p.hand.length}</span>${sysHTML()}`:''}</div>
-    <div class="stack">${shieldsHTML(p)}${manaHTML(p,side)}</div>`;
+    ${lastingHTML(side)}<div class="stack">${shieldsHTML(p)}${manaHTML(p,side)}</div>`;
   if(side)return `<section class="side">${top}<div class="zone bzone">${bz}</div></section>`;
-  const hand=p.hand.length?p.hand.map(c=>cardHTML(c,cls(c,p,'hand'))).join(''):'<div class="empty">Your hand is empty</div>';
+  const hand=p.hand.length?p.hand.map(c=>cardHTML(c,cls(c,p,'hand'))).join(''):emptyZone('Your hand is empty');
   return `<section class="side"><div class="zone bzone">${bz}</div>${top}<div class="lbl">Hand</div><div class="zone">${hand}</div></section>`;
 }
 // Back, Restart and the sound switch sit in the board's top corner, out of the action bar,
@@ -97,8 +107,10 @@ function barHTML(){
   if(G.over)return `<span class="prompt">${G.left!=null?`${oppName} left the game.`:G.why==='deck'?(lost?'Your deck ran out.':`${oppName}'s deck ran out.`):lost?`${oppName} broke through.`:'You broke through every shield.'}</span>${btn('new',G.mp?'Back to start page':'Play again',1)}`;
   if(G.req&&G.mp&&!G.targeting&&G.req.seat!==VIEW)return `<span class="turn">Waiting</span><span class="prompt">${oppName} is deciding what to do…</span>`;
   if(G.targeting)return `<span class="turn">Choose</span><span class="prompt">${esc(G.targeting.msg)}</span>${G.targeting.required?'':btn('skip',G.targeting.skip||'Skip')}`;
-  if(G.turn!==0)return `${turnArrow(false,G.mp?oppName+"'s turn":"Opponent's turn")}<span class="prompt">${G.mp?'Their moves show up here as they play. ':''}Watch for blocks and shield triggers.</span>`;
-  if(G.busy)return `${turnArrow(true,'Your turn')}<span class="prompt">Resolving…</span>`;
+  // A card selected just to look at: its name and text, View card and Cancel, whoever's turn it is.
+  const look=G.sel?.zone==='look'&&selCard(),lookBar=c=>`${actsOpen(c)}${actText(c)}<span class="prompt"><span class="psel">${esc(c.n)} selected.</span></span>${btn('view','View card',1)}${btn('cancel','Cancel')}</span>`;
+  if(G.turn!==0)return `${turnArrow(false,G.mp?oppName+"'s turn":"Opponent's turn")}${look?lookBar(look):`<span class="prompt">${G.mp?'Their moves show up here as they play. ':''}Watch for blocks and shield triggers.</span>`}`;
+  if(G.busy)return `${turnArrow(true,'Your turn')}${look?lookBar(look):'<span class="prompt">Resolving…</span>'}`;
   const s=selCard();let h=`${turnArrow(true,'Your turn')}<span class="step">${stepOf(me)}</span>`;
   const canCharge=!me.charged&&!me.played&&!me.attacked;
   if(s&&G.sel.zone==='hand'){
@@ -114,7 +126,9 @@ function barHTML(){
     h+=btn('view','View card')+btn('cancel','Cancel')+'</span>';
   }else if(s&&G.sel.zone==='bz'){
     const any=attackTargets(s,me).length>0,prey=T(s).hunts?'an enemy creature':'a tapped enemy creature';
-    const tapAb=canTapAbility(s,me)?T(s).tapAb.map((fx,i)=>btn('tapab','Tap: '+esc(fxDesc(fx)),0,i)).join(''):'';
+    // A short button: what the ability does is on the card, in the tooltip, and in the prompts that follow.
+    const abs=canTapAbility(s,me)?T(s).tapAb:[];
+    const tapAb=abs.map((fx,i)=>{const d=esc(fxDesc(fx));return `<button data-act="tapab" data-v="${i}" title="${d}" aria-label="Use ability: ${d}">Use ability${abs.length>1?' '+(i+1):''}</button>`}).join('');
     h+=actsOpen(s)+actText(s);
     if(!canAttackAnything(s,me))h+=`<span class="prompt">${s.n} can tap instead of attacking to use its ability.</span>`;
     else if(!canAttackPlayer(s,me))h+=`<span class="prompt">${s.n} can't attack players.${any?` Pick ${prey} to attack.`:' No creatures available to attack.'}</span>`;
@@ -124,6 +138,8 @@ function barHTML(){
     }
     h+=tapAb;
     h+=btn('view','View card')+btn('cancel','Cancel')+'</span>';
+  }else if(look){
+    h+=lookBar(look);
   }else{
     h+=`<span class="prompt">${G.notice||(me.attacked?'Attack with ready creatures, or end your turn.':canCharge?'Pick a card to charge as mana, then summon and attack.':'Summon creatures or attack with ready ones.')}</span>`;
   }
@@ -149,16 +165,53 @@ function logHTML(line){
   logCache.set(line,html);
   return html;
 }
-// A prompt's answers. Answers that are cards show the cards themselves, to pick by sight
-// (resting the mouse on one shows it large, as anywhere else); the rest (Skip, Yes, No)
-// stay buttons below them.
+// The card a prompt's answer stands for, wherever it is: hand, battle zone, mana, graveyard,
+// deck or shields. Answers for face-down cards carry no uid, so those stay letters.
+function optCard(o){
+  if(!o||!o.uid||!G)return null;
+  for(const p of G.p)for(const z of ['hand','bz','mana','gy','deck','sh']){const c=p[z].find(x=>x.uid===o.uid);if(c)return c}
+  return null;
+}
+// A prompt's answers. Answers that are cards show as a row of cards to swipe through (with
+// arrows on a computer), each with its own button to choose it; tapping a card opens it in
+// the zoom view, which browses the same cards and can choose one too. The rest (Skip, Yes,
+// No) stay buttons below.
 function modalOpts(opts){
   const btn=(o,i)=>`<button data-act="ans" data-v="${i}" class="${o.main?'main':''}">${esc(o.label)}</button>`;
-  const cards=opts.map((o,i)=>[o,i,o.uid&&findCard(o.uid)?.c]).filter(([,,c])=>c);
+  const cards=opts.map((o,i)=>[o,i,optCard(o)]).filter(([,,c])=>c);
   if(!cards.length)return `<div class="opts">${opts.map(btn).join('')}</div>`;
-  return `<div class="pickcards">${cards.map(([o,i,c])=>`<button data-act="ans" data-v="${i}" aria-label="${esc(o.label)}">${cardHTML({...c,uid:0,tapped:false},'').replace(' tabindex="0"','')}</button>`).join('')}</div>
-    <div class="opts">${opts.map((o,i)=>o.uid&&findCard(o.uid)?'':btn(o,i)).join('')}</div>`;
+  const step=d=>cards.length>1?`<button class="icon pkstep" data-pkstep="${d}" aria-label="${d<0?'Previous cards':'More cards'}">${d<0?'‹':'›'}</button>`:'';
+  const rest=opts.map((o,i)=>optCard(o)?'':btn(o,i)).join('');
+  return `<div class="pickwrap">${step(-1)}<div class="pickrow" role="list">${cards.map(([o,i,c])=>`<div class="pick" role="listitem">
+      ${cardHTML({...c,uid:0,tapped:false},'').replace('data-def="',`data-pick="${i}" data-def="`)}
+      ${o.note?`<small>${esc(o.note)}</small>`:''}
+      <button data-act="ans" data-v="${i}" class="${cards.length===1||o.main?'main':''}" aria-label="${esc(o.label)}">${esc(o.btn||'Choose')}</button></div>`).join('')}</div>${step(1)}</div>
+    ${rest?`<div class="opts">${rest}</div>`:''}`;
 }
+// Two cards trading places (askSwap): a row of cards for each side with a pick in each, and
+// the trade spelled out before it happens. Tapping a card opens it, as anywhere.
+function swapHTML(m){
+  const s=m.swap,a=s.from.cards[s.sel[0]],b=s.to.cards[s.sel[1]],ready=!!a&&(!!b||!s.to.cards.length);
+  const row=(side,k)=>`<section class="swrow"><h3><span class="swn">${k+1}</span>${esc(side.label)}</h3>
+    ${side.cards.length?`<div class="pickwrap"><button class="icon pkstep" data-pkstep="-1" aria-label="Previous cards">‹</button><div class="pickrow" role="list">${side.cards.map((c,i)=>{const on=s.sel[k]===i;
+      return `<div class="pick ${on?'on':''}" role="listitem">${cardHTML({...c,uid:0,tapped:false},'')}<button data-act="swpick" data-v="${k}:${i}" class="${on?'main':''}" aria-pressed="${on}">${on?'✓ Picked':'Pick'}</button></div>`}).join('')}</div><button class="icon pkstep" data-pkstep="1" aria-label="More cards">›</button></div>`
+      :`<p class="swempty">${esc(side.empty||'Nothing here.')}</p>`}</section>`;
+  const sum=a?`<p class="swsum"><b>${esc(a.n)}</b> goes to ${esc(s.from.dest)}<span class="swarrow" aria-hidden="true">⇄</span>${b?`<b>${esc(b.n)}</b> goes to ${esc(s.to.dest)}`:s.to.cards.length?'<span class="muted">pick a card in row 2</span>':`it comes straight back to ${esc(s.to.dest)}`}</p>`
+    :'<p class="swsum muted">Pick a card in each row.</p>';
+  return `<div class="overlay"><div class="dialog swap" role="dialog" aria-label="${esc(m.title)}"><h2>${esc(m.title)}</h2><p>${esc(m.text)}</p>
+    ${row(s.from,0)}${row(s.to,1)}${sum}<div class="opts"><button data-act="swdo" class="main" ${ready?'':'disabled'}>Swap</button>${s.optional?'<button data-act="swskip">Don&#39;t swap</button>':''}</div></div></div>`;
+}
+// The row's arrows scroll it by most of its width, and hide at either end.
+function markPicks(row){
+  const wrap=row.parentElement,end=row.scrollWidth-row.clientWidth;
+  wrap.classList.toggle('scrolls',end>4);
+  wrap.querySelectorAll('[data-pkstep]').forEach(b=>{b.disabled=+b.dataset.pkstep<0?row.scrollLeft<=4:row.scrollLeft>=end-4});
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-pkstep]');if(!b)return;
+  const row=b.parentElement.querySelector('.pickrow');
+  row.scrollBy({left:+b.dataset.pkstep*row.clientWidth*0.8,behavior:'smooth'});
+});
 // The log, read by turn: each turn is a section headed by whose turn it was, newest turn on
 // top, its lines in the order they happened. A line's rail shows who did it: a line written
 // from a player's side starts with that player's seat marker (see V in state.js); the rest are
@@ -189,20 +242,96 @@ function render(){
   saveGame();
   // Rows swiped sideways (phones) keep their place: redrawing the board would reset them to the start.
   const rowScroll=[...document.querySelectorAll('.duelmain .zone')].map(z=>z.scrollLeft);
+  // A prompt's row of cards keeps its place too, while the same prompt is up.
+  const pickScroll=G.modal&&G.modal===PICKROW.modal?[...document.querySelectorAll('#layer .pickrow')].map(r=>r.scrollLeft):[];
   // The log comes first so a wide screen can give it the left column; narrow screens put it last.
   $('#app').innerHTML=`<div class="duel"><details class="log" ${logOpen?'open':''}><summary>Game log<span class="llast">${G.log.length?esc(viewText(G.log[0])):''}</span><span class="lchev" aria-hidden="true"></span></summary><div aria-live="polite">${logTurnsHTML()}</div></details>
     <div class="duelmain">${sideHTML(G.p[1])}<div class="bar">${barHTML()}</div>${sideHTML(G.p[0])}</div></div>`;
   let layer='';
-  if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${esc(G.modal.title)}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'big',true)}</div>`:''}<p>${esc(G.modal.text)}</p>
+  if(G.modal&&G.modal.swap)layer=swapHTML(G.modal);
+  else if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${esc(G.modal.title)}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'')}</div>`:''}<p>${esc(G.modal.text)}</p>
     ${modalOpts(G.modal.opts)}</div></div>`;
   else if(G.over)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${G.winner!==G.p[0]?'Defeat':'Victory'}</h2>
     <p>${G.left!=null?`${esc(G.p[1].name)} left the game.`:G.why==='deck'?(G.winner!==G.p[0]?'Your deck ran out of cards, and a player with no deck loses.':`${G.mp?esc(G.p[1].name)+"'s":"The opponent's"} deck ran out of cards.`):G.winner!==G.p[0]?`Your last shield fell and ${G.mp?esc(G.p[1].name):'the opponent'} landed the final blow.`:'Every shield is gone and your creature struck the final blow.'}</p>
     <div class="opts">${btn('new',G.mp?'Back to start page':'Play again',1)}</div></div></div>`;
   $('#layer').innerHTML=layer;
+  PICKROW.modal=G.modal;
+  document.querySelectorAll('#layer .pickrow').forEach((r,i)=>{r.scrollLeft=pickScroll[i]||0;markPicks(r)});
+  // The zoom view opened from a prompt's cards belongs to that prompt: once it's answered or
+  // gone, the view closes too, rather than offering choices that no longer exist.
+  if(ZOOM&&ZNAV&&ZNAV.modal&&ZNAV.modal!==G.modal)closeZoom();
   playLogSounds();
   document.querySelectorAll('.duelmain .zone').forEach((z,i)=>{if(rowScroll[i])z.scrollLeft=rowScroll[i];markOverflow(z)});
   fitPrompt();
+  armAutoEnd();
+  renderCast();
 }
+/* ---------- spells: being cast, landing, in effect ---------- */
+// While a spell resolves it's shown large over the board, under any prompt it brings up; then
+// it flies into its owner's graveyard (a charger into the mana zone). Spells whose effect lasts
+// show as chips on their caster's side until it ends; tap one to read it.
+const CAST={el:null,card:null,landed:null};
+function renderCast(){
+  const c=G&&G.casting;
+  if(c&&CAST.card!==c.c){
+    if(!CAST.el){CAST.el=document.createElement('div');CAST.el.id='cast';CAST.el.setAttribute('aria-live','polite');document.body.appendChild(CAST.el)}
+    CAST.card=c.c;
+    CAST.el.className='show '+(c.seat===0?'mine':'theirs');
+    CAST.el.innerHTML=`<span class="castlbl">${c.seat===0?'You cast':(G.mp?esc(G.p[c.seat].name)+' casts':'Opponent casts')}</span>${cardHTML({...c.c,uid:0,tapped:false},'',true)}`;
+  }
+  const l=G&&G.landed;
+  if(l&&l!==CAST.landed){CAST.landed=l;flyToPile(l)}
+  if(!c&&CAST.card){CAST.card=null;CAST.el.classList.remove('show')}
+}
+function flyToPile(l){
+  const target=document.querySelector(`.duelmain [data-act="pile"][data-v="${l.to}:${l.seat}"]`);if(!target)return;
+  target.classList.remove('bump');void target.offsetWidth;target.classList.add('bump');
+  const from=CAST.card&&CAST.el.querySelector('.card');
+  if(!from||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const a=from.getBoundingClientRect(),b=target.getBoundingClientRect(),ghost=from.cloneNode(true);
+  Object.assign(ghost.style,{position:'fixed',left:a.left+'px',top:a.top+'px',width:a.width+'px',margin:'0',zIndex:'9',pointerEvents:'none'});
+  document.body.appendChild(ghost);
+  const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2);
+  ghost.animate([{transform:'none',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(.12) rotate(${dx<0?-14:14}deg)`,opacity:.25}],
+    {duration:520,easing:'cubic-bezier(.55,0,.8,.3)'}).onfinish=()=>ghost.remove();
+}
+const lastingHTML=side=>{const l=(G.lasting||[]).filter(x=>x.seat===side);return l.length?`<div class="lastrow" aria-label="Spells in effect">${l.map(x=>`<span class="lasting" data-def="${esc(x.id)}" tabindex="0" title="${esc(x.n)}: in effect ${x.until==='end'?'this turn':'until its caster’s next turn'}"><span aria-hidden="true">✦</span>${esc(x.n)}<small>${x.until==='end'?'this turn':'until next turn'}</small></span>`).join('')}</div>`:''};
+// Nothing left to do this turn: a ring fills around End turn, counting the seconds down, and
+// the turn ends by itself when it closes. Any touch, click or key starts the wait again, so it
+// never ends a turn while you're looking at something.
+const AUTO_END_MS=6000,AUTOEND={timer:0,tick:0,t0:0};
+function turnIdle(){
+  if(!G||G.over||G.turn!==0||G.busy||G.modal||G.targeting||G.starting||G.sel||ZOOM||(G.mp&&G.req))return false;
+  const me=G.p[0];
+  if(!me.charged&&!me.played&&!me.attacked&&me.hand.length)return false;
+  return !me.hand.some(c=>canPlay(me,c))&&!me.bz.some(c=>canAttackAnything(c,me)||canTapAbility(c,me));
+}
+function stopAutoEnd(){clearTimeout(AUTOEND.timer);clearInterval(AUTOEND.tick);AUTOEND.timer=AUTOEND.tick=0}
+function armAutoEnd(){
+  const b=document.querySelector('.duelmain .endturn');
+  if(!b||!turnIdle()){stopAutoEnd();return}
+  if(!AUTOEND.timer){
+    AUTOEND.t0=performance.now();
+    AUTOEND.timer=setTimeout(()=>{stopAutoEnd();if(turnIdle())onAct('end')},AUTO_END_MS);
+    AUTOEND.tick=setInterval(showAutoEnd,250);
+  }
+  showAutoEnd();
+}
+// The button is redrawn with the board, so the ring picks up where it was.
+function showAutoEnd(){
+  const b=document.querySelector('.duelmain .endturn');if(!b||!AUTOEND.timer)return;
+  const gone=performance.now()-AUTOEND.t0,left=Math.max(1,Math.ceil((AUTO_END_MS-gone)/1000));
+  if(!b.classList.contains('autoend')){b.classList.add('autoend');b.style.setProperty('--ae',AUTO_END_MS+'ms');b.style.setProperty('--aed',-gone+'ms')}
+  b.innerHTML=`End turn <span class="aesec" aria-hidden="true">${left}</span>`;
+  b.setAttribute('aria-label',`End turn. Nothing left to do: the turn ends in ${left} seconds`);
+}
+['pointerdown','keydown'].forEach(n=>addEventListener(n,()=>{
+  if(!AUTOEND.timer)return;
+  stopAutoEnd();
+  const b=document.querySelector('.duelmain .endturn.autoend');
+  if(b){b.classList.remove('autoend');b.textContent='End turn';b.removeAttribute('aria-label')}
+},true));
+['click','keyup'].forEach(n=>addEventListener(n,()=>setTimeout(armAutoEnd,0)));
 // On a phone the bar's hint is one line; when it's cut off a ▾ shows, and tapping it opens the
 // whole text in a panel below the bar. It closes when tapped again or when the hint changes;
 // a warning (G.notice) opens by itself.
@@ -216,6 +345,12 @@ document.addEventListener('click',e=>{
   if(log&&!log.contains(e.target)){log.open=false;logOpen=false;e.preventDefault();e.stopImmediatePropagation();return}
   if(PROMPT.open&&!e.target.closest('.bar>.prompt')&&!e.target.closest('#layer,#zoom')){PROMPT.open=false;render();e.preventDefault();e.stopImmediatePropagation()}
 },true);
+// A selected card's panel closes on a click on empty space, anywhere on the board. A click on
+// another card still does what it does (select it, or attack it), and buttons still work.
+document.addEventListener('click',e=>{
+  if(!G||!G.sel||swallow||!e.target.closest('.duel')||e.target.closest('.bar .acts,.card,[data-shield],[data-act],button,a,summary,details.log'))return;
+  G.sel=null;render();
+});
 function fitPrompt(){
   const pr=document.querySelector('.duelmain .bar>.prompt');if(!pr)return;
   const t=pr.textContent;
@@ -227,4 +362,5 @@ function fitPrompt(){
 // A row of cards wider than the screen (phones swipe them) fades at the right edge while
 // more cards wait off-screen.
 function markOverflow(z){z.classList.toggle('overflowing',z.scrollWidth-z.clientWidth-z.scrollLeft>4)}
-document.addEventListener('scroll',e=>{if(e.target.classList?.contains('zone'))markOverflow(e.target)},{capture:true,passive:true});
+document.addEventListener('scroll',e=>{if(e.target.classList?.contains('zone'))markOverflow(e.target);else if(e.target.classList?.contains('pickrow'))markPicks(e.target)},{capture:true,passive:true});
+const PICKROW={modal:null};

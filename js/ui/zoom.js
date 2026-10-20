@@ -37,6 +37,13 @@ function zoomCopies(to){
 function zoomNavHTML(){
   if(!ZNAV)return '';
   const i=ZNAV.list.indexOf(ZOOM),n=ZNAV.list.length;
+  if(ZNAV.pick){
+    const o=ZNAV.modal.opts[ZNAV.pick.get(ZOOM)]||{};
+    const pos=n<2?'':TOUCHY.matches?(n<=14?`<div class="zdots" aria-label="Card ${i+1} of ${n}">${ZNAV.list.map((_,k)=>`<i class="${k===i?'on':''}"></i>`).join('')}</div>`
+      :`<span class="zcount"><b>${i+1}</b> / ${n}</span>`)
+      :`<div class="znav"><button class="icon" data-znav="-1" aria-label="Previous card" ${i>0?'':'disabled'}>‹</button><span class="zpos"><b style="min-width:${String(n).length}ch">${i+1}</b> of ${n}</span><button class="icon" data-znav="1" aria-label="Next card" ${i<n-1?'':'disabled'}>›</button></div>`;
+    return `${pos}<div class="zpick">${o.note?`<small>${esc(o.note)}</small>`:''}<button class="main" data-zpick="1" aria-label="${esc(o.label||'Choose')}">${esc(o.btn&&o.btn!=='Choose'?o.btn:'Choose this card')}</button></div>`;
+  }
   // Touch screens swipe between cards, so the place shows without arrow buttons: dots for a
   // short list (a zone), a count for a long one (the deck builder's cards).
   let h=TOUCHY.matches?(n<=14?`<div class="zdots" aria-label="Card ${i+1} of ${n}">${ZNAV.list.map((_,k)=>`<i class="${k===i?'on':''}"></i>`).join('')}</div>`
@@ -86,7 +93,7 @@ function renderZoom(){
         ${c.playable?'':`<p class="collection-note">${esc(c.issues[0]||'This card is not yet available for duels.')}</p>`}
       </div>
       ${ZNAV?'':`<p class="hint">${TOUCHY.matches?'Swipe down or tap outside to close.':'Tap outside or press Esc to close.'}</p>`}</div>
-  </div>${ZNAV?`<div class="zbar">${zoomNavHTML()}<p class="hint">${TOUCHY.matches?'Swipe sideways to browse · down to close':`${ZNAV.build?'← → browse · + − or 0–4 set copies':'← → browse'} · Esc closes`}</p></div>`:''}</div></div>`;
+  </div>${ZNAV?`<div class="zbar">${zoomNavHTML()}<p class="hint">${TOUCHY.matches?(ZNAV.list.length>1?'Swipe sideways to browse · down to close':'Swipe down to close'):`${ZNAV.build?'← → browse · + − or 0–4 set copies':ZNAV.pick?(ZNAV.list.length>1?'← → browse · Enter chooses':'Enter chooses'):'← → browse'} · Esc closes`}</p></div>`:''}</div></div>`;
   // The zoomed card's art comes alive in its civilization's way.
   artfxAttach(el.querySelector('.card.big .art img'),c.e,c.e2);
 }
@@ -101,8 +108,21 @@ function zoomCardHTML(c){
 // Every way of opening a card (click, right-click, long-press, keyboard) shows the same view:
 // in the deck builder that's the browser with copy controls.
 function zoomFrom(el){
+  if(el.dataset.pick!=null&&el.closest('#layer')){openPickZoom(+el.dataset.pick);return}
   const f=el.dataset.uid?findCard(+el.dataset.uid):null,c=f?f.c:DEF[el.dataset.def];
   if(c)openZoom(c,el.closest('#bgrid')?{list:BUILD.shown||[],build:true}:zoneNav(f));
+}
+// A card from a prompt's row opens on the prompt's cards: swipe between them and choose one
+// right there. The view belongs to that prompt (render closes it once the prompt is gone).
+function openPickZoom(i){
+  const m=G&&G.modal;if(!m)return;
+  const items=m.opts.map((o,k)=>[optCard(o),k]).filter(([c])=>c),at=items.find(([,k])=>k===i);
+  if(at)openZoom(at[0],{list:items.map(([c])=>c),pick:new Map(items),modal:m});
+}
+function pickFromZoom(){
+  const k=ZNAV&&ZNAV.pick&&ZNAV.pick.get(ZOOM),m=ZNAV&&ZNAV.modal;
+  closeZoom();
+  if(k!=null&&m&&m===G?.modal)onAct('ans',String(k));
 }
 // A card opened from the board browses the zone it's in (a battle zone, your hand).
 const zoneNav=f=>f&&f.c&&f.p[f.z]?{list:f.p[f.z]}:null;
@@ -157,7 +177,8 @@ document.addEventListener('click',e=>{
   if(swallow){swallow=false;e.stopImmediatePropagation();e.preventDefault();return}
   if(e.target.closest('#zoom')){
     const pi=e.target.closest('[data-pile]'),nv=e.target.closest('[data-znav]'),q=e.target.closest('[data-zq]');
-    if(pi&&ZOOM&&ZOOM.pile){const cards=ZOOM.pile.cards;openZoom(cards[+pi.dataset.pile],{list:cards})}
+    if(e.target.closest('[data-zpick]'))pickFromZoom();
+    else if(pi&&ZOOM&&ZOOM.pile){const cards=ZOOM.pile.cards;openZoom(cards[+pi.dataset.pile],{list:cards})}
     else if(nv)stepZoom(+nv.dataset.znav);
     else if(q&&ZOOM)zoomCopies((BUILD.counts[ZOOM.id]||0)+(+q.dataset.zq));
     // Outside the box closes it: the backdrop, or the bare space around the box and the bar below it.
@@ -171,6 +192,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ZOOM){closeZoom();return}
   if(ZOOM&&ZNAV&&!(e.target.matches&&e.target.matches('input,textarea,select'))){
     if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();stepZoom(e.key==='ArrowLeft'?-1:1);return}
+    if(e.key==='Enter'&&ZNAV.pick){e.preventDefault();pickFromZoom();return}
     if(ZNAV.build){
       const n=BUILD.counts[ZOOM.id]||0;
       if(e.key==='+'||e.key==='='){zoomCopies(n+1);return}

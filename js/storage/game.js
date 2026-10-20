@@ -8,7 +8,7 @@ let gameSaved='';
 function packGame(){
   const home=new Map();
   G.p.forEach((p,i)=>{home.set(p,[G.p,{$p:i}]);for(const z of GAME_ZONES)for(const c of p[z])home.set(c,[p[z],{$c:c.uid}])});
-  return JSON.stringify({v:1,g:{...G,fx:{},sel:null}},function(k,v){const h=v&&typeof v==='object'&&home.get(v);return h&&h[0]!==this?h[1]:v});
+  return JSON.stringify({v:1,g:{...G,fx:{},sel:null,breaking:null,casting:null,landed:null}},function(k,v){const h=v&&typeof v==='object'&&home.get(v);return h&&h[0]!==this?h[1]:v});
 }
 function unpackGame(txt){
   const d=JSON.parse(txt);if(!d||d.v!==1||!d.g||!Array.isArray(d.g.p))return null;
@@ -46,6 +46,8 @@ async function resumeGame(){
   navTo('game');
   $('#layer').innerHTML='';
   G=g;gameSaved=txt;
-  render();
+  // A save that can't be drawn any more (from an older version, say) is dropped rather than
+  // leaving the loading screen up: the start page shows instead.
+  try{render()}catch(e){G=null;clearGame();$('#layer').innerHTML='';return false}
   return true;
 }
