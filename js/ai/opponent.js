@@ -93,7 +93,8 @@ async function aiAttacks(p){
     if(G.over)return;
     if(!canAttackAnything(c,p))continue;
     const pa=atkPow(c);
-    const prey=attackTargets(c,p).filter(x=>slays(c,x)||pa>power(x)).sort((a,b)=>power(b)-power(a))[0];
+    // A creature that can't be destroyed (Mihail's protection) stays whatever happens: no prey.
+    const prey=attackTargets(c,p).filter(x=>!T(x).noDestroy&&(slays(c,x)||pa>power(x))).sort((a,b)=>power(b)-power(a))[0];
     if(!canAttackPlayer(c,p)){if(prey)await strike(c,prey);continue}
     const blockers=me.bz.filter(x=>canBlock(x,c,'player',me));
     const top=Math.max(0,...blockers.map(power));
