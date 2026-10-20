@@ -61,7 +61,13 @@ function countFor(per,src,p){
 function* staticsInPlay(){
   // Printed abilities, plus abilities granted for a while ("until the end of the turn, each of
   // your creatures gets 'While attacking, ...'").
-  for(const q of G?G.p:[])for(const src of q.bz)for(const st of [...(src.statics||[]),...(src.tmp&&src.tmp.statics||[]),...(src.tmpNext&&src.tmpNext.statics||[])])yield [st,src,q];
+  // Read in place, not copied: this runs for every ability lookup, so it is the engine's hottest loop.
+  if(!G)return;
+  for(const q of G.p)for(const src of q.bz){
+    if(src.statics)for(const st of src.statics)yield [st,src,q];
+    if(src.tmp&&src.tmp.statics)for(const st of src.tmp.statics)yield [st,src,q];
+    if(src.tmpNext&&src.tmpNext.statics)for(const st of src.tmpNext.statics)yield [st,src,q];
+  }
 }
 // Combines granted abilities with printed ones. Lists add up, breakers take the best,
 // power attacker bonuses stack.

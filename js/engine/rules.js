@@ -83,7 +83,8 @@ function canAttackCreature(c,p,t){
   const lure=lureFor(c,p);
   return !lure.length||lure.includes(t);
 }
-const attackTargets=(c,p)=>opp(p).bz.filter(t=>canAttackCreature(c,p,t));
+// The same as testing canAttackCreature on each, with the lure list worked out once, not per target.
+const attackTargets=(c,p)=>{const lure=lureFor(c,p);return opp(p).bz.filter(t=>canAttackCreature0(c,p,t)&&(!lure.length||lure.includes(t)))};
 const canAttackAnything=(c,p)=>canAttackPlayer(c,p)||attackTargets(c,p).length>0;
 // Creatures that must attack before their controller may end the turn.
 const mustAttackers=p=>p.bz.filter(c=>(T(c).mustAtk||mustAttackAll()||p.mustAtkNext==='now'||rulesInPlay('oppMustAtk').some(([,q])=>q!==p)||lureFor(c,p).some(x=>T(x).taunt))&&canAttackAnything(c,p));
