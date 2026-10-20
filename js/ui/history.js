@@ -26,6 +26,7 @@ window.addEventListener('popstate',()=>{
   NAV.depth=Math.max(0,NAV.depth-1);
   NAV.popping=true;
   try{
+    if(SHARE){SHARE=null;renderShare();return}
     if(ZOOM){closeZoom();return}
     if(BUILD.sheet||BUILD.menu){BUILD.sheet=false;BUILD.menu=false;renderBuilder();return}
     if(G&&!G.over){

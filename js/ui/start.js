@@ -47,7 +47,7 @@ function renderMyDecks(){
   el.innerHTML=`<p><b>Your decks</b></p><div class="decks">${[...MYDECKS].sort((a,b)=>(b.updated||0)-(a.updated||0)).map(d=>{
     const tot=deckTotal(d.counts),civs=[...new Set(Object.keys(d.counts).filter(k=>DEF[k]).flatMap(k=>civsOf(DEF[k])))];
     const ready=legal(tot);
-    const btns=`${ready?`<button class="main" data-act="dplay" data-v="${d.id}">Play</button>`:''}<button data-act="dedit" data-v="${d.id}">Edit</button><button data-act="ddel" data-v="${d.id}" aria-label="Delete ${esc(d.name)}">Delete</button>`;
+    const btns=`${ready?`<button class="main" data-act="dplay" data-v="${d.id}">Play</button>`:''}<button data-act="dedit" data-v="${d.id}">Edit</button><button data-act="dexport" data-v="${d.id}" aria-label="Export ${esc(d.name)}">Export</button><button data-act="ddel" data-v="${d.id}" aria-label="Delete ${esc(d.name)}">Delete</button>`;
     // Confirming a delete covers the tile instead of changing its buttons, so nothing moves.
     const confirm=PENDING_DEL===d.id?`<div class="dconfirm" role="alertdialog" aria-label="Delete ${esc(d.name)}?"><b>Delete this deck?</b>
       <div class="mdb"><button class="danger" data-act="ddelyes" data-v="${d.id}">Delete</button><button data-act="ddelno" data-v="${d.id}">Keep</button></div></div>`:'';
@@ -69,7 +69,8 @@ function showStart(){
     <div class="decks">${PRESETS.map((d,i)=>`<button class="deck" data-act="preset" data-v="${i}" style="${frameVars(d.civ)}">
       <span class="dplate">${dotsHTML(d.civ)}<b>${d.n}</b></span><small>${CIV[d.civ[0]].n} and ${CIV[d.civ[1]].n}. ${d.d}</small></button>`).join('')}
       <button class="deck" data-act="random" style="${frameVars(Object.keys(CIV))}"><span class="dplate">${dotsHTML(Object.keys(CIV))}<b>Random optimal deck</b></span><small>A strong mix of all five civilizations, built fresh every time.</small></button>
-      <button class="deck blank" data-act="builder"><span class="dplate"><b>Build a new deck</b></span><small>Choose 50 to 60 cards. It saves automatically and shows up here.</small></button></div>
+      <button class="deck blank" data-act="builder"><span class="dplate"><b>Build a new deck</b></span><small>Choose 50 to 60 cards. It saves automatically and shows up here.</small></button>
+      <button class="deck blank" data-act="dimport"><span class="dplate"><b>Import a deck</b></span><small>Paste a deck someone shared, or open a deck file.</small></button></div>
   </div></div>`;
   PENDING_DEL=null;
   renderModeSw();

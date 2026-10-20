@@ -40,6 +40,11 @@ function onAct(a,v){
   if(a==='bmenu'){BUILD.menu=!BUILD.menu;BUILD.menu?navOpen('menu'):navClose('menu');renderBuilder();return}
   if(a==='bsheet'){BUILD.sheet=!BUILD.sheet;BUILD.sheet?navOpen('sheet'):navClose('sheet');renderBuilder();return}
   if(['brandom','bfill','bclear'].includes(a)&&BUILD.menu){BUILD.menu=false;navClose('menu')}
+  // Export and import take over the menu's place in the history (see openShare).
+  if((a==='bexport'||a==='bimport')&&BUILD.menu){BUILD.menu=false;renderBuilder()}
+  if(a==='bexport'){if(total())openShare('export',BUILD.name,BUILD.counts);else{BUILD.msg='Add some cards before exporting.';renderBuilder()}return}
+  if(a==='bimport'||a==='dimport'){openShare('import');return}
+  if(a==='dexport'){const d=MYDECKS&&MYDECKS.find(x=>x.id===v);if(d)openShare('export',d.name,validCounts(d.counts));return}
   if(a==='brandom'){const d=smartDeck();if(d.counts){BUILD.counts={...d.counts};BUILD.msg=`${d.n}: a fresh mixed deck. Tweak it or start the duel.`}renderBuilder();autoSave();return}
   if(a==='new'||a==='back'){if(MP)mpLeave(true);else showStart();return}
   if(a==='online'){showOnline();return}

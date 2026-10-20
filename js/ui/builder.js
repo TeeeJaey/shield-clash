@@ -31,7 +31,7 @@ function renderBuilder(){
   const tot=total();
   let h=`<header class="bh"><h2>Deck builder</h2><input id="dname" class="dname" aria-label="Deck name" maxlength="30" value="${esc(BUILD.name||'')}"><span class="cnt ${legal(tot)?'ok':''}">${tot} cards <small class="bsaved">${tot<DECK_MIN?`${DECK_MIN-tot} more to play`:tot===DECK_MAX?'Maximum reached':`Up to ${DECK_MAX}`}</small> <small id="bsaved" class="bsaved">${BUILD.saved||''}</small></span>
     <button class="bmore-btn icon" data-act="bmenu" aria-expanded="${!!BUILD.menu}" aria-label="More deck actions" title="More">⋯</button>
-    <span class="bacts ${BUILD.menu?'open':''}">${btn('brandom','Random optimal deck')}${btn('bfill',`Fill to ${DECK_SIZE}`)}${btn('bclear','Clear')}</span><button data-act="back" class="sysbtn bback" title="Back to the start page" aria-label="Back to the start page">${ICON.back}<span>Back</span></button>
+    <span class="bacts ${BUILD.menu?'open':''}">${btn('brandom','Random optimal deck')}${btn('bfill',`Fill to ${DECK_SIZE}`)}${btn('bclear','Clear')}${btn('bexport','Export deck')}${btn('bimport','Import deck')}</span><button data-act="back" class="sysbtn bback" title="Back to the start page" aria-label="Back to the start page">${ICON.back}<span>Back</span></button>
     <button data-act="bstart" class="main" ${legal(tot)?'':'disabled'}>Start duel</button>
     <span class="bmsg ${BUILD.msg?'note':''}">${BUILD.msg||'Decks hold 50 to 60 cards, with up to 4 copies of each. Your deck saves automatically. Tap a card to zoom in. Two civilizations is the classic setup; more is risky for mana.'}</span></header>`;
   // On a phone the search, a Filters button and the civilization tabs stay at the top while the
