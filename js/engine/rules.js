@@ -379,6 +379,7 @@ async function resolveFx(p,fx,src){
 async function resolveEach(p,fx,src){
   for(const printedFx of fxList(fx)){
     if(G.over)return;
+    await settle();
     const optional=printedFx.startsWith('optional:'),f=optional?printedFx.slice(9):printedFx;
     if(isJsonFx(f)){
       const e=jfx(f);
@@ -570,6 +571,9 @@ async function playCard(p,c){
     log(`${V(p,'You cast','Opponent casts')} ${c.n}.`);render();
     await castSpell(p,c);
   }else{
+    // The opponent's creature is first shown being summoned, the way a spell is shown being cast:
+    // arriving on their small side of the board, it could pass unnoticed.
+    if(p!==G.p[0]&&!SIM){G.casting={c,seat:G.p.indexOf(p),summon:true};render();await sleep(900);G.casting=null;render()}
     await enterBattle(p,c,base);
     // Live and Breathe: another creature with the same name may follow from the deck.
     if(p.turnFx&&p.turnFx.liveBreathe&&!G.over)await SPECIALS.liveBreathe(p,{n:c.n},c);

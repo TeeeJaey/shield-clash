@@ -111,7 +111,7 @@ function barHTML(){
   const me=G.p[0];
   const oppName=G.mp?esc(G.p[1].name):'Opponent',lost=G.winner!==G.p[0];
   if(G.mp&&!IN_CLAUDE&&NET.status&&!G.over)return `<span class="turn">Offline</span><span class="prompt">${NET.status}</span>`;
-  if(G.over)return `<span class="prompt">${G.left!=null?`${oppName} left the game.`:G.why==='deck'?(lost?'Your deck ran out.':`${oppName}'s deck ran out.`):lost?`${oppName} broke through.`:'You broke through every shield.'}</span>${btn('new',G.mp?'Back to start page':'Play again',1)}`;
+  if(G.over)return `<span class="prompt">${G.left!=null?`${oppName} left the game.`:G.why==='deck'?(lost?'Your deck ran out.':`${oppName}'s deck ran out.`):lost?`${oppName} broke through.`:'You broke through every shield.'}</span>${G.overShut?btn('overopen','Result'):''}${btn('new',G.mp?'Back to start page':'Play again',1)}`;
   if(G.req&&G.mp&&!G.targeting&&G.req.seat!==VIEW)return `<span class="turn">Waiting</span><span class="prompt">${oppName} is deciding what to do…</span>`;
   if(G.targeting)return `<span class="turn">Choose</span><span class="prompt">${esc(G.targeting.msg)}</span>${G.targeting.required?'':btn('skip',G.targeting.skip||'Skip')}`;
   // A card selected just to look at: its name and text, View card and Cancel, whoever's turn it is.
@@ -273,9 +273,10 @@ function render(){
   else if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${esc(G.modal.title)}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'')}</div>`:''}<p class="${G.modal.note||G.modal.card?'dq':''}">${esc(G.modal.text)}</p>${G.modal.note?`<p class="dnote">${esc(G.modal.note)}</p>`:''}
     ${(G.modal.show||[]).map(g=>`${g.label?`<h3 class="showlbl">${esc(g.label)} <small>${g.cards.length}</small></h3>`:''}<div class="pickwrap"><div class="pickrow showrow" role="list">${g.cards.map(c=>`<div class="pick" role="listitem">${cardHTML({...c,uid:0,tapped:false},'')}</div>`).join('')}</div></div>`).join('')}
     ${modalOpts(G.modal.opts)}</div></div>`;
-  else if(G.over)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${G.winner!==G.p[0]?'Defeat':'Victory'}</h2>
+  // The result can be put aside to look over the board; the bar keeps Play again and brings it back.
+  else if(G.over&&!G.overShut)layer=`<div class="overlay overend"><div class="dialog" role="dialog"><h2>${G.winner!==G.p[0]?'Defeat':'Victory'}</h2>
     <p>${G.left!=null?`${esc(G.p[1].name)} left the game.`:G.why==='deck'?(G.winner!==G.p[0]?'Your deck ran out of cards, and a player with no deck loses.':`${G.mp?esc(G.p[1].name)+"'s":"The opponent's"} deck ran out of cards.`):G.winner!==G.p[0]?`Your last shield fell and ${G.mp?esc(G.p[1].name):'the opponent'} landed the final blow.`:'Every shield is gone and your creature struck the final blow.'}</p>
-    <div class="opts">${btn('new',G.mp?'Back to start page':'Play again',1)}</div></div></div>`;
+    <div class="opts">${btn('overshut','Review the game')}${btn('new',G.mp?'Back to start page':'Play again',1)}</div></div></div>`;
   $('#layer').innerHTML=layer;
   PICKROW.modal=G.modal;
   document.querySelectorAll('#layer .pickrow').forEach((r,i)=>{r.scrollLeft=pickScroll[i]||0;markPicks(r)});
@@ -291,9 +292,11 @@ function render(){
 }
 /* ---------- what changed since the last redraw ---------- */
 // Effects move cards between zones, tap them and change their power, often several at once. Each
-// change eases in so it can be followed, kept small and short: a card that changed zone flies from
-// where it was to where it went (a copy face down when both places are hidden), a card turning
-// sideways turns, and a power that changed bumps. The counter or zone it lands in bumps too.
+// change shows briefly where it happens, kept small and short. Everyday moves (drawing, charging
+// mana, a card going to the graveyard) and anything on the opponent's side just blink where they
+// land: the counter bumps, a card that appears glows. Only a card an ability moves to your side
+// flies there from where it was (a copy face down when both places are hidden). A card turning
+// sideways turns, and a power that changed bumps.
 const MOVES={g:null,at:new Map(),look:new Map()};
 const MOVE_ZONES=['hand','bz','mana','gy','sh','deck'];
 function zoneMap(){
@@ -306,7 +309,7 @@ function zoneAnchor(seat,z){
   const side=[...document.querySelectorAll('.duelmain .side')][seat===0?1:0];if(!side)return null;
   const count=re=>[...side.querySelectorAll('.info>span')].find(el=>re.test(el.textContent));
   return z==='mana'?side.querySelector('[data-v^="mana:"]'):z==='gy'?side.querySelector('[data-v^="gy:"]'):z==='deck'?count(/^Deck /)
-    :z==='sh'?side.querySelector('.shields'):z==='bz'?side.querySelector('.bzone'):seat===0?side.querySelector('.handzone'):count(/^Hand /);
+    :z==='sh'?side.querySelector('.shields>.lbl'):z==='bz'?side.querySelector('.bzone'):seat===0?side.querySelector('.handzone'):count(/^Hand /);
 }
 const bumpEl=el=>{if(!el)return;el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')};
 const lookMap=()=>new Map([...document.querySelectorAll('.duelmain .card[data-uid]')].map(el=>[+el.dataset.uid,{tapped:el.classList.contains('tapped'),pw:el.querySelector('.pw')?.textContent}]));
@@ -323,11 +326,25 @@ function showChanges(wasAt){
   }
   MOVES.at=at;
   const hidden=({seat,z,c})=>z==='deck'||z==='sh'&&!c.faceUp||z==='hand'&&seat===1;
+  const destOf=(uid,to)=>to.z==='sh'?document.querySelector(`.duelmain [data-shield="${uid}"]`):to.z==='bz'||to.z==='hand'&&to.seat===0?document.querySelector(`.duelmain .card[data-uid="${uid}"]`):null;
+  // On a phone a row scrolls sideways, and a card may land out of sight (a new card goes to the end
+  // of your hand): the row scrolls to it first, so each copy lands exactly where its card is.
+  for(const [uid,,to] of moved.slice(0,8)){
+    const dest=to.seat===0&&destOf(uid,to),row=dest&&dest.closest('.zone');if(!row)continue;
+    const r=row.getBoundingClientRect(),d=dest.getBoundingClientRect();
+    if(d.right>r.right)row.scrollLeft+=d.right-r.right+8;else if(d.left<r.left)row.scrollLeft-=r.left-d.left+8;
+  }
+  const special=!!G.acting;
   moved.slice(0,8).forEach(([uid,from,to],i)=>{
-    const dest=to.z==='sh'?document.querySelector(`.duelmain [data-shield="${uid}"]`):to.z==='bz'||to.z==='hand'&&to.seat===0?document.querySelector(`.duelmain .card[data-uid="${uid}"]`):null;
-    const land=dest||zoneAnchor(to.seat,to.z),a=wasAt.get(uid)||zoneAnchor(from.seat,from.z)?.getBoundingClientRect();
+    const fly=special&&!calm&&to.seat===0&&from.z!=='deck'&&to.z!=='mana'&&to.z!=='gy';
+    const dest=fly?destOf(uid,to):null,land=dest||zoneAnchor(to.seat,to.z),a=fly&&(wasAt.get(uid)||zoneAnchor(from.seat,from.z)?.getBoundingClientRect());
     const bump=()=>bumpEl(dest?null:land);
-    if(!land||!a||calm){bump();return}
+    if(!land||!a){
+      ANIM.until=Math.max(ANIM.until,now()+500);
+      const card=(to.z==='bz'||to.z==='hand'&&to.seat===0)&&document.querySelector(`.duelmain .card[data-uid="${uid}"]`);
+      if(card){anim(to.c,'arrive');card.classList.add('fx-arrive')}else if(land)bumpEl(land);
+      return;
+    }
     const face=!(hidden(from)&&hidden(to)),b=land.getBoundingClientRect();
     const w=wasAt.has(uid)?a.width:face?56:30;
     const g=document.createElement('div');g.innerHTML=face?cardHTML({...to.c,uid:0,tapped:false},'',true):'<div class="back"></div>';
@@ -335,10 +352,11 @@ function showChanges(wasAt){
     Object.assign(ghost.style,{position:'fixed',left:(a.left+a.width/2-w/2)+'px',top:(a.top+a.height/2-w*.7)+'px',width:w+'px',height:face?'':w*1.4+'px',margin:'0',zIndex:'9',pointerEvents:'none'});
     document.body.appendChild(ghost);
     if(dest)dest.style.visibility='hidden';
-    const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2);
+    const gr=ghost.getBoundingClientRect(),dx=b.left+b.width/2-(gr.left+gr.width/2),dy=b.top+b.height/2-(gr.top+gr.height/2);
     const end=dest?`translate(${dx}px,${dy}px) scale(${b.width/w})`:`translate(${dx}px,${dy}px) scale(.18) rotate(${dx<0?-10:10}deg)`;
+    const timing={duration:dest?420:480,delay:i*70};ANIM.until=Math.max(ANIM.until,now()+timing.delay+timing.duration);
     ghost.animate([{transform:'none',opacity:1},{transform:end,opacity:dest?1:.3}],
-      {duration:dest?420:480,delay:i*70,easing:dest?'cubic-bezier(.3,.7,.4,1)':'cubic-bezier(.55,0,.8,.3)',fill:'backwards'})
+      {...timing,easing:dest?'cubic-bezier(.3,.7,.4,1)':'cubic-bezier(.55,0,.8,.3)',fill:'backwards'})
       .onfinish=()=>{ghost.remove();if(dest)dest.style.visibility='';bump()};
   });
   // Tapped or untapped, or a new power, since the last redraw.
@@ -352,8 +370,9 @@ function showChanges(wasAt){
 }
 /* ---------- spells: being cast, landing, in effect ---------- */
 // While a spell resolves it's shown large over the board, under any prompt it brings up; then
-// it flies into its owner's graveyard (a charger into the mana zone). Spells whose effect lasts
-// show as chips on their caster's side until it ends; tap one to read it.
+// it leaves and its owner's graveyard bumps (a charger's mana zone). The opponent's creatures are
+// shown the same way as they're summoned. Spells whose effect lasts show as chips on their
+// caster's side until it ends; tap one to read it.
 const CAST={el:null,card:null,landed:null};
 function renderCast(){
   const c=G&&G.casting;
@@ -361,7 +380,8 @@ function renderCast(){
     if(!CAST.el){CAST.el=document.createElement('div');CAST.el.id='cast';CAST.el.setAttribute('aria-live','polite');document.body.appendChild(CAST.el)}
     CAST.card=c.c;
     CAST.el.className='show '+(c.seat===0?'mine':'theirs');
-    CAST.el.innerHTML=`<span class="castlbl">${c.seat===0?'You cast':(G.mp?esc(G.p[c.seat].name)+' casts':'Opponent casts')}</span>${cardHTML({...c.c,uid:0,tapped:false},'',true)}`;
+    const verb=c.summon?(c.c.evo?'evolve':'summon'):'cast';
+    CAST.el.innerHTML=`<span class="castlbl">${c.seat===0?'You '+verb:(G.mp?esc(G.p[c.seat].name):'Opponent')+' '+verb+'s'}</span>${cardHTML({...c.c,uid:0,tapped:false},'',true)}`;
   }
   const l=G&&G.landed;
   if(l&&l!==CAST.landed){CAST.landed=l;flyToPile(l)}
@@ -370,17 +390,9 @@ function renderCast(){
   // waits small in the corner so it never covers the creatures to choose from.
   if(CAST.el){CAST.el.classList.toggle('asking',!!(c&&G.modal));CAST.el.classList.toggle('corner',!!(c&&G.targeting&&!G.modal))}
 }
+// A spell that's done leaves the screen, and the pile it went to (graveyard, or mana for a charger) bumps.
 function flyToPile(l){
-  const target=document.querySelector(`.duelmain [data-act="pile"][data-v="${l.to}:${l.seat}"]`);if(!target)return;
-  target.classList.remove('bump');void target.offsetWidth;target.classList.add('bump');
-  const from=CAST.card&&CAST.el.querySelector('.card');
-  if(!from||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  const a=from.getBoundingClientRect(),b=target.getBoundingClientRect(),ghost=from.cloneNode(true);
-  Object.assign(ghost.style,{position:'fixed',left:a.left+'px',top:a.top+'px',width:a.width+'px',margin:'0',zIndex:'9',pointerEvents:'none'});
-  document.body.appendChild(ghost);
-  const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2);
-  ghost.animate([{transform:'none',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(.12) rotate(${dx<0?-14:14}deg)`,opacity:.25}],
-    {duration:520,easing:'cubic-bezier(.55,0,.8,.3)'}).onfinish=()=>ghost.remove();
+  bumpEl(document.querySelector(`.duelmain [data-act="pile"][data-v="${l.to}:${l.seat}"]`));
 }
 const lastingHTML=side=>{const l=(G.lasting||[]).filter(x=>x.seat===side);return l.length?`<div class="lastrow" aria-label="Spells in effect">${l.map(x=>`<span class="lasting" data-def="${esc(x.id)}" style="--lc:${(PAL[DEF[x.id]?.e]||PAL.unknown).frame}" tabindex="0" title="${esc(x.n)}: in effect ${x.until==='end'?'this turn':'until its caster’s next turn'}"><span aria-hidden="true">✦</span>${esc(x.n)}<small>${x.until==='end'?'this turn':'until next turn'}</small></span>`).join('')}</div>`:''};
 // Nothing left to do this turn: a ring fills around End turn, counting the seconds down, and

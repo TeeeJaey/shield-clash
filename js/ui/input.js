@@ -2,7 +2,9 @@
 const selCard=()=>G&&G.sel?findCard(G.sel.uid)?.c:null;
 async function act(fn){G.busy=true;G.sel=null;render();try{await fn()}finally{G.busy=false;render()}}
 function onCard(uid){
-  if(!G||G.over||G.modal)return;
+  // After the game, with the result put aside, a card opens to read.
+  if(G&&G.over){const f=findCard(uid);if(f&&G.overShut)openZoom(f.c,zoneNav(f));return}
+  if(!G||G.modal)return;
   if(G.targeting){
     if(G.targeting.uids.has(uid)){const r=G.targeting.resolve;const t=findCard(uid)?.c||shieldBy(uid);G.targeting=null;r(t)}
     return;
@@ -57,6 +59,7 @@ function onAct(a,v){
   if(a==='bimport'||a==='dimport'){openShare('import');return}
   if(a==='dexport'){const d=MYDECKS&&MYDECKS.find(x=>x.id===v);if(d)openShare('export',d.name,validCounts(d.counts));return}
   if(a==='brandom'){const d=smartDeck();if(d.counts){BUILD.counts={...d.counts};BUILD.msg=`${d.n}: a fresh mixed deck. Tweak it or start the duel.`}renderBuilder();autoSave();return}
+  if(a==='overshut'||a==='overopen'){G.overShut=a==='overshut';render();return}
   if(a==='new'||a==='back'){if(MP)mpLeave(true);else showStart();return}
   if(a==='online'){showOnline();return}
   if(a==='mphost'){mpHost();return}
@@ -123,6 +126,8 @@ function onAct(a,v){
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(b){if(!b.disabled)onAct(b.dataset.act,b.dataset.v);return}
+  // A tap beside the game's result puts it aside too.
+  if(e.target.matches('#layer .overend')){onAct('overshut');return}
   const c=e.target.closest('[data-uid],[data-shield]');if(c)onCard(+(c.dataset.uid||c.dataset.shield));
 });
 document.addEventListener('keydown',e=>{

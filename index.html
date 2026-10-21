@@ -938,6 +938,7 @@ input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .card.fx-up{animation:k-up .45s ease-in-out both;animation-delay:var(--fxd);z-index:3}
 .card.fx-down{animation:k-down .45s ease-in-out both;animation-delay:var(--fxd);z-index:3}
 .card.fx-hit{animation:k-hit .35s ease-in-out both;animation-delay:var(--fxd)}
+.card.fx-arrive{animation:k-flash .6s ease-out both;animation-delay:var(--fxd)}
 .card.fx-die{animation:k-die .45s ease-in both;animation-delay:var(--fxd)}
 /* a breaking shield: six shards fly apart from a flash, over the gap it leaves */
 .back.shield.breaking,.back.shield.breaking.faceup{position:relative;z-index:3;background:none;box-shadow:none}
@@ -951,8 +952,9 @@ input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .back.shield.breaking .flash{position:absolute;left:55%;top:45%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:radial-gradient(circle,#fffbe8 0,#ffd9a0b3 30%,#ff6b5540 55%,transparent 72%);animation:k-burst .35s ease-out both;pointer-events:none}
 /* the card whose ability is resolving, and what changed since the last redraw */
 .duelmain .card.acting{outline:2px solid #EF9F27;outline-offset:2px}
-.duelmain .info>span.bump,.duelmain .shields.bump,.duelmain .card .pw.bump{animation:k-bump .5s ease-out}
-.duelmain .info>span.bump{display:inline-block}
+.duelmain .info>span.bump,.duelmain .shields>.lbl.bump,.duelmain .card .pw.bump{animation:k-bump .5s ease-out}
+.duelmain .info>span.bump,.duelmain .shields>.lbl.bump{display:inline-block}
+.duelmain .shields>.lbl.bump{transform-origin:left center}
 @keyframes k-enter{0%{transform:scale(.4) translateY(30px);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
 @keyframes k-up{40%{transform:translateY(-34px) scale(1.08)}}
 @keyframes k-down{40%{transform:translateY(34px) scale(1.08)}}
