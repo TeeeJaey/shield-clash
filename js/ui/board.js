@@ -44,14 +44,21 @@ function cls(c,p,z){
   if(free&&!mine&&z==='bz'&&G.sel?.zone==='bz'&&canAttackCreature(selCard(),G.p[0],c))k.push('target');
   return k.join(' ');
 }
+// The civilizations a side plays, most cards first (its deck's colors, which its deck name shows anyway).
+function sideCivs(p){
+  const n={};for(const z of ['deck','hand','mana','bz','gy','sh'])for(const c of p[z])for(const e of civsOf(c))if(EMB[e])n[e]=(n[e]||0)+1;
+  return Object.keys(n).sort((a,b)=>n[b]-n[a]).slice(0,2);
+}
 function sideHTML(p){
   const side=p===G.p[0]?0:1;
   const bz=p.bz.length?p.bz.map(c=>cardHTML(c,cls(c,p,'bz'))).join(''):emptyZone('No creatures in the battle zone');
-  const top=`<div class="info"><b>${side===0?'You':(G.mp?esc(p.name):'Opponent')}</b><span>${esc(p.deckName)}</span><span>Deck ${p.deck.length}</span><button class="link" data-act="pile" data-v="gy:${side}">Graveyard ${p.gy.length}</button>${side?`<span>Hand ${p.hand.length}</span>${sysHTML()}`:''}</div>
-    ${lastingHTML(side)}<div class="stack">${shieldsHTML(p)}${manaHTML(p,side)}</div>`;
-  if(side)return `<section class="side">${top}<div class="zone bzone">${bz}</div></section>`;
+  // The battle zone is a play mat with a faint tint of the side's main civilization.
+  const mat=`<div class="zone bzone" style="--m1:${(PAL[sideCivs(p)[0]]||PAL.unknown).frame}">${bz}</div>`;
+  const top=`<div class="rail"><div class="info"><b>${side===0?'You':(G.mp?esc(p.name):'Opponent')}</b><span>${esc(p.deckName)}</span><span>Deck ${p.deck.length}</span><button class="link" data-act="pile" data-v="gy:${side}">Graveyard ${p.gy.length}</button>${side?`<span>Hand ${p.hand.length}</span>${sysHTML()}`:''}</div>
+    ${lastingHTML(side)}<div class="stack">${shieldsHTML(p)}${manaHTML(p,side)}</div></div>`;
+  if(side)return `<section class="side">${top}${mat}</section>`;
   const hand=p.hand.length?p.hand.map(c=>cardHTML(c,cls(c,p,'hand'))).join(''):emptyZone('Your hand is empty');
-  return `<section class="side"><div class="zone bzone">${bz}</div>${top}<div class="lbl">Hand</div><div class="zone">${hand}</div></section>`;
+  return `<section class="side">${mat}${top}<div class="lbl hlbl">Hand</div><div class="zone handzone">${hand}</div></section>`;
 }
 // Back, Restart and the sound switch sit in the board's top corner, out of the action bar,
 // whose buttons change with every step. Back and Restart work when the game can stop for them
@@ -146,7 +153,7 @@ function barHTML(){
   return h+'<button data-act="end" class="endturn">End turn</button>';
 }
 // The log folds away (closed by default on phones) and stays as the player left it.
-let logOpen=!matchMedia('(max-width:600px), (max-height:500px)').matches;
+let logOpen=!matchMedia('(max-width:600px)').matches;
 document.addEventListener('toggle',e=>{if(e.target.matches&&e.target.matches('details.log'))logOpen=e.target.open},true);
 // Card names in the log open that card. Names are matched once per distinct line.
 let logNames=null;
@@ -187,6 +194,17 @@ function modalOpts(opts){
       ${o.note?`<small>${esc(o.note)}</small>`:''}
       <button data-act="ans" data-v="${i}" class="${cards.length===1||o.main?'main':''}" aria-label="${esc(o.label)}">${esc(o.btn||'Choose')}</button></div>`).join('')}</div>${step(1)}</div>
     ${rest?`<div class="opts">${rest}</div>`:''}`;
+}
+// Several cards picked together (askPicks): one row of cards, each with its own Pick button, and
+// Done once enough are picked. Tapping a card opens it, as anywhere.
+function picksHTML(m){
+  const s=m.picks,n=s.sel.length,full=n>=s.max;
+  const need=s.min===s.max?`Pick ${s.max}.`:s.min?`Pick ${s.min} to ${s.max}.`:s.max>=s.cards.length&&s.max>1?'Pick any number.':`Pick up to ${s.max}.`;
+  return `<div class="overlay"><div class="dialog swap" role="dialog" aria-label="${esc(m.title)}"><h2>${esc(m.title)}</h2><p>${esc(m.text)}</p>
+    <div class="pickwrap"><button class="icon pkstep" data-pkstep="-1" aria-label="Previous cards">‹</button><div class="pickrow" role="list">${s.cards.map((c,i)=>{const on=s.sel.includes(i);
+      return `<div class="pick ${on?'on':''}" role="listitem">${cardHTML({...c,uid:0,tapped:false},'')}<button data-act="pkpick" data-v="${i}" class="${on?'main':''}" aria-pressed="${on}" ${on||!full?'':'disabled'}>${on?'✓ Picked':'Pick'}</button></div>`}).join('')}</div><button class="icon pkstep" data-pkstep="1" aria-label="More cards">›</button></div>
+    <p class="swsum ${n?'':'muted'}">${n?`${n} picked`:''}${n&&s.max>n?' · ':''}${need}</p>
+    <div class="opts"><button data-act="pkdone" class="main" ${n>=s.min?'':'disabled'}>${n?`Done (${n})`:'Pick none'}</button></div></div></div>`;
 }
 // Two cards trading places (askSwap): a row of cards for each side with a pick in each, and
 // the trade spelled out before it happens. Tapping a card opens it, as anywhere.
@@ -242,14 +260,18 @@ function render(){
   saveGame();
   // Rows swiped sideways (phones) keep their place: redrawing the board would reset them to the start.
   const rowScroll=[...document.querySelectorAll('.duelmain .zone')].map(z=>z.scrollLeft);
+  // Where each card on screen was, so a card that moves to a mana zone can fly from there.
+  const wasAt=new Map([...document.querySelectorAll('.duelmain .card[data-uid]')].map(el=>[+el.dataset.uid,el.getBoundingClientRect()]));
   // A prompt's row of cards keeps its place too, while the same prompt is up.
   const pickScroll=G.modal&&G.modal===PICKROW.modal?[...document.querySelectorAll('#layer .pickrow')].map(r=>r.scrollLeft):[];
   // The log comes first so a wide screen can give it the left column; narrow screens put it last.
-  $('#app').innerHTML=`<div class="duel"><details class="log" ${logOpen?'open':''}><summary>Game log<span class="llast">${G.log.length?esc(viewText(G.log[0])):''}</span><span class="lchev" aria-hidden="true"></span></summary><div aria-live="polite">${logTurnsHTML()}</div></details>
+  $('#app').innerHTML=`<div class="duel"><div class="dsys">${sysHTML()}</div><details class="log" ${logOpen?'open':''}><summary title="Game log">Game log<span class="llast">${G.log.length?esc(viewText(G.log[0])):''}</span><span class="lchev" aria-hidden="true"></span></summary><div aria-live="polite">${logTurnsHTML()}</div></details>
     <div class="duelmain">${sideHTML(G.p[1])}<div class="bar">${barHTML()}</div>${sideHTML(G.p[0])}</div></div>`;
   let layer='';
   if(G.modal&&G.modal.swap)layer=swapHTML(G.modal);
-  else if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${esc(G.modal.title)}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'')}</div>`:''}<p>${esc(G.modal.text)}</p>
+  else if(G.modal&&G.modal.picks)layer=picksHTML(G.modal);
+  else if(G.modal)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${esc(G.modal.title)}</h2>${G.modal.card?`<div class="dcard">${cardHTML({...G.modal.card,uid:0,tapped:false},'')}</div>`:''}<p class="${G.modal.note||G.modal.card?'dq':''}">${esc(G.modal.text)}</p>${G.modal.note?`<p class="dnote">${esc(G.modal.note)}</p>`:''}
+    ${(G.modal.show||[]).map(g=>`${g.label?`<h3 class="showlbl">${esc(g.label)} <small>${g.cards.length}</small></h3>`:''}<div class="pickwrap"><div class="pickrow showrow" role="list">${g.cards.map(c=>`<div class="pick" role="listitem">${cardHTML({...c,uid:0,tapped:false},'')}</div>`).join('')}</div></div>`).join('')}
     ${modalOpts(G.modal.opts)}</div></div>`;
   else if(G.over)layer=`<div class="overlay"><div class="dialog" role="dialog"><h2>${G.winner!==G.p[0]?'Defeat':'Victory'}</h2>
     <p>${G.left!=null?`${esc(G.p[1].name)} left the game.`:G.why==='deck'?(G.winner!==G.p[0]?'Your deck ran out of cards, and a player with no deck loses.':`${G.mp?esc(G.p[1].name)+"'s":"The opponent's"} deck ran out of cards.`):G.winner!==G.p[0]?`Your last shield fell and ${G.mp?esc(G.p[1].name):'the opponent'} landed the final blow.`:'Every shield is gone and your creature struck the final blow.'}</p>
@@ -265,6 +287,33 @@ function render(){
   fitPrompt();
   armAutoEnd();
   renderCast();
+  flyToMana(wasAt);
+}
+// A card that went into a mana zone since the last redraw flies there: from where it was on screen
+// (your hand, a battle zone), or from the opponent's hand count; the mana counter then bumps.
+const MANA_SEEN={g:null,uids:new Set()};
+function flyToMana(wasAt){
+  const all=G.p.flatMap((p,side)=>p.mana.map(c=>[c,side]));
+  if(MANA_SEEN.g!==G){MANA_SEEN.g=G;MANA_SEEN.uids=new Set(all.map(([c])=>c.uid));return}
+  const fresh=all.filter(([c])=>!MANA_SEEN.uids.has(c.uid)&&c.uid!==G.landed?.uid);
+  MANA_SEEN.uids=new Set(all.map(([c])=>c.uid));
+  const calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  fresh.slice(0,6).forEach(([c,side],i)=>{
+    const to=document.querySelector(`.duelmain [data-act="pile"][data-v="mana:${side}"]`);if(!to)return;
+    const bump=()=>{to.classList.remove('bump');void to.offsetWidth;to.classList.add('bump')};
+    const info=[...document.querySelectorAll('.duelmain .side')][side===0?1:0]?.querySelector('.info');
+    const handCount=info&&[...info.querySelectorAll(':scope>span')].find(el=>/^Hand /.test(el.textContent));
+    const a=wasAt.get(c.uid)||(side===1&&handCount?.getBoundingClientRect());
+    if(!a||calm){bump();return}
+    const b=to.getBoundingClientRect(),w=wasAt.has(c.uid)?a.width:56;
+    const g=document.createElement('div');g.innerHTML=cardHTML({...c,uid:0,tapped:false},'',true);
+    const card=g.firstElementChild;
+    Object.assign(card.style,{position:'fixed',left:(a.left+a.width/2-w/2)+'px',top:(a.top+a.height/2-w*.78)+'px',width:w+'px',margin:'0',zIndex:'9',pointerEvents:'none'});
+    document.body.appendChild(card);
+    const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2);
+    card.animate([{transform:'none',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(.18) rotate(${dx<0?-10:10}deg)`,opacity:.3}],
+      {duration:480,delay:i*70,easing:'cubic-bezier(.55,0,.8,.3)',fill:'backwards'}).onfinish=()=>{card.remove();bump()};
+  });
 }
 /* ---------- spells: being cast, landing, in effect ---------- */
 // While a spell resolves it's shown large over the board, under any prompt it brings up; then
@@ -282,6 +331,9 @@ function renderCast(){
   const l=G&&G.landed;
   if(l&&l!==CAST.landed){CAST.landed=l;flyToPile(l)}
   if(!c&&CAST.card){CAST.card=null;CAST.el.classList.remove('show')}
+  // While the spell asks something it steps aside: a dialog already names it, and on the board it
+  // waits small in the corner so it never covers the creatures to choose from.
+  if(CAST.el){CAST.el.classList.toggle('asking',!!(c&&G.modal));CAST.el.classList.toggle('corner',!!(c&&G.targeting&&!G.modal))}
 }
 function flyToPile(l){
   const target=document.querySelector(`.duelmain [data-act="pile"][data-v="${l.to}:${l.seat}"]`);if(!target)return;
@@ -295,7 +347,7 @@ function flyToPile(l){
   ghost.animate([{transform:'none',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(.12) rotate(${dx<0?-14:14}deg)`,opacity:.25}],
     {duration:520,easing:'cubic-bezier(.55,0,.8,.3)'}).onfinish=()=>ghost.remove();
 }
-const lastingHTML=side=>{const l=(G.lasting||[]).filter(x=>x.seat===side);return l.length?`<div class="lastrow" aria-label="Spells in effect">${l.map(x=>`<span class="lasting" data-def="${esc(x.id)}" tabindex="0" title="${esc(x.n)}: in effect ${x.until==='end'?'this turn':'until its caster’s next turn'}"><span aria-hidden="true">✦</span>${esc(x.n)}<small>${x.until==='end'?'this turn':'until next turn'}</small></span>`).join('')}</div>`:''};
+const lastingHTML=side=>{const l=(G.lasting||[]).filter(x=>x.seat===side);return l.length?`<div class="lastrow" aria-label="Spells in effect">${l.map(x=>`<span class="lasting" data-def="${esc(x.id)}" style="--lc:${(PAL[DEF[x.id]?.e]||PAL.unknown).frame}" tabindex="0" title="${esc(x.n)}: in effect ${x.until==='end'?'this turn':'until its caster’s next turn'}"><span aria-hidden="true">✦</span>${esc(x.n)}<small>${x.until==='end'?'this turn':'until next turn'}</small></span>`).join('')}</div>`:''};
 // Nothing left to do this turn: a ring fills around End turn, counting the seconds down, and
 // the turn ends by itself when it closes. Any touch, click or key starts the wait again, so it
 // never ends a turn while you're looking at something.

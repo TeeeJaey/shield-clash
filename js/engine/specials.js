@@ -6,17 +6,8 @@
 const yesNo=(p,title,text,ai)=>chooseEffect(p,title,text,[{label:'Yes',val:true,main:1},{label:'No',val:false}],ai);
 const strongest=cards=>cards.slice().sort((a,b)=>power(b)-power(a))[0];
 const weakest=cards=>cards.slice().sort((a,b)=>power(a)-power(b))[0];
-// Choose up to n cards one at a time ("up to 2", "any number"); stops when the chooser skips.
-async function pickUpTo(p,cards,n,msg,{hidden=false,aiPick,aiCount=n}={}){
-  const out=[];
-  for(let k=0;k<n;k++){
-    const left=cards.filter(c=>!out.includes(c));
-    if(!left.length||p.ai&&k>=aiCount)break;
-    const c=await pickCard(p,left,`${msg} (${k} chosen)`,{optional:true,hidden,aiPick});
-    if(!c)break;out.push(c);
-  }
-  return out;
-}
+// Choose up to n cards ("up to 2", "any number"): together in one view where possible (pickCards).
+const pickUpTo=(p,cards,n,msg,{hidden=false,aiPick,aiCount=n}={})=>pickCards(p,cards,msg,{max:n,hidden,aiPick,aiMax:aiCount});
 const SPECIALS={
   // Armored Warrior Quelos
   async quelos(p,e,src){
@@ -238,7 +229,7 @@ const SPECIALS={
     while(bz.length<2){const c=await pickCard(p,o.bz.filter(x=>!bz.includes(x)),`${src.n}: Choose 2 of your opponent's creatures (${bz.length+1} of 2).`,{aiPick:strongest});if(!c)break;bz.push(c)}
     await keepOne(bz,'creature','is destroyed');await flushFx();
     const mana=o.mana.length<=2?o.mana.slice():[];
-    while(mana.length<2){const c=await pickCard(p,o.mana.filter(x=>!mana.includes(x)),`${src.n}: Choose 2 cards in your opponent's mana zone (${mana.length+1} of 2).`,{aiPick:aiDearest});if(!c)break;mana.push(c)}
+    mana.push(...await pickCards(p,o.mana.slice(),`${src.n}: Choose 2 cards in your opponent's mana zone.`,{min:2,max:2,aiPick:aiDearest}));
     await keepOne(mana,'card','goes to your graveyard');
   },
   // Miraculous Rebirth

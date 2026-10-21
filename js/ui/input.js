@@ -42,7 +42,14 @@ function onAct(a,v){
   if(a==='tclose'){showStart();return}
   if(a==='random'){playWith('random',smartDeck);return}
   if(a==='bmenu'){BUILD.menu=!BUILD.menu;BUILD.menu?navOpen('menu'):navClose('menu');renderBuilder();return}
-  if(a==='bsheet'){BUILD.sheet=!BUILD.sheet;BUILD.sheet?navOpen('sheet'):navClose('sheet');renderBuilder();return}
+  // The filters and the deck are bottom drawers, one at a time: opening one replaces the other,
+  // in the browser's history too, so Back still closes whichever is open.
+  if(a==='bsheet'||a==='bcart'){
+    const key=a==='bsheet'?'sheet':'cart',other=key==='sheet'?'cart':'sheet';
+    if(BUILD[key]){BUILD[key]=false;navClose(key)}
+    else if(BUILD[other]&&history.state?.ov===other){BUILD[other]=false;BUILD[key]=true;history.replaceState({sc:NAV.screen,ov:key},'')}
+    else{BUILD[other]=false;BUILD[key]=true;navOpen(key)}
+    renderBuilder();return}
   if(['brandom','bfill','bclear'].includes(a)&&BUILD.menu){BUILD.menu=false;navClose('menu')}
   // Export and import take over the menu's place in the history (see openShare).
   if((a==='bexport'||a==='bimport')&&BUILD.menu){BUILD.menu=false;renderBuilder()}
@@ -68,7 +75,7 @@ function onAct(a,v){
     ask('Restart this game?','You get a fresh game with the same two decks. Your current game will be lost.',
       [{label:'Keep playing',val:null,main:1},{label:'Restart',val:'restart'}]).then(v=>{if(v==='restart')withLoader('Setting up the duel',()=>startGame(...G.decks))});
     return}
-  if(a==='bplus'){if(DEF[v]?.playable&&DEF[v].duelId===v&&total()<DECK_MAX&&(BUILD.counts[v]||0)<MAX_COPY)BUILD.counts[v]=(BUILD.counts[v]||0)+1;BUILD.msg='';renderBuilder();autoSave();return}
+  if(a==='bplus'){const before=BUILD.counts[v]||0;if(DEF[v]?.playable&&DEF[v].duelId===v&&total()<DECK_MAX&&(BUILD.counts[v]||0)<MAX_COPY)BUILD.counts[v]=(BUILD.counts[v]||0)+1;BUILD.msg='';renderBuilder();if((BUILD.counts[v]||0)>before)cartLand(v);autoSave();return}
   if(a==='bminus'){if(BUILD.counts[v])BUILD.counts[v]--;BUILD.msg='';renderBuilder();autoSave();return}
   if(a==='bfilter'){BUILD.filter=v;renderBuilder();window.scrollTo(0,0);return}
   if(a==='bclear'){BUILD.counts={};BUILD.msg='';renderBuilder();autoSave();return}
@@ -77,6 +84,13 @@ function onAct(a,v){
   if(!G)return;
   // in game
   if(a==='pile'){const [z,side]=String(v).split(':'),p=G.p[+side];if(p&&(z==='gy'||z==='mana'))openPile(`${side==='0'?'Your':G.mp?p.name+"'s":"Opponent's"} ${z==='gy'?'graveyard':'mana zone'}`,p[z]);return}
+  // The multi-pick view: Pick toggles a card, Done answers with the cards picked.
+  if(G.modal?.picks&&(a==='pkpick'||a==='pkdone')){
+    const m=G.modal,s=m.picks;
+    if(a==='pkpick'){const i=+v,at=s.sel.indexOf(i);if(at>=0)s.sel.splice(at,1);else if(s.sel.length<s.max)s.sel.push(i);render();return}
+    if(s.sel.length<s.min)return;
+    G.modal=null;render();m.resolve(s.sel.map(i=>s.cards[i]));return;
+  }
   // The swap view: a pick in each row, then Swap (or Don't swap).
   if(G.modal?.swap&&(a==='swpick'||a==='swdo'||a==='swskip')){
     const m=G.modal,s=m.swap;

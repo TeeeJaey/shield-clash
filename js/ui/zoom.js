@@ -13,16 +13,24 @@ const TOUCHY=matchMedia('(pointer: coarse)');
 function openZoom(c,nav){if(!c)return;if(!ZOOM)navOpen('zoom');ZOOM=c;ZNAV=nav&&nav.list.includes(c)?{...nav,list:nav.list.slice()}:null;renderZoom()}
 function closeZoom(){
   if(ZOOM)navClose('zoom');
-  const back=ZNAV&&ZNAV.build&&ZOOM&&ZOOM.id;
+  followZoom(true);
   ZOOM=null;ZNAV=null;renderZoom();
-  if(back)revealBuilderCard(back);
+}
+// The list the zoom view browses scrolls along with it, so closing it lands on the last card
+// looked at: the builder's grid, the rows of the deck, or a zone on the board.
+function followZoom(flash){
+  if(!ZNAV||!ZOOM)return;
+  if(ZNAV.from==='grid'){revealBuilderCard(ZOOM.id,flash);return}
+  if(ZNAV.from==='cart'&&flash){cartLand(ZOOM.id);return}
+  const el=ZNAV.from==='cart'?document.querySelector(`.cart [data-row="${ZOOM.id}"]`):ZOOM.uid?document.querySelector(`#app [data-uid="${ZOOM.uid}"]`):null;
+  if(el)el.scrollIntoView({block:'nearest',inline:'nearest'});
 }
 let ZSLIDE=0;
 function stepZoom(d){
   if(!ZNAV||!ZOOM)return false;
   const i=ZNAV.list.indexOf(ZOOM),next=ZNAV.list[i+d];
   if(!next)return false;
-  ZOOM=next;ZSLIDE=d;renderZoom();ZSLIDE=0;return true;
+  ZOOM=next;ZSLIDE=d;renderZoom();ZSLIDE=0;followZoom(false);return true;
 }
 // Copies in the deck, changed from the zoom view with the builder's own rules.
 function zoomCopies(to){
@@ -110,7 +118,9 @@ function zoomCardHTML(c){
 function zoomFrom(el){
   if(el.dataset.pick!=null&&el.closest('#layer')){openPickZoom(+el.dataset.pick);return}
   const f=el.dataset.uid?findCard(+el.dataset.uid):null,c=f?f.c:DEF[el.dataset.def];
-  if(c)openZoom(c,el.closest('#bgrid')?{list:BUILD.shown||[],build:true}:zoneNav(f));
+  // A row in the deck cart browses the deck itself, with the same copy controls.
+  const deck=()=>[...document.querySelectorAll('.cart [data-row]')].map(r=>DEF[r.dataset.row]).filter(Boolean);
+  if(c)openZoom(c,el.closest('#bgrid')?{list:BUILD.shown||[],build:true,from:'grid'}:el.closest('.cart')?{list:deck(),build:true,from:'cart'}:zoneNav(f));
 }
 // A card from a prompt's row opens on the prompt's cards: swipe between them and choose one
 // right there. The view belongs to that prompt (render closes it once the prompt is gone).
@@ -189,7 +199,7 @@ document.addEventListener('click',e=>{
   if(d&&!e.target.closest('[data-act]')){zoomFrom(d);e.stopImmediatePropagation()}
 },true);
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&ZOOM){closeZoom();return}
+  if(e.key==='Escape'&&ZOOM){closeZoom();e.stopImmediatePropagation();return}
   if(ZOOM&&ZNAV&&!(e.target.matches&&e.target.matches('input,textarea,select'))){
     if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();stepZoom(e.key==='ArrowLeft'?-1:1);return}
     if(e.key==='Enter'&&ZNAV.pick){e.preventDefault();pickFromZoom();return}

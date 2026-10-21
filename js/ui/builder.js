@@ -26,10 +26,27 @@ async function showBuilder(id){
          :{counts:{},msg:'',filter:'all',id:null,name:`My deck ${MYDECKS.length+1}`,saved:''};
   renderBuilder();window.scrollTo(0,0);
 }
+// Rounded down: the header is often a fraction of a pixel taller than a whole number, and what
+// sticks under it (the phone's search bar) must overlap it, or cards show through a thin line.
+const setBhh=el=>document.documentElement.style.setProperty('--bhh',Math.floor(el.getBoundingClientRect().height)+'px');
+const BH_SIZE=new ResizeObserver(([e])=>setBhh(e.target));
+// Search ignores accents, capitals and symbols: "pangaeas song" finds Pangaea's Song, "great horn"
+// and "greathorn" find Roaring Great-Horn, and "u" finds Ü.
+const searchKey=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+  .replace(/['‘’`]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const SEARCH_KEYS=new Map();
+function searchFits(d,q,qs){
+  let k=SEARCH_KEYS.get(d.id);
+  if(!k){const t=[d.n,d.race,d.txt].map(searchKey).join(' | ');k={t,s:t.replace(/ /g,'')};SEARCH_KEYS.set(d.id,k)}
+  return k.t.includes(q)||k.s.includes(qs);
+}
 function renderBuilder(){
   setPhase();
   const tot=total();
-  let h=`<header class="bh"><h2>Deck builder</h2><input id="dname" class="dname" aria-label="Deck name" maxlength="30" value="${esc(BUILD.name||'')}"><span class="cnt ${legal(tot)?'ok':''}">${tot} cards <small class="bsaved">${tot<DECK_MIN?`${DECK_MIN-tot} more to play`:tot===DECK_MAX?'Maximum reached':`Up to ${DECK_MAX}`}</small> <small id="bsaved" class="bsaved">${BUILD.saved||''}</small></span>
+  // Redrawing the builder (a + or −, a name change) keeps the page where it was: the new grid
+  // starts at the old one's height, so the page never shrinks and the browser never scrolls to the top.
+  const oldGrid=$('#bgrid'),keepH=oldGrid&&oldGrid.style.height,keepY=oldGrid?scrollY:null,cartY=$('.clist')?.scrollTop||0;
+  let h=`<header class="bh"><h2>Deck builder</h2><input id="dname" class="dname" aria-label="Deck name" maxlength="30" value="${esc(BUILD.name||'')}"><button class="cnt ${legal(tot)?'ok':''}" data-act="bcart" aria-expanded="${!!BUILD.cart}" title="Show your deck">${tot} cards <small class="bsaved">${tot<DECK_MIN?`${DECK_MIN-tot} more to play`:tot===DECK_MAX?'Maximum reached':`Up to ${DECK_MAX}`}</small> <small id="bsaved" class="bsaved">${BUILD.saved||''}</small>${warnBadge()}<span class="ccaret" aria-hidden="true">›</span></button>
     <button class="bmore-btn icon" data-act="bmenu" aria-expanded="${!!BUILD.menu}" aria-label="More deck actions" title="More">⋯</button>
     <span class="bacts ${BUILD.menu?'open':''}">${btn('brandom','Random optimal deck')}${btn('bfill',`Fill to ${DECK_SIZE}`)}${btn('bclear','Clear')}${btn('bexport','Export deck')}${btn('bimport','Import deck')}</span><button data-act="back" class="sysbtn bback" title="Back to the start page" aria-label="Back to the start page">${ICON.back}<span>Back</span></button>
     <button data-act="bstart" class="main" ${legal(tot)?'':'disabled'}>Start duel</button>
@@ -52,19 +69,22 @@ function renderBuilder(){
     ${select('sort','Sort by',[['cost','Cost'],['power','Power'],['name','Name']])}
     <label class="check"><input type="checkbox" class="switch" role="switch" data-build="mine" ${f.mine?'checked':''}> In deck only</label></div></div></div>`;
   h+=deckSummaryHTML();
-  const q=f.q.toLowerCase().trim(),mech=MECHANICS.find(m=>m.key===f.mech);
-  const shown=DEFS.filter(d=>(BUILD.filter==='all'||civsOf(d).includes(BUILD.filter))&&(!q||[d.n,d.race,d.txt].some(t=>(t||'').toLowerCase().includes(q)))
+  const q=searchKey(f.q),qs=q.replace(/ /g,''),mech=MECHANICS.find(m=>m.key===f.mech);
+  const shown=DEFS.filter(d=>(BUILD.filter==='all'||civsOf(d).includes(BUILD.filter))&&(!q||searchFits(d,q,qs))
     &&(!mech||mech.has(d))&&(f.type==='all'||(f.type==='evo'?!!d.evo:d.t===f.type&&!(f.type==='c'&&d.evo)))&&(!f.mine||BUILD.counts[d.id]>0))
     .sort(f.sort==='name'?(a,b)=>a.n.localeCompare(b.n):f.sort==='power'?(a,b)=>(b.p-a.p)||a.cost-b.cost:(a,b)=>(a.cost-b.cost)||a.n.localeCompare(b.n));
   const title=BUILD.filter==='all'?'All civilizations':CIV[BUILD.filter].n;
-  h+=`<section class="civ" style="--el:${BUILD.filter==='all'?'var(--ink)':CIV[BUILD.filter].c}"><h3>${title} <small class="bsaved">${shown.length} card${shown.length===1?'':'s'}</small></h3><div class="bgrid" id="bgrid"></div>`;
+  h+=`<section class="civ" style="--el:${BUILD.filter==='all'?'var(--ink)':CIV[BUILD.filter].c}"><h3>${title} <small class="bsaved">${shown.length} card${shown.length===1?'':'s'}</small></h3><div class="bgrid" id="bgrid"${keepH?` style="height:${keepH}"`:''}></div>`;
   if(!shown.length)h+='<p class="empty">No cards match these filters.</p>';
   h+='</section>';
+  h+=cartHTML();
   BUILD.shown=shown;
   $('#app').innerHTML=h;
-  // The filter bar sticks just below the header, whatever height the header wraps to.
-  const bh=$('.bh');if(bh)document.documentElement.style.setProperty('--bhh',bh.offsetHeight+'px');
-  renderBuilderGrid();
+  if(keepY!=null&&scrollY!==keepY)window.scrollTo(0,keepY);
+  const cl=$('.clist');if(cl)cl.scrollTop=cartY;
+  // The page (and on phones the filter bar) starts just below the header, whatever height it wraps to.
+  const bh=$('.bh');if(bh){setBhh(bh);BH_SIZE.disconnect();BH_SIZE.observe(bh)}
+  markBuilderScroll();renderBuilderGrid();
 }
 // The grid is virtualized: only rows near the viewport are in the DOM, and each card's
 // element is built once and reused, so scrolling, +/- and filtering never rebuild,
@@ -107,7 +127,7 @@ function renderBuilderGrid(){
   for(const el of els){if(el===ref)ref=ref.nextElementSibling;else grid.insertBefore(el,ref)}
 }
 // After browsing in the zoom view, scroll the grid to the last card viewed and mark it briefly.
-function revealBuilderCard(id){
+function revealBuilderCard(id,flash=true){
   const grid=$('#bgrid'),i=(BUILD.shown||[]).findIndex(d=>d.id===id);
   if(!grid||i<0||!buildSize)return;
   const cols=Math.max(1,Math.floor((grid.clientWidth+BUILD_GAP)/(buildSize.w+BUILD_GAP)));
@@ -115,11 +135,47 @@ function revealBuilderCard(id){
   if(y<scrollY+head||y+buildSize.h>scrollY+innerHeight)scrollTo({top:y-head-12});
   renderBuilderGrid();
   const card=BUILD_ITEMS.get(id)?.querySelector('.card');
-  if(card){card.classList.remove('flash');void card.offsetWidth;card.classList.add('flash')}
+  if(card&&flash){card.classList.remove('flash');void card.offsetWidth;card.classList.add('flash')}
 }
 const queueBuilderGrid=()=>{if(!buildFrame)buildFrame=requestAnimationFrame(()=>{buildFrame=0;renderBuilderGrid()})};
 addEventListener('scroll',queueBuilderGrid,{passive:true});
+// The header's fade shows only while cards are scrolled under it.
+const markBuilderScroll=()=>document.documentElement.classList.toggle('bscrolled',scrollY>2);
+addEventListener('scroll',markBuilderScroll,{passive:true});
 addEventListener('resize',()=>{buildSize=null;queueBuilderGrid()});
+// The deck as a shopping cart (computers): beside the collection, always in view, with its count
+// toward 50, its summary and its cards as rows (cost, name, copies, − and +). Phones keep the summary
+// above the grid and the "In deck only" switch.
+function cartHTML(){
+  const tot=total(),ids=Object.keys(BUILD.counts).filter(id=>BUILD.counts[id]>0&&DEF[id])
+    .sort((a,b)=>DEF[a].cost-DEF[b].cost||DEF[a].n.localeCompare(DEF[b].n));
+  const rows=ids.map(id=>{const d=DEF[id],n=BUILD.counts[id],P=PAL[d.e]||PAL.unknown;
+    return `<li class="crow" data-row="${id}" style="--el:${P.frame};--of:${P.onFrame||P.light}">
+      <span class="ccost">${d.cost??'–'}</span><button class="cname" data-def="${id}" title="Show ${esc(d.n)}">${esc(d.n)}</button><span class="cqty">×${n}</span>
+      <button class="cbtn" data-act="bminus" data-v="${id}" aria-label="Remove one ${esc(d.n)}">−</button><button class="cbtn" data-act="bplus" data-v="${id}" aria-label="Add one ${esc(d.n)}" ${n<MAX_COPY&&tot<DECK_MAX?'':'disabled'}>+</button></li>`}).join('');
+  const pct=Math.min(100,Math.round(tot/DECK_MIN*100));
+  // Where there's no room for it beside the cards (phones, short windows), the count in the header
+  // opens it as a sheet from the bottom, so the deck can be checked without touching the filters.
+  return `${BUILD.cart?'<div class="cscrim" data-act="bcart" aria-hidden="true"></div>':''}<aside class="cart ${BUILD.cart?'open':''}" aria-label="Your deck">
+    <div class="carthead"><b>Your deck</b><span class="ccount ${legal(tot)?'ok':''}">${tot}<small> / ${DECK_MIN}</small></span><button class="cclose main" data-act="bcart">Done</button></div>
+    <div class="cbar ${legal(tot)?'ok':''}" role="progressbar" aria-valuemin="0" aria-valuemax="${DECK_MIN}" aria-valuenow="${tot}"><i style="width:${pct}%"></i></div>
+    <small class="cnote">${tot<DECK_MIN?`${DECK_MIN-tot} more to play`:tot===DECK_MAX?'Maximum reached':`Ready · up to ${DECK_MAX}`}</small>
+    ${tot?deckSummaryHTML():''}
+    ${ids.length?`<ol class="clist">${rows}</ol>`:`<div class="cempty"><div class="eslots" aria-hidden="true"><span class="eslot"></span><span class="eslot"></span><span class="eslot"></span></div><p>Your deck is empty.<br>Press <b>+</b> on a card to add it.</p></div>`}
+    <div class="cfoot"><button data-act="bstart" class="main" ${legal(tot)?'':'disabled'}>Start duel</button></div>
+  </aside>`;
+}
+// On the deck button: how many warnings and tips the deck has (red when a card can't work).
+function warnBadge(){
+  const w=deckWarnings(BUILD.counts);if(!w.length)return '';
+  return `<i class="cbadge ${w.some(x=>!x.tip)?'bad':''}" title="${w.length} note${w.length===1?'':'s'} about this deck">${w.length}</i>`;
+}
+// A card added to the deck: its row in the cart comes into view and lights up briefly.
+function cartLand(id){
+  const row=document.querySelector(`.cart [data-row="${id}"]`);if(!row)return;
+  row.scrollIntoView({block:'nearest'});
+  row.classList.remove('bump');void row.offsetWidth;row.classList.add('bump');
+}
 // Cost curve, civilizations, card types and the deck rules the new mechanics bring.
 function deckSummaryHTML(){
   const tot=total();
@@ -132,23 +188,23 @@ function deckSummaryHTML(){
     <div class="curve" aria-label="Cost curve">${curve.map((c,i)=>`<div title="${c} card${c===1?'':'s'} costing ${i===6?'7 or more':i+1}"><b>${c||''}</b><span style="height:${Math.round(c/top*100)}%"></span><small>${i===6?'7+':i+1}</small></div>`).join('')}</div>
     <div class="dstats">${civs}<span class="pill">Creatures ${n(d=>d.t==='c')}</span><span class="pill">Spells ${n(d=>d.t==='s')}</span>
       <span class="pill">Shield triggers ${n(d=>d.trig)}</span><span class="pill">Blockers ${n(d=>d.block)}</span></div>
-    ${warn.length?`<ul class="dwarn">${warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
+    ${warn.length?`<ul class="dwarn">${warn.map(w=>`<li class="${w.tip?'tip':''}">${esc(w.text)}</li>`).join('')}</ul>`:''}
   </section>`;
 }
 document.addEventListener('input',e=>{
   if(e.target.id!=='build-search'||!BUILD.find)return;
-  const at=e.target.selectionStart;BUILD.find.q=e.target.value;renderBuilder();
+  const at=e.target.selectionStart;BUILD.find.q=e.target.value;renderBuilder();window.scrollTo(0,0);
   const el=$('#build-search');el.focus();el.setSelectionRange(at,at);
 });
 document.addEventListener('ddchange',e=>{
   if(!BUILD.find||!$('#bgrid')||!(e.detail.key in BUILD.find))return;
-  BUILD.find[e.detail.key]=e.detail.value;renderBuilder();
+  BUILD.find[e.detail.key]=e.detail.value;renderBuilder();window.scrollTo(0,0);
   document.querySelector(`.dd[data-dd="${e.detail.key}"] .ddbtn`)?.focus();
 });
 document.addEventListener('change',e=>{
   const key=e.target.dataset&&e.target.dataset.build;
   if(!key||!BUILD.find)return;
-  BUILD.find[key]=key==='mine'?e.target.checked:e.target.value;renderBuilder();
+  BUILD.find[key]=key==='mine'?e.target.checked:e.target.value;renderBuilder();window.scrollTo(0,0);
 });
 // Phone menus: a tap outside the "⋯" menu closes it (and only closes it; on the window, so
 // it runs before the page's own click handlers); Esc closes the menu or the filters sheet.
@@ -157,7 +213,7 @@ window.addEventListener('click',e=>{
   BUILD.menu=false;navClose('menu');renderBuilder();e.preventDefault();e.stopImmediatePropagation();
 },true);
 document.addEventListener('keydown',e=>{
-  if(e.key!=='Escape'||!$('.bh')||!(BUILD.menu||BUILD.sheet))return;
-  if(BUILD.menu)navClose('menu');if(BUILD.sheet)navClose('sheet');
-  BUILD.menu=false;BUILD.sheet=false;renderBuilder();
+  if(e.key!=='Escape'||!$('.bh')||!(BUILD.menu||BUILD.sheet||BUILD.cart)||ZOOM)return;
+  if(BUILD.menu)navClose('menu');if(BUILD.sheet)navClose('sheet');if(BUILD.cart)navClose('cart');
+  BUILD.menu=false;BUILD.sheet=false;BUILD.cart=false;renderBuilder();
 });

@@ -164,7 +164,7 @@ async function mpRespond(req){
     if(req.kind==='block'){const b=await askBlock(cardBy(pl.att),pl.blockers.map(cardBy).filter(Boolean),pl.target==='player'?'player':cardBy(pl.target),!!pl.required);val=b?b.uid:null}
     else if(req.kind==='trig'){val=!!(await askTrig(cardBy(pl.s)))}
     else if(req.kind==='target'){const t=await pickTarget(pl.uids.map(cardBy).filter(Boolean),pl.msg,pl.required?null:'Skip');val=t?t.uid:null}
-    else if(req.kind==='choice'){val=await ask(pl.title,pl.text,pl.opts)}
+    else if(req.kind==='choice'){val=await ask(pl.title,pl.text,pl.opts,null,{note:pl.note,show:(pl.show||[]).map(g=>({label:g.label,cards:g.uids.map(uid=>optCard({uid})).filter(Boolean)}))})}
     if(MP)await sset(RK(MP.code,'ans:'+req.id),{v:val});
     if(MP)MP.answered=req.id;
   }finally{if(MP)MP.responding=false;if(G)render()}

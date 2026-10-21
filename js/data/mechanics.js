@@ -53,22 +53,46 @@ const MECHANICS=[
   {key:'cost',label:'Costs you a card',has:d=>hasFx(d,/^(manaToGy|shieldToGy|destroyOwn|destroySelf|discardShield)/),value:-1}
 ];
 const mechanicValue=d=>MECHANICS.reduce((v,m)=>m.has(d)?v+(typeof m.value==='function'?m.value(d):m.value):v,0);
-// Deck rules the builder checks: things the engine enforces during a duel that make
-// a card dead or weak in this particular deck.
+// The shape of the best decks found by the deck research (dev/ai/research.py, "blueprint":
+// the 12 strongest decks, walls and control alike). The builder compares a deck with these.
+const TOP_DECKS={colorMin:15,early:17,earlyMin:14,defense:30,defenseMin:20,big:[5,12],bigMax:15,finishers:[3,5],core:30,coreMin:20,evoBase:8};
+// What the builder says about a deck: [{text, tip}]. Without tip, a card can't work in this deck
+// (the engine's rules). With tip, the deck differs from the best decks; tips wait until the deck
+// is big enough to judge, and only the most important few are shown.
 function deckWarnings(counts){
   const ids=Object.keys(counts).filter(id=>counts[id]>0&&DEF[id]),cards=ids.map(id=>DEF[id]);
-  const out=[];
-  for(const d of cards){
-    if(d.evo&&!cards.some(b=>!b.evo&&evolvesOn(d,b)))out.push(`${d.n} evolves from a ${d.evo}, but this deck has none.`);
+  const sum=f=>cards.reduce((t,d)=>t+(f(d)?counts[d.id]:0),0),tot=sum(()=>true);
+  const out=[],tips=[],evoTips=[],T=TOP_DECKS,scale=n=>Math.round(n*Math.min(tot,50)/50);
+  for(const d of cards)if(d.evo){
+    const bases=sum(b=>!b.evo&&evolvesOn(d,b));
+    if(!bases)out.push(`${d.n} evolves from a ${d.evo}, but this deck has none.`);
+    else if(tot>=30&&bases<scale(T.evoBase))evoTips.push(`Only ${bases} creature${bases===1?'':'s'} for ${d.n} to evolve onto. Use ${T.evoBase} or more.`);
   }
-  const spells=cards.filter(d=>d.t==='s').length;
+  const spells=sum(d=>d.t==='s');
   for(const d of cards)if(d.needSpell&&!spells)out.push(`${d.n} can only be summoned after casting a spell, and this deck has no spells.`);
-  const creatures=cards.filter(d=>d.t==='c').reduce((n,d)=>n+counts[d.id],0);
+  const creatures=sum(d=>d.t==='c');
   for(const d of cards)if(d.endDieAlone&&creatures<20)out.push(`${d.n} is destroyed when it is your only creature. Add more creatures.`);
-  const civs=new Set(cards.flatMap(civsOf));
-  for(const e of civs){
-    const n=cards.filter(d=>civsOf(d).includes(e)).reduce((t,d)=>t+counts[d.id],0);
-    if(n<6)out.push(`Only ${n} ${CIV[e].n} card${n===1?'':'s'}: you will often lack ${CIV[e].n} mana to cast them.`);
+  const result=[...out.map(text=>({text}))];
+  if(tot>=20){
+    const civs=[...new Set(cards.flatMap(civsOf))];
+    if(civs.length>2)tips.push(`${civs.length} colors. The best decks use 2, so their mana fits their cards.`);
+    for(const e of civs){
+      const n=sum(d=>civsOf(d).includes(e));
+      if(n<scale(T.colorMin))tips.push(`Only ${n} ${CIV[e].n} card${n===1?'':'s'}: you will often lack ${CIV[e].n} mana. The best decks have ${T.colorMin} or more of each color.`);
+    }
   }
-  return out;
+  if(tot>=30){
+    const removal=MECHANICS.find(m=>m.key==='removal'),defense=sum(d=>d.block||removal.has(d));
+    if(defense<scale(T.defenseMin))tips.push(`${defense?`Only ${defense} blockers and`:'No blockers or'} removal cards. The best decks have about ${T.defense} to stop the other player's creatures.`);
+    const early=sum(d=>d.t==='c'&&d.cost<=3);
+    if(early<scale(T.earlyMin))tips.push(`Only ${early} creatures cost 3 or less. The best decks have about ${T.early}, so they can play from turn 2.`);
+    const big=sum(d=>d.cost>=7);
+    if(big>T.bigMax*tot/50)tips.push(`${big} cards cost 7 or more. The best decks have ${T.big[0]} to ${T.big[1]}: big cards wait in your hand.`);
+    if(!sum(d=>d.t==='c'&&(d.br||1)>=2))tips.push(`No creature breaks 2 or more shields. The best decks have ${T.finishers[0]} to ${T.finishers[1]} to end the game.`);
+  }
+  if(tot>=40){
+    const core=sum(d=>counts[d.id]>=3);
+    if(core<scale(T.coreMin))tips.push(`Only ${core} cards are at 3 or 4 copies. The best decks have about ${T.core}, so their key cards come every game.`);
+  }
+  return result.concat(tips.concat(evoTips).slice(0,3).map(text=>({text,tip:true})));
 }

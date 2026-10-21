@@ -36,7 +36,7 @@ function hidePeek(){
 }
 document.addEventListener('pointerover',e=>{
   if(!peekable.matches||e.pointerType!=='mouse')return;
-  const card=e.target.closest&&e.target.closest('.card[data-uid],.card[data-def]');
+  const card=e.target.closest&&e.target.closest('.card[data-uid],.card[data-def],.cart .cname[data-def]');
   if(!card||card.closest('#zoom,#peek')||card===PEEK.card)return;
   hidePeek();PEEK.card=card;
   schedulePeek(card);

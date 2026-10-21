@@ -28,7 +28,7 @@ window.addEventListener('popstate',()=>{
   try{
     if(SHARE){SHARE=null;renderShare();return}
     if(ZOOM){closeZoom();return}
-    if(BUILD.sheet||BUILD.menu){BUILD.sheet=false;BUILD.menu=false;renderBuilder();return}
+    if(BUILD.sheet||BUILD.menu||BUILD.cart){BUILD.sheet=false;BUILD.menu=false;BUILD.cart=false;renderBuilder();return}
     if(G&&!G.over){
       // Stay in the game, and ask whether to leave it.
       history.pushState({sc:'game'},'');NAV.depth++;

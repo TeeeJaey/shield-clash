@@ -71,7 +71,7 @@ async function pickFx(p,e,src,optional){
     const cands=matching(e.q,p,src).filter(c=>!chosen.includes(c)&&(e.a!=='untap'||c.tapped));
     if(!cands.length)break;
     const mayStop=optional||e.any||e.upto||!!e.per||k>=(e.n||1);
-    const c=await pickCard(p,cands,`${src.n}: ${e.x}`,{optional:mayStop,aiPick:aiPickFor(e,p)});
+    const c=await pickCard(p,cands,`${src.n}: ${e.x}${max>1&&max<99?` (${k+1} of ${max})`:''}`,{optional:mayStop,aiPick:aiPickFor(e,p),skip:chosen.length?'Done':'Skip'});
     if(!c||p.ai&&mayStop&&aiSkipsPick(e,p,c))break;
     chosen.push(c);
   }
@@ -110,21 +110,25 @@ function raceOptions(p){
 }
 // Something visible changed (used for "If you do").
 const snapshot=()=>JSON.stringify(G.p.map(q=>['bz','hand','mana','sh','gy','deck'].map(z=>q[z].length+':'+q[z].filter(c=>c.tapped).length)));
+// "Search your deck. You may take a creature ..., show it ..., put it into your hand. Then shuffle."
+// asks only what matters: "Take a creature from your deck into your hand."
+function searchText(e,own){
+  const what=/take ((?:up to \d+|any number of|an?|one) [^,.]+?) from (?:your|his|your opponent's) deck/i.exec(e.x||'');
+  if(!what)return e.x;
+  const dest=e.to==='gy'?` and put ${/\d|any/.test(what[1])?'them':'it'} into ${own?'your':'their'} graveyard`:e.to==='mana'?' into your mana zone':e.to==='bz'?' into the battle zone':' into your hand';
+  return `${capital(what[1])} from ${own?'your':"your opponent's"} deck${dest}.`.replace(/^(An?|One|Up|Any)/,m=>'Take '+m.toLowerCase());
+}
 async function searchFx(p,e,src){
   // Several cards, or cards from the opponent's deck put into their graveyard.
   if(e.any||e.side==='opp'){
-    const q=e.side==='opp'?opp(p):p,taken=[];
-    for(let k=0;k<(e.n||99);k++){
-      const c=await pickCard(p,q.deck.filter(c=>!taken.includes(c)),`${src.n}: ${e.x}`,{optional:true,aiPick:aiDearest});
-      if(!c||p.ai&&e.any&&taken.length>=2)break;
-      taken.push(c);
-    }
+    const q=e.side==='opp'?opp(p):p;
+    const taken=await pickCards(p,q.deck.slice(),`${src.n}: ${searchText(e,q===p)}`,{max:e.n||99,aiPick:aiDearest,aiMax:e.any?2:undefined});
     for(const c of taken){q.deck.splice(q.deck.indexOf(c),1);(e.to==='gy'?q.gy:q.hand).push(c)}
     log(`${taken.length} card${taken.length===1?'':'s'} taken from ${whose(q)} deck.`);
     shuffle(q.deck);return;
   }
   const cands=p.deck.filter(c=>deckMatch(e.f,c));
-  const c=await pickCard(p,cands,`${src.n}: ${e.x}`,{optional:true,aiPick:aiDearest});
+  const c=await pickCard(p,cands,`${src.n}: ${searchText(e,true)}`,{optional:true,aiPick:aiDearest});
   if(c){
     p.deck.splice(p.deck.indexOf(c),1);
     if(e.to==='hand'){p.hand.push(c);log(`${V(p,'You take','Opponent takes')} ${c.n} from the deck.`)}
@@ -148,16 +152,20 @@ async function lookFx(p,e,src){
 }
 // Information only: shows the cards to the player who looks.
 async function seeFx(p,e,src){
-  const o=opp(p),z=e.z;
-  let cards=[];
-  if(z==='top')cards=p.deck.slice(-e.n).reverse();
-  if(z==='your shields')cards=p.sh;
-  if(/opponent's hand/.test(z))cards=cards.concat(o.hand);
-  if(/opponent's (?:hand and )?shields/.test(z))cards=cards.concat(o.sh.slice(0,e.n||o.sh.length));
-  if(/top card of (?:his|your opponent's) deck/.test(z))cards=cards.concat(o.deck.slice(-1));
-  log(`${V(p,'You look','Opponent looks')} at ${z.replace(/^your /,V(p,'your ','their ')).replace(/opponent's/,V(p,"the opponent's",'your'))}.`);
-  if(p.ai||!cards.length)return;
-  await chooseEffect(p,src.n,`${cards.map(c=>c.n).join(', ')}.`,[{label:'OK',val:true,main:1}],true);
+  const o=opp(p),z=e.z,groups=[];
+  // What is looked at, grouped by where it is, so the player knows which cards are which.
+  if(z==='top')groups.push({label:'Top of your deck',cards:p.deck.slice(-e.n).reverse()});
+  if(z==='your shields')groups.push({label:'Your shields',cards:p.sh.slice()});
+  if(/opponent's hand/.test(z))groups.push({label:'Their hand',cards:o.hand.slice()});
+  if(/opponent's (?:hand and )?shields/.test(z))groups.push({label:'Their shields',cards:o.sh.slice(0,e.n||o.sh.length)});
+  if(/top card of (?:his|your opponent's) deck/.test(z))groups.push({label:'Top of their deck',cards:o.deck.slice(-1)});
+  const what=z==='top'?`the top ${e.n===1?'card':e.n+' cards'} of`:'';
+  const theirs=/opponent's/.test(z),rest=promptText(z).replace(/^your opponent's /i,'').replace(/^your /i,'').replace(/ and at the /,' and the ').replace(/top card of (?:their|your opponent's) deck/,'top card of the deck');
+  log(z==='top'?`${V(p,'You look','Opponent looks')} at ${what} ${V(p,'your','their')} deck.`
+    :theirs?V(p,`You look at the opponent's ${rest}.`,`Opponent looks at your ${rest}.`):V(p,`You look at your ${rest}.`,`Opponent looks at their ${rest}.`));
+  const shown=groups.filter(g=>g.cards.length);
+  if(p.ai||!shown.length)return;
+  await showCards(p,src,z==='top'?`The top ${e.n===1?'card':e.n+' cards'} of your deck.`:`${theirs?"Your opponent's":'Your'} ${rest}.`,shown);
 }
 function ifHolds(c,p){
   const o=opp(p);
@@ -198,7 +206,7 @@ async function jsonFx(p,e,src,optional){
   if(e.k==='drawPer'){const n=countFor(e.per,src,p);draw(p,n);log(`${V(p,'You draw','Opponent draws')} ${n} card${n===1?'':'s'}.`);return}
   if(e.k==='oppDraw'){draw(o,1);log(`${V(o,'You draw','Opponent draws')} a card.`);return}
   if(e.k==='shieldUp'){
-    const max=Math.min(e.n,p.deck.length),opts=Array.from({length:max+1},(_,n)=>({label:`Add ${n}`,val:n}));
+    const max=Math.min(e.n,p.deck.length),opts=Array.from({length:max+1},(_,n)=>({label:n?`Add ${n}`:"Don't add",val:n,main:n===max}));
     const n=await chooseEffect(p,src.n,e.x,opts,max);
     for(let i=0;i<(Number.isInteger(n)?Math.min(n,max):0);i++)p.sh.push(p.deck.pop());
     log(`${V(p,'You add','Opponent adds')} shields from the deck.`);return;
@@ -219,7 +227,7 @@ async function jsonFx(p,e,src,optional){
   if(e.k==='discardN'){simpleFx(p,'discard',src);for(let i=1;i<e.n;i++)simpleFx(p,'discard',src);return}
   if(e.k==='grantSelf'){if(src&&ownerOf(src))doAct('grant',src,e,p);return}
   if(e.k==='or'){
-    const i=await chooseEffect(p,src.n,'Choose one.',e.labels.map((l,i)=>({label:l,val:i,main:i===0})),e.opts.findIndex(fx=>fxList(fx).some(f=>fxUseful(p,f)))>0?1:0);
+    const i=await chooseEffect(p,src.n,'Choose one.',e.labels.map((l,i)=>({label:l,val:i,main:i===0})),e.opts.findIndex(fx=>fxList(fx).some(f=>fxUseful(p,f)))>0?1:0,{card:src});
     return resolveFx(p,e.opts[i===1?1:0],src);
   }
   if(e.k==='ifDo'){
@@ -231,7 +239,7 @@ async function jsonFx(p,e,src,optional){
   if(e.k==='race'){
     const opts=raceOptions(p);
     if(!opts.length){log(`${src.n}: no race to choose.`);return}
-    const r=await chooseEffect(p,src.n,'Choose a race.',opts.slice(0,12).map((r,i)=>({label:r,val:r,main:i===0})),opts[0]);
+    const r=await chooseEffect(p,src.n,/race/i.test(e.x||'')?abilityText(e.x):'Choose a race.',opts.slice(0,12).map((r,i)=>({label:r,val:r,main:i===0})),opts[0],{card:src});
     const race=opts.includes(r)?r:opts[0];
     log(`${V(p,'You choose','Opponent chooses')} ${race}.`);
     return resolveFx(p,e.fx.map(f=>f.replace(/\$race/g,race)),src);
@@ -240,13 +248,8 @@ async function jsonFx(p,e,src,optional){
   if(e.k==='bounceBlocker'){const b=G.blocker,q=b&&ownerOf(b);if(q)bounce(q,b);return}
   if(e.k==='gather'){
     const cands=()=>e.from.flatMap(z=>p[z].filter(c=>c!==src&&deckMatch(e.f,c)&&!(e.other&&c===src)&&!(e.to==='bz'&&(c.t!=='c'||c.evo))));
-    const taken=[];
-    if(e.all)taken.push(...cands());
-    else for(let k=0;k<(e.any?99:e.n);k++){
-      const c=await pickCard(p,cands().filter(c=>!taken.includes(c)),`${src.n}: ${e.x}`,{optional:optional||!!e.upto||!!e.any||k>0,aiPick:e.to==='mana'?aiCheapest:aiDearest});
-      if(!c||p.ai&&e.any&&e.to==='mana'&&taken.length>=1)break;
-      taken.push(c);
-    }
+    const taken=e.all?cands():await pickCards(p,cands(),`${src.n}: ${e.x}`,{min:optional||e.upto||e.any?0:1,max:e.any?99:e.n,
+      aiPick:e.to==='mana'?aiCheapest:aiDearest,aiMax:e.any&&e.to==='mana'?1:undefined});
     for(const c of taken){
       const z=e.from.find(z=>p[z].includes(c));p[z].splice(p[z].indexOf(c),1);c.tapped=false;
       if(e.to==='hand'){p.hand.push(c);log(`${z==='hand'?'A card':c.n} goes to ${whose(p)} hand.`)}
@@ -268,7 +271,7 @@ async function jsonFx(p,e,src,optional){
   if(e.k==='peekAny'){
     const all=[...o.sh,...p.sh];if(!all.length||p.ai)return;
     const s=await pickCard(p,all,`${src.n}: Choose a shield to look at.`,{hidden:true});
-    if(s)await chooseEffect(p,src.n,`That shield is ${s.n}. It goes back where it was.`,[{label:'OK',val:true,main:1}],true);
+    if(s)await showCards(p,src,'The shield you looked at. It goes back where it was.',[s]);
     log(`${V(p,'You look','Opponent looks')} at a shield.`);return;
   }
   if(e.k==='lowest'){
@@ -283,7 +286,7 @@ async function jsonFx(p,e,src,optional){
     if(!inPlay.length){log(`${src.n}: no creature has 6000 power or less.`);return}
     const values=[...new Set([...inPlay,1000,2000,3000,4000,5000,6000])].sort((a,b)=>b-a);
     const score=v=>o.bz.filter(c=>power(c)===v).length-p.bz.filter(c=>power(c)===v).length;
-    const n=await chooseEffect(p,src.n,'Choose a number.',values.map(v=>({label:String(v),val:v})),values.slice().sort((a,b)=>score(b)-score(a))[0]);
+    const n=await chooseEffect(p,src.n,e.x?abilityText(e.x):'Choose a number.',values.map(v=>({label:String(v),val:v})),values.slice().sort((a,b)=>score(b)-score(a))[0],{card:src});
     const v=values.includes(n)?n:values[0];log(`${V(p,'You choose','Opponent chooses')} ${v}.`);
     destroyAll(allBz(c=>power(c)===v));
     return;
@@ -301,7 +304,7 @@ async function jsonFx(p,e,src,optional){
   }
   if(e.k==='handManaCycle'){
     const n=p.hand.length;toMana(p,p.hand.splice(0));
-    for(let k=0;k<n&&p.mana.length;k++){const c=await pickCard(p,p.mana.slice(),`${src.n}: Return a card from your mana zone to your hand (${n-k} left).`,{aiPick:aiDearest});p.mana.splice(p.mana.indexOf(c),1);c.tapped=false;p.hand.push(c)}
+    for(const c of await pickCards(p,p.mana.slice(),`${src.n}: Return ${n===1?'a card':n+' cards'} from your mana zone to your hand.`,{min:n,max:n,aiPick:aiDearest})){p.mana.splice(p.mana.indexOf(c),1);c.tapped=false;p.hand.push(c)}
     log(`${n} card${n===1?'':'s'} go to ${whose(p)} mana zone and back.`);return;
   }
   if(e.k==='revealTop'){
@@ -335,7 +338,7 @@ async function jsonFx(p,e,src,optional){
   if(e.k==='shock'){
     let n=0;
     for(;;){
-      const c=await pickCard(p,p.bz.slice(),`${src.n}: Return one of your creatures to your hand (${n} so far).`,{optional:true,aiPick:aiCheapest});
+      const c=await pickCard(p,p.bz.slice(),`${src.n}: Return any number of your creatures to your hand. For each, you may return one of your opponent's${n?` (${n} so far)`:''}.`,{optional:true,aiPick:aiCheapest});
       if(!c||p.ai&&n>=Math.min(o.bz.length,1))break;bounce(p,c);n++;
     }
     for(let k=0;k<n&&o.bz.length;k++){const c=await pickCard(p,o.bz.slice(),`${src.n}: Return an opponent's creature.`,{optional:true,aiPick:aiPickFor({a:'bounce'},p)});if(!c)break;bounce(o,c)}
@@ -371,9 +374,8 @@ async function jsonFx(p,e,src,optional){
   }
   if(e.k==='omana'){
     const max=e.per?countFor(e.per,src,p):e.n;
-    for(let k=0;k<max&&o.mana.length;k++){
-      const c=await pickCard(p,o.mana.slice(),`${src.n}: ${e.x}`,{optional:!!e.upto||optional,aiPick:aiDearest});
-      if(!c)break;
+    const what=`${max===1?'a card':max+' cards'} from your opponent's mana zone ${e.a==='hand'?'to their hand':'into their graveyard'}`;
+    for(const c of await pickCards(p,o.mana.slice(),`${src.n}: ${e.a==='hand'?'Return':'Put'} ${(e.upto||optional||e.per)&&max>1?'up to '+what:what}.`,{min:e.upto||optional?0:max,max,aiPick:aiDearest})){
       if(e.a==='hand'){o.mana.splice(o.mana.indexOf(c),1);c.tapped=false;o.hand.push(c)}else{manaToGy(o,c,p);render();continue}
       log(`${c.n} goes from ${whose(o)} mana zone to ${e.a==='hand'?'hand':'the graveyard'}.`);render();
     }
@@ -391,7 +393,7 @@ async function jsonFx(p,e,src,optional){
   }
   if(e.k==='oppDiscardsPer'){
     const n=countFor(e.per,src,p);
-    for(let i=0;i<n&&o.hand.length;i++){const c=await pickCard(o,o.hand.slice(),`${src.n}: Discard a card.`,{aiPick:aiCheapest});discardCard(o,c);log(`${V(o,'You discard','Opponent discards')} ${c.n}.`)}
+    for(const c of await pickCards(o,o.hand.slice(),`${src.n}: Discard ${n===1?'a card':n+' cards'}.`,{min:n,max:n,aiPick:aiCheapest})){discardCard(o,c);log(`${V(o,'You discard','Opponent discards')} ${c.n}.`)}
     return;
   }
   if(e.k==='handPick'){
@@ -405,14 +407,10 @@ async function jsonFx(p,e,src,optional){
   }
   if(e.k==='cycle'){
     // "Discard / put / destroy any number ... Then draw that many cards."
-    let n=0;
     const zone=e.from==='bz'?p.bz:e.from==='mana'?p.mana:p.hand;
-    for(;;){
-      const c=await pickCard(p,zone.slice(),`${src.n}: ${e.x} (${n} so far)`,{optional:true,aiPick:aiCheapest});
-      if(!c||p.ai&&(e.from!=='hand'||n>=1))break;
-      if(e.from==='hand')discardCard(p,c);else if(e.from==='mana'){p.mana.splice(p.mana.indexOf(c),1);c.tapped=false;p.gy.push(c)}else destroy(p,c);
-      n++;render();
-    }
+    const picked=await pickCards(p,zone.slice(),`${src.n}: ${e.x}`,{max:99,aiPick:aiCheapest,aiMax:e.from==='hand'?1:0});
+    for(const c of picked){if(e.from==='hand')discardCard(p,c);else if(e.from==='mana'){p.mana.splice(p.mana.indexOf(c),1);c.tapped=false;p.gy.push(c)}else destroy(p,c)}
+    const n=picked.length;render();
     await flushFx();draw(p,n);log(`${V(p,'You draw','Opponent draws')} ${n} card${n===1?'':'s'}.`);return;
   }
   if(e.k==='reshuffle'){const n=p.hand.length;p.deck.push(...p.hand.splice(0));shuffle(p.deck);draw(p,n);log(`${V(p,'You shuffle','Opponent shuffles')} ${n} card${n===1?'':'s'} into the deck and draws again.`);return}

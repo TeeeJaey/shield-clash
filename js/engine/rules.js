@@ -254,29 +254,89 @@ function tapBy(p,c,say){
   if(T(c).noOppTap&&ownerOf(c)!==p){log(`${c.n} can't be tapped by the opponent.`);return}
   c.tapped=true;if(say)log(`${c.n} is tapped.`);
 }
-async function chooseEffect(p,title,text,opts,aiValue){
-  if(p.ai)return aiValue;
-  if(p.remote)return remoteDecide(p,'choice',{title,text,opts});
-  return ask(title,text,opts);
+// Prompt wording: printed card text tidied (stray spaces inside quotes, a capital after every
+// full stop, "owners'hands"), so every prompt reads as clean sentences.
+function promptText(t){
+  if(t==null||t==='')return t;
+  return tidyText(String(t)).replace(/\s+/g,' ').replace(/s'(?=[a-z])/g,"s' ").replace(/\bnon- /g,'non-')
+    .replace(/\b([Hh])is\b/g,(m,h)=>h==='H'?'Their':'their').replace(/\bhimself\b/g,'themselves').replace(/\bhim\b/g,'them')
+    .replace(/\b([Hh])e (\w+?)(e?s)\b/g,(m,h,v,end)=>`${h==='H'?'They':'they'} ${v}${end==='es'&&!/(sh|ch|ss|x)$/.test(v)?'e':''}`)
+    .replace(/(^|[.!?]\s+)([a-z])/g,(m,a,b)=>a+b.toUpperCase()).replace(/\.\s*\?/g,'?').trim();
 }
+// The part of an ability's text a prompt needs: the printed words without the tap-ability preamble.
+const abilityText=x=>promptText(String(x||'').replace(/^instead of having this creature attack, you may tap it to use its ability\.\s*/i,''));
+// "You may X. If you do, Y." asks "X?", with the rest as a short note under the question.
+function mayAsk(t){
+  const s=promptText(t).replace(/[.?]$/,''),i=s.search(/\.\s/);
+  const first=i<0?s:s.slice(0,i),rest=i<0?'':s.slice(i+1).trim();
+  return {text:capital(first.replace(/^you may /i,''))+'?',note:rest?rest+'.':''};
+}
+// "Card name: what to do" -> the card's name as the title, the instruction as the text.
+function splitMsg(msg){
+  const m=/^([^:]{2,60}): (.+)$/s.exec(msg||'');
+  const text=t=>{const s=promptText(t);return /^you may /i.test(s)?capital(s.slice(8)):s};
+  return m?{title:m[1],text:text(m[2])}:{title:'Choose a card',text:text(msg)};
+}
+const YESNO=[{label:'Yes',val:true,main:1},{label:'No',val:false}];
+// A choice for player p. extra: card (the card the prompt is about, shown and tappable),
+// note (a short line under the question) and show (cards to look at, for a reveal).
+async function chooseEffect(p,title,text,opts,aiValue,extra={}){
+  if(p.ai)return aiValue;
+  title=promptText(title);text=promptText(text);
+  opts=opts.map(o=>({...o,label:promptText(o.label)}));
+  const note=extra.note?promptText(extra.note):'';
+  // show: cards, or groups of cards [{label, cards}]; an online player gets their uids
+  const groups=showGroups(extra.show);
+  if(p.remote)return remoteDecide(p,'choice',{title,text,opts,note,show:groups&&groups.map(g=>({label:g.label,uids:g.cards.map(c=>c.uid)}))});
+  return ask(title,text,opts,extra.card||null,{note,show:groups});
+}
+const showGroups=show=>!show||!show.length?null:show[0].cards?show:[{label:'',cards:show}];
+// Cards turned face up for the player to look at, then OK.
+const showCards=(p,src,text,cards)=>chooseEffect(p,src.n,text,[{label:'OK',val:true,main:1}],true,{show:cards});
 // Choose one card from any zone. Battle-zone cards and shields are picked on the board;
 // cards in other zones (mana, hand) are offered as a list. Face-down shields go by their
 // letter, never their name. Returns the card, or null when an optional choice is skipped.
-async function pickCard(p,cards,msg,{optional=false,hidden=false,aiPick}={}){
+async function pickCard(p,cards,msg,{optional=false,hidden=false,aiPick,skip='Skip'}={}){
   cards=cards.filter(c=>choosable(p,c));
   if(!cards.length)return null;
   const shOwner=G.p.find(q=>cards.every(c=>q.sh.includes(c)));
   if(shOwner&&shOwner!==p&&[p,shOwner].some(q=>q.bz.some(x=>T(x).meloppe))){log(`${V(shOwner,'You choose','The opponent chooses')} the shield instead (Meloppe).`);p=shOwner}
   if(p.ai)return aiPick?aiPick(cards):cards[0];
   if(cards.every(c=>G.p.some(q=>q.bz.includes(c)||q.sh.includes(c)))){
+    const sm=splitMsg(msg);msg=sm.title==='Choose a card'?sm.text:`${sm.title}: ${sm.text}`;
     if(p.remote)return cardBy(await remoteDecide(p,'target',{uids:cards.map(c=>c.uid),msg,required:!optional}));
-    return pickTarget(cards,msg,optional?'Skip':null);
+    return pickTarget(cards,msg,optional?skip:null);
   }
   const opts=cards.map((c,i)=>({label:hidden?`Shield ${c.shL||i+1}`:c.n,val:i,...(hidden?{}:{uid:c.uid})}));
-  if(optional)opts.push({label:'Skip',val:-1});
-  const i=await chooseEffect(p,'Choose a card',msg,opts,0);
+  if(optional)opts.push({label:skip,val:-1});
+  const {title,text}=splitMsg(msg);
+  const i=await chooseEffect(p,title,text,opts,0);
   if(Number.isInteger(i)&&i>=0&&i<cards.length)return cards[i];
   return optional?null:cards[0];
+}
+// Several cards from one list: at least min, up to max. A person at this screen picks them
+// together in one view (askPicks); the computer, an online player, cards picked on the board and
+// face-down shields go one at a time through pickCard. aiMax caps how many the computer takes.
+async function pickCards(p,cards,msg,{min=0,max=99,hidden=false,aiPick,aiMax}={}){
+  cards=cards.filter(c=>choosable(p,c));
+  max=Math.min(max,cards.length);min=Math.min(min,max);
+  if(!max)return [];
+  // One card is an ordinary choice, with a Choose button on each card.
+  if(max===1&&!(p.ai&&aiMax===0)){const c=await pickCard(p,cards,msg,{optional:min===0,hidden,aiPick});return c?[c]:[]}
+  const onBoard=cards.every(c=>G.p.some(q=>q.bz.includes(c)||q.sh.includes(c)));
+  if(!p.ai&&!p.remote&&!onBoard&&!hidden){
+    const {title,text}=splitMsg(msg);
+    const r=await askPicks({title,text,cards,min,max});
+    return (Array.isArray(r)?r:[]).filter(c=>cards.includes(c)).slice(0,max);
+  }
+  const out=[],lim=p.ai&&aiMax!=null?Math.min(max,aiMax):max;
+  for(let k=0;k<lim;k++){
+    const left=cards.filter(c=>!out.includes(c));if(!left.length)break;
+    const tag=max<2||p.ai?'':max<=5?` (${k+1} of ${max})`:` (${k} chosen)`;
+    const c=await pickCard(p,left,msg+tag,{optional:k>=min,hidden,aiPick,skip:k?'Done':'Skip'});
+    if(!c)break;out.push(c);
+  }
+  return out;
 }
 // AI preferences for the cards it must give up or choose.
 const aiCheapest=cards=>cards.slice().sort((a,b)=>(a.t==='c'?power(a):0)-(b.t==='c'?power(b):0)||a.cost-b.cost)[0];
@@ -317,46 +377,42 @@ async function resolveFx(p,fx,src){
     if(isJsonFx(f)){
       const e=jfx(f);
       // Choices and searches carry their own "skip"; other optional effects ask first.
-      if(optional&&!['pick','search'].includes(e.k)&&!(await chooseEffect(p,src.n,e.x.replace(/\.$/,'?'),[{label:'Yes',val:true,main:1},{label:'No',val:false}],jsonUseful(p,e,src)))){log(`${src.n}: effect skipped.`);continue}
+      if(optional&&!['pick','search','omana','gather'].includes(e.k)){const q=mayAsk(e.x);if(!(await chooseEffect(p,src.n,q.text,YESNO,jsonUseful(p,e,src),{card:src,note:q.note}))){log(`${src.n}: effect skipped.`);continue}}
       await jsonFx(p,e,src,optional);
       await flushFx();render();continue;
     }
     const up=/^drawUp(\d+)$/.exec(f);
     if(up){
-      const max=+up[1],opts=Array.from({length:max+1},(_,n)=>({label:`Draw ${n} card${n===1?'':'s'}`,val:n}));
+      const max=+up[1],opts=Array.from({length:max+1},(_,n)=>({label:n?`Draw ${n}`:"Don't draw",val:n,main:n===max}));
       const n=await chooseEffect(p,src.n,fxText(f),opts,Math.min(max,p.deck.length));
       if(Number.isInteger(n)&&n>=0&&n<=max)draw(p,n);
       render();continue;
     }
     if(f==='discardShield'){
       if(p.sh.length){
-        const opts=p.sh.map((_,i)=>({label:`Shield ${i+1}`,val:i}));
-        const index=await chooseEffect(p,src.n,fxText(f),opts,Math.floor(Math.random()*p.sh.length));
-        const i=Number.isInteger(index)&&index>=0&&index<p.sh.length?index:0;
-        p.gy.push(p.sh.splice(i,1)[0]);log(`${src.n} puts one of ${whose(p)} shields into the graveyard.`);
+        labelShields();
+        const s=await pickCard(p,p.sh.slice(),`${src.n}: ${fxText(f)}`,{hidden:true,aiPick:aiRandom});
+        p.gy.push(p.sh.splice(Math.max(0,p.sh.indexOf(s)),1)[0]);log(`${src.n} puts one of ${whose(p)} shields into the graveyard.`);
       }
       render();continue;
     }
     const zm=/^(manaToHand|manaToGy|shieldToGy|oppShieldToGy)(\d*)$/.exec(f);
     if(zm){
       const spec=ZONE_MOVES[zm[1]],side=spec.side==='opp'?opp(p):p;
-      for(let k=0;k<(+zm[2]||1);k++){
-        const c=await pickCard(p,side[spec.from].slice(),`${src.n}: ${spec.msg}`,{optional,hidden:spec.hidden,aiPick:spec.ai});
-        if(!c){if(!side[spec.from].length)log(`${src.n}: nothing to choose.`);break}
-        spec.move(side,c,causeOf(src));render();
-      }
+      const n=+zm[2]||1;
+      if(!side[spec.from].length){log(`${src.n}: nothing to choose.`);continue}
+      const msg=n>1?spec.msg.replace(/\b(a card|one of your shields|one of your opponent's shields)\b/,n+(/shield/.test(spec.msg)?' shields':' cards')):spec.msg;
+      const picked=await pickCards(p,side[spec.from].slice(),`${src.n}: ${msg}`,{min:optional?0:n,max:n,hidden:spec.hidden,aiPick:spec.ai});
+      for(const c of picked){spec.move(side,c,causeOf(src));render()}
       continue;
     }
     const mv=MOVE.exec(f);
     if(mv){
       const [,from,to,,,,count,upto]=mv;
-      for(let k=0;k<+count;k++){
-        const cands=moveCandidates(p,f);
-        if(!cands.length){if(!k)log(`${src.n}: nothing to move.`);break}
-        const c=await pickCard(p,cands,`${src.n}: ${fxText(f)}`,{optional:optional||!!upto,aiPick:aiMovePick(from)});
-        if(!c)break;
-        moveCard(p,c,from,to);render();
-      }
+      const cands=moveCandidates(p,f);
+      if(!cands.length){log(`${src.n}: nothing to move.`);continue}
+      const picked=await pickCards(p,cands,`${src.n}: ${fxText(f)}`,{min:optional||upto?0:+count,max:+count,aiPick:aiMovePick(from)});
+      for(const c of picked){moveCard(p,c,from,to);render()}
       continue;
     }
     // The opponent makes these choices among their own cards.
@@ -394,7 +450,7 @@ async function resolveFx(p,fx,src){
       if(!o.sh.length||p.ai)continue;
       if(optional&&!(await chooseEffect(p,src.n,"Look at one of your opponent's shields?",[{label:'Look',val:true,main:1},{label:'No',val:false}],false)))continue;
       const s=await pickCard(p,o.sh.slice(),`${src.n}: Choose a shield to look at.`,{hidden:true});
-      if(s)await chooseEffect(p,src.n,`That shield is ${s.n}. It goes back where it was.`,[{label:'OK',val:true,main:1}],true);
+      if(s)await showCards(p,src,'The shield you looked at. It goes back where it was.',[s]);
       log(`${V(p,'You look','Opponent looks')} at one of ${whose(o)} shields.`);
       continue;
     }
@@ -416,7 +472,7 @@ async function resolveFx(p,fx,src){
       if(f==='bounce'||f==='bounceAny')bounce(owner,t);
       else if(f==='tapone')tapBy(p,t,true);
       else{anim(t,'die');render();await sleep(450);destroy(owner,t)}
-    }else if(optional&&!(await chooseEffect(p,src.n,fxText(f)+'?',[{label:'Yes',val:true,main:1},{label:'No',val:false}],true))){log(`${src.n}: effect skipped.`);continue}
+    }else if(optional&&!(await chooseEffect(p,src.n,mayAsk(fxText(f)).text,YESNO,true,{card:src}))){log(`${src.n}: effect skipped.`);continue}
     else simpleFx(p,f,src);
     await flushFx();
     render();

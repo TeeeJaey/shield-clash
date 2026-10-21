@@ -2,8 +2,13 @@
 function pickTarget(tg,msg,skip){
   return new Promise(res=>{G.targeting={uids:new Set(tg.map(c=>c.uid)),resolve:res,msg,skip,required:skip===null};render()});
 }
-function ask(title,text,opts,card){
-  return new Promise(res=>{G.modal={title,text,opts,resolve:res,card};render()});
+// extra: note (a short line under the question) and show (cards to look at).
+function ask(title,text,opts,card,extra={}){
+  return new Promise(res=>{G.modal={title,text,opts,resolve:res,card,note:extra.note||'',show:extra.show||null};render()});
+}
+// Several cards picked together (pickCards in rules.js): resolves to the cards picked.
+function askPicks({title,text,cards,min,max}){
+  return new Promise(res=>{G.modal={title,text,opts:[],resolve:res,picks:{cards,min,max,sel:[]}};render()});
 }
 function askBlock(att,blockers,target,required){
   const what=target==='player'?(G.p[0].sh.length?'your shields':'you directly'):target.n;

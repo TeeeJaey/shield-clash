@@ -28,7 +28,10 @@ const REMINDER=[
 const tidyQuotes=t=>{let open=false;return t.replace(/\s*"\s*/g,(m,i)=>{open=!open;
   const before=/^\s/.test(m)&&open?' ':'',after=/\s$/.test(m)&&!open?' ':'';return before+'"'+after})};
 const tidyText=t=>tidyQuotes(String(t).replace(/\s+'s\b/g,"'s").replace(/s '(?=\s)/g,"s'"))
-  .replace(/\s*—\s*/g,' — ').replace(/\(\s+/g,'(').replace(/\s+([.,)])/g,'$1').replace(/\s+/g,' ').trim();
+  .replace(/\s*—\s*/g,' — ').replace(/\(\s+/g,'(').replace(/\s+([.,)])/g,'$1').replace(/\s+/g,' ')
+  // also "non- evolution", "owners'hands", and sentences starting in lower case after a full stop:
+  // every view of a card (its face, the zoom view, prompts) reads the tidied text
+  .replace(/\bnon- /g,'non-').replace(/s'(?=[a-z])/g,"s' ").replace(/([.!?] )([a-z])/g,(m,a,b)=>a+b.toUpperCase()).trim();
 const reminderKey=t=>tidyText(t).toLowerCase().replace(/"/g,'');
 const capital=t=>t.charAt(0).toUpperCase()+t.slice(1);
 
