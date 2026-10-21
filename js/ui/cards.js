@@ -97,7 +97,7 @@ function cardHTML(c,cls='',plain=false){
   if(f){const age=now()-f.t0;if(age<600){fxc='fx-'+f.k;fxd=`-${age}ms`}else delete G.fx[c.uid]}
   const attrs=plain?'':c.uid?`data-uid="${c.uid}" tabindex="0"`:`data-def="${c.id}" tabindex="0"`;
   const palette=`--fxd:${fxd};--fr:${P.frame};--lt:${P.light};--dp:${P.deep};--md:${P.mid};--of:${P.onFrame||P.light};--pr:${P.ring||'transparent'};--second:${(PAL[c.e2]||P).frame};--dp2:${(PAL[c.e2]||P).deep}`;
-  return `<div class="card ${c.e2?'multicolor':''} ${c.t==='s'?'spell':''} ${c.evo?'isevo':''} ${c.br===3?'legend':''} ${c.tapped?'tapped':''} ${fxc} ${cls}" ${attrs} data-e="${c.e}"${c.e2?` data-e2="${c.e2}"`:''} style="${palette}" aria-label="${esc(c.n)}, ${e.n}, cost ${c.cost??'unlisted'}${c.t==='c'?', power '+c.p:', spell'}${arriving?". Arrived this turn, can't attack yet":''}. ${esc(c.txt)}">
+  return `<div class="card ${c.e2?'multicolor':''} ${c.t==='s'?'spell':''} ${c.evo?'isevo':''} ${c.br===3?'legend':''} ${c.tapped?'tapped':''} ${G&&c.uid&&G.acting===c.uid?'acting':''} ${fxc} ${cls}" ${attrs} data-e="${c.e}"${c.e2?` data-e2="${c.e2}"`:''} style="${palette}" aria-label="${esc(c.n)}, ${e.n}, cost ${c.cost??'unlisted'}${c.t==='c'?', power '+c.p:', spell'}${arriving?". Arrived this turn, can't attack yet":''}. ${esc(c.txt)}">
     <div class="cbody"><div class="nbar"><span class="cost">${c.cost??'–'}</span><span class="nm">${esc(c.n)}</span></div>
     <div class="art">${artFor(c,cls)}${c.trig?'<span class="trg">Trigger</span>':''}${tags}</div>
     <div class="txt">${cardRules(c)}</div>

@@ -260,8 +260,8 @@ function render(){
   saveGame();
   // Rows swiped sideways (phones) keep their place: redrawing the board would reset them to the start.
   const rowScroll=[...document.querySelectorAll('.duelmain .zone')].map(z=>z.scrollLeft);
-  // Where each card on screen was, so a card that moves to a mana zone can fly from there.
-  const wasAt=new Map([...document.querySelectorAll('.duelmain .card[data-uid]')].map(el=>[+el.dataset.uid,el.getBoundingClientRect()]));
+  // Where each card and shield on screen was, so a card that changes zone can fly from there.
+  const wasAt=new Map([...document.querySelectorAll('.duelmain .card[data-uid],.duelmain [data-shield]')].map(el=>[+(el.dataset.uid||el.dataset.shield),el.getBoundingClientRect()]));
   // A prompt's row of cards keeps its place too, while the same prompt is up.
   const pickScroll=G.modal&&G.modal===PICKROW.modal?[...document.querySelectorAll('#layer .pickrow')].map(r=>r.scrollLeft):[];
   // The log comes first so a wide screen can give it the left column; narrow screens put it last.
@@ -287,33 +287,68 @@ function render(){
   fitPrompt();
   armAutoEnd();
   renderCast();
-  flyToMana(wasAt);
+  showChanges(wasAt);
 }
-// A card that went into a mana zone since the last redraw flies there: from where it was on screen
-// (your hand, a battle zone), or from the opponent's hand count; the mana counter then bumps.
-const MANA_SEEN={g:null,uids:new Set()};
-function flyToMana(wasAt){
-  const all=G.p.flatMap((p,side)=>p.mana.map(c=>[c,side]));
-  if(MANA_SEEN.g!==G){MANA_SEEN.g=G;MANA_SEEN.uids=new Set(all.map(([c])=>c.uid));return}
-  const fresh=all.filter(([c])=>!MANA_SEEN.uids.has(c.uid)&&c.uid!==G.landed?.uid);
-  MANA_SEEN.uids=new Set(all.map(([c])=>c.uid));
-  const calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  fresh.slice(0,6).forEach(([c,side],i)=>{
-    const to=document.querySelector(`.duelmain [data-act="pile"][data-v="mana:${side}"]`);if(!to)return;
-    const bump=()=>{to.classList.remove('bump');void to.offsetWidth;to.classList.add('bump')};
-    const info=[...document.querySelectorAll('.duelmain .side')][side===0?1:0]?.querySelector('.info');
-    const handCount=info&&[...info.querySelectorAll(':scope>span')].find(el=>/^Hand /.test(el.textContent));
-    const a=wasAt.get(c.uid)||(side===1&&handCount?.getBoundingClientRect());
-    if(!a||calm){bump();return}
-    const b=to.getBoundingClientRect(),w=wasAt.has(c.uid)?a.width:56;
-    const g=document.createElement('div');g.innerHTML=cardHTML({...c,uid:0,tapped:false},'',true);
-    const card=g.firstElementChild;
-    Object.assign(card.style,{position:'fixed',left:(a.left+a.width/2-w/2)+'px',top:(a.top+a.height/2-w*.78)+'px',width:w+'px',margin:'0',zIndex:'9',pointerEvents:'none'});
-    document.body.appendChild(card);
+/* ---------- what changed since the last redraw ---------- */
+// Effects move cards between zones, tap them and change their power, often several at once. Each
+// change eases in so it can be followed, kept small and short: a card that changed zone flies from
+// where it was to where it went (a copy face down when both places are hidden), a card turning
+// sideways turns, and a power that changed bumps. The counter or zone it lands in bumps too.
+const MOVES={g:null,at:new Map(),look:new Map()};
+const MOVE_ZONES=['hand','bz','mana','gy','sh','deck'];
+function zoneMap(){
+  const m=new Map();
+  G.p.forEach((p,seat)=>MOVE_ZONES.forEach(z=>p[z].forEach(c=>m.set(c.uid,{seat,z,c}))));
+  return m;
+}
+// Where a zone is on screen: its counter or label, or the row its cards sit in.
+function zoneAnchor(seat,z){
+  const side=[...document.querySelectorAll('.duelmain .side')][seat===0?1:0];if(!side)return null;
+  const count=re=>[...side.querySelectorAll('.info>span')].find(el=>re.test(el.textContent));
+  return z==='mana'?side.querySelector('[data-v^="mana:"]'):z==='gy'?side.querySelector('[data-v^="gy:"]'):z==='deck'?count(/^Deck /)
+    :z==='sh'?side.querySelector('.shields'):z==='bz'?side.querySelector('.bzone'):seat===0?side.querySelector('.handzone'):count(/^Hand /);
+}
+const bumpEl=el=>{if(!el)return;el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')};
+const lookMap=()=>new Map([...document.querySelectorAll('.duelmain .card[data-uid]')].map(el=>[+el.dataset.uid,{tapped:el.classList.contains('tapped'),pw:el.querySelector('.pw')?.textContent}]));
+function showChanges(wasAt){
+  const at=zoneMap(),calm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(MOVES.g!==G){MOVES.g=G;MOVES.at=at;MOVES.look=lookMap();return}
+  const moved=[];
+  for(const [uid,to] of at){
+    const from=MOVES.at.get(uid);
+    if(!from||from.seat===to.seat&&from.z===to.z)continue;
+    // A spell flies from where it was cast (renderCast), a summoned creature arrives in place.
+    if(G.landed&&uid===G.landed.uid&&to.z===G.landed.to||from.z==='hand'&&to.z==='bz')continue;
+    moved.push([uid,from,to]);
+  }
+  MOVES.at=at;
+  const hidden=({seat,z,c})=>z==='deck'||z==='sh'&&!c.faceUp||z==='hand'&&seat===1;
+  moved.slice(0,8).forEach(([uid,from,to],i)=>{
+    const dest=to.z==='sh'?document.querySelector(`.duelmain [data-shield="${uid}"]`):to.z==='bz'||to.z==='hand'&&to.seat===0?document.querySelector(`.duelmain .card[data-uid="${uid}"]`):null;
+    const land=dest||zoneAnchor(to.seat,to.z),a=wasAt.get(uid)||zoneAnchor(from.seat,from.z)?.getBoundingClientRect();
+    const bump=()=>bumpEl(dest?null:land);
+    if(!land||!a||calm){bump();return}
+    const face=!(hidden(from)&&hidden(to)),b=land.getBoundingClientRect();
+    const w=wasAt.has(uid)?a.width:face?56:30;
+    const g=document.createElement('div');g.innerHTML=face?cardHTML({...to.c,uid:0,tapped:false},'',true):'<div class="back"></div>';
+    const ghost=g.firstElementChild;
+    Object.assign(ghost.style,{position:'fixed',left:(a.left+a.width/2-w/2)+'px',top:(a.top+a.height/2-w*.7)+'px',width:w+'px',height:face?'':w*1.4+'px',margin:'0',zIndex:'9',pointerEvents:'none'});
+    document.body.appendChild(ghost);
+    if(dest)dest.style.visibility='hidden';
     const dx=b.left+b.width/2-(a.left+a.width/2),dy=b.top+b.height/2-(a.top+a.height/2);
-    card.animate([{transform:'none',opacity:1},{transform:`translate(${dx}px,${dy}px) scale(.18) rotate(${dx<0?-10:10}deg)`,opacity:.3}],
-      {duration:480,delay:i*70,easing:'cubic-bezier(.55,0,.8,.3)',fill:'backwards'}).onfinish=()=>{card.remove();bump()};
+    const end=dest?`translate(${dx}px,${dy}px) scale(${b.width/w})`:`translate(${dx}px,${dy}px) scale(.18) rotate(${dx<0?-10:10}deg)`;
+    ghost.animate([{transform:'none',opacity:1},{transform:end,opacity:dest?1:.3}],
+      {duration:dest?420:480,delay:i*70,easing:dest?'cubic-bezier(.3,.7,.4,1)':'cubic-bezier(.55,0,.8,.3)',fill:'backwards'})
+      .onfinish=()=>{ghost.remove();if(dest)dest.style.visibility='';bump()};
   });
+  // Tapped or untapped, or a new power, since the last redraw.
+  if(!calm)document.querySelectorAll('.duelmain .card[data-uid]').forEach(el=>{
+    const was=MOVES.look.get(+el.dataset.uid);if(!was||/\bfx-/.test(el.className))return;
+    const tapped=el.classList.contains('tapped'),pw=el.querySelector('.pw');
+    if(was.tapped!==tapped){const cs=getComputedStyle(el);el.animate([{transform:was.tapped?'rotate(9deg)':'none',opacity:was.tapped?.62:1},{transform:cs.transform,opacity:cs.opacity}],{duration:280,easing:'ease-out'})}
+    if(pw&&was.pw!==pw.textContent)bumpEl(pw);
+  });
+  MOVES.look=lookMap();
 }
 /* ---------- spells: being cast, landing, in effect ---------- */
 // While a spell resolves it's shown large over the board, under any prompt it brings up; then

@@ -370,7 +370,13 @@ function moveCard(p,c,from,to){
 }
 // What the AI picks when it moves its own cards: cheap cards out of hand, the best back.
 const aiMovePick=from=>from==='hand'?aiCheapest:aiDearest;
+// While a card's ability resolves, that card is outlined on the board (G.acting), so it's clear
+// which card is doing what; an ability started inside another hands it back when done.
 async function resolveFx(p,fx,src){
+  const was=G.acting;G.acting=src&&src.uid;
+  try{await resolveEach(p,fx,src)}finally{if(G)G.acting=was}
+}
+async function resolveEach(p,fx,src){
   for(const printedFx of fxList(fx)){
     if(G.over)return;
     const optional=printedFx.startsWith('optional:'),f=optional?printedFx.slice(9):printedFx;

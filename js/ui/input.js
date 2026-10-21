@@ -102,7 +102,9 @@ function onAct(a,v){
   if(a==='ans'&&G.modal){const m=G.modal;G.modal=null;render();m.resolve(m.opts[+v].val);return}
   if(a==='skip'&&G.targeting&&!G.targeting.required){const r=G.targeting.resolve;G.targeting=null;r(null);return}
   // A card selected just to look at can be opened or put down at any time, even mid-turn.
-  if(G.sel?.zone==='look'&&(a==='view'||a==='cancel')){const c=a==='view'&&selCard();if(c)openZoom(c,zoneNav(findCard(c.uid)));else{G.sel=null;render()}return}
+  // A card selected only to look at hands over to the card view: the selection is put down, so
+  // closing the view leaves the board as it was. A card with something to do keeps its choices.
+  if(G.sel?.zone==='look'&&(a==='view'||a==='cancel')){const c=a==='view'&&selCard();G.sel=null;render();if(c)openZoom(c,zoneNav(findCard(c.uid)));return}
   if(G.turn!==0||G.busy||G.over)return;
   const me=G.p[0],s=selCard();
   if(a==='charge'&&s&&!me.charged&&!me.played&&!me.attacked){me.hand.splice(me.hand.indexOf(s),1);toMana(me,[s]);me.charged=true;G.sel=null;log(`${V(me,'You charge','Opponent charges')} ${s.n} as mana.`);render()}
@@ -124,6 +126,8 @@ document.addEventListener('click',e=>{
   const c=e.target.closest('[data-uid],[data-shield]');if(c)onCard(+(c.dataset.uid||c.dataset.shield));
 });
 document.addEventListener('keydown',e=>{
+  // While the card view is open its keys are its own (zoom.js), even with focus on a card behind it.
+  if(ZOOM)return;
   if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-uid],[data-shield]')){e.preventDefault();onCard(+(e.target.dataset.uid||e.target.dataset.shield))}
   else if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-def]')){e.preventDefault();zoomFrom(e.target)}
 });

@@ -949,6 +949,10 @@ input.switch:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
 .shard:nth-child(5){clip-path:polygon(60% 100%,15% 100%,55% 45%);--x:-3px;--y:20px;--r:30deg}
 .shard:nth-child(6){clip-path:polygon(15% 100%,0 100%,0 30%,55% 45%);--x:-17px;--y:8px;--r:-36deg}
 .back.shield.breaking .flash{position:absolute;left:55%;top:45%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:radial-gradient(circle,#fffbe8 0,#ffd9a0b3 30%,#ff6b5540 55%,transparent 72%);animation:k-burst .35s ease-out both;pointer-events:none}
+/* the card whose ability is resolving, and what changed since the last redraw */
+.duelmain .card.acting{outline:2px solid #EF9F27;outline-offset:2px}
+.duelmain .info>span.bump,.duelmain .shields.bump,.duelmain .card .pw.bump{animation:k-bump .5s ease-out}
+.duelmain .info>span.bump{display:inline-block}
 @keyframes k-enter{0%{transform:scale(.4) translateY(30px);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:none}}
 @keyframes k-up{40%{transform:translateY(-34px) scale(1.08)}}
 @keyframes k-down{40%{transform:translateY(34px) scale(1.08)}}

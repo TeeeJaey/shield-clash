@@ -17,13 +17,19 @@ function closeZoom(){
   ZOOM=null;ZNAV=null;renderZoom();
 }
 // The list the zoom view browses scrolls along with it, so closing it lands on the last card
-// looked at: the builder's grid, the rows of the deck, or a zone on the board.
+// looked at: the builder's grid, the rows of the deck, a prompt's cards or a zone on the board.
+// A focus ring left on the card that opened the view moves along too.
 function followZoom(flash){
   if(!ZNAV||!ZOOM)return;
   if(ZNAV.from==='grid'){revealBuilderCard(ZOOM.id,flash);return}
   if(ZNAV.from==='cart'&&flash){cartLand(ZOOM.id);return}
-  const el=ZNAV.from==='cart'?document.querySelector(`.cart [data-row="${ZOOM.id}"]`):ZOOM.uid?document.querySelector(`#app [data-uid="${ZOOM.uid}"]`):null;
-  if(el)el.scrollIntoView({block:'nearest',inline:'nearest'});
+  const el=ZNAV.from==='cart'?document.querySelector(`.cart [data-row="${ZOOM.id}"]`)
+    :ZNAV.pick?document.querySelector(`#layer [data-pick="${ZNAV.pick.get(ZOOM)}"]`)
+    :ZOOM.uid?document.querySelector(`#app [data-uid="${ZOOM.uid}"]`):null;
+  if(!el)return;
+  (el.closest('.pick')||el).scrollIntoView({block:'nearest',inline:'nearest'});
+  const had=document.activeElement;
+  if(el.matches('.card')&&had!==el&&had?.matches?.('.card')&&!had.closest('#zoom'))el.focus({preventScroll:true});
 }
 let ZSLIDE=0;
 function stepZoom(d){
